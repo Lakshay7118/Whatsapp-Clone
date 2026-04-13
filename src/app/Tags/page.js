@@ -3,7 +3,9 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://192.168.0.132:5000/api";
+const API_BASE =
+  process.env.NEXT_PUBLIC_BACKEND ||
+  "https://whatsapp-backend-production-308a.up.railway.app";
 
 // ── Helper: get tag name safely ──────────────────────────────────────────────
 const getTagName = (tag) => tag?.name || tag?.tagName || "";
