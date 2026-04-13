@@ -414,7 +414,7 @@ export default function CampaignsPage() {
   // Fetch campaigns from backend
   const fetchCampaigns = () => {
     setIsLoading(true);
-    fetch(`${BACKEND}/api/campaigns`)
+    fetch(`${API_BASE}/api/campaigns`)
       .then((res) => res.json())
       .then((data) => {
         if (data.success && Array.isArray(data.campaigns)) {
@@ -439,7 +439,7 @@ export default function CampaignsPage() {
   const handleDelete = async (campaignId, campaignName) => {
     if (!confirm(`Delete campaign "${campaignName}" permanently?`)) return;
     try {
-      const res = await fetch(`${BACKEND}/api/campaigns/${campaignId}`, {
+      const res = await fetch(`${API_BASE}/api/campaigns/${campaignId}`, {
         method: "DELETE",
       });
       if (res.ok) {
@@ -459,7 +459,7 @@ export default function CampaignsPage() {
     const newStatus = campaign.status === "paused" ? "scheduled" : "paused";
     setUpdatingId(campaign._id);
     try {
-      const res = await fetch(`${BACKEND}/api/campaigns/${campaign._id}/status`, {
+      const res = await fetch(`${API_BASE}/api/campaigns/${campaign._id}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus }),
