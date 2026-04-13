@@ -26,9 +26,11 @@ import {
   Hash,
 } from "lucide-react";
 
-const API_BASE =
+const BASE =
   process.env.NEXT_PUBLIC_BACKEND ||
   "https://whatsapp-backend-production-308a.up.railway.app";
+
+const API_BASE = `${BASE}/api`;
 
 const categoryOptions = ["Marketing", "Utility", "Authentication"];
 const languageOptions = ["English", "Hindi", "Spanish", "Arabic"];
