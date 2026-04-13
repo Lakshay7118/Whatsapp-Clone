@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { FiTrash2, FiEdit2 } from "react-icons/fi";
 
 const API_BASE =
-  process.env.NEXT_PUBLIC_BACKEND ||
-  "https://whatsapp-backend-production-308a.up.railway.app";
+  process.env.NEXT_PUBLIC_BACKEND + "/api" ||
+  "https://whatsapp-backend-production-308a.up.railway.app/api";
 
 // ── TagBadge ──────────────────────────────────────────────────────────────
 function TagBadge({ label }) {
