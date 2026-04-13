@@ -1,6 +1,8 @@
   "use client";
-  import { getSocket, BACKEND } from "../lib/socket";
-  
+  import { getSocket } from "../lib/socket";
+
+
+
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
   import { gsap } from "gsap";
@@ -32,6 +34,12 @@ import { createPortal } from "react-dom";
   FiCopy,
   FiCheckSquare,
   } from "react-icons/fi";
+
+  const BASE =
+  process.env.NEXT_PUBLIC_BACKEND ||
+  "https://whatsapp-backend-production-308a.up.railway.app";
+
+const API_BASE = `${BASE}/api`;
 
   /* ─────────────────────────────────────────────
     Skeleton components (unchanged)
@@ -749,7 +757,7 @@ const sendForward = async (targetChat) => {
     templateMeta: forwardMessage.templateMeta || null,
   };
 
-  await fetch(`${BACKEND}/api/messages`, {
+  await fetch(`${API_BASE}/api/messages`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -984,7 +992,7 @@ const sendForward = async (targetChat) => {
             text: "",
           };
         }
-        await fetch(`${BACKEND}/api/messages`, {
+        await fetch(`${API_BASE}/api/messages`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(messageData),
@@ -1123,7 +1131,7 @@ const sendForward = async (targetChat) => {
     };
 
     console.log("SENDING PAYLOAD:", JSON.stringify(payload, null, 2)); // verify before removing
-    await fetch(`${BACKEND}/api/messages`, {
+    await fetch(`${API_BASE}/api/messages`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
