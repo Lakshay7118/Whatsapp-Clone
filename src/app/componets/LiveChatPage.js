@@ -332,14 +332,14 @@ const [forwardMessage,   setForwardMessage]   = useState(null);
     }, []);
 
     useEffect(() => {
-      fetch(`${API_BASE}/api/contacts`)
+      fetch(`${API_BASE}/contacts`)
         .then(res => res.json())
         .then(data => setContacts(data))
         .catch(console.error);
     }, []);
 
     useEffect(() => {
-  fetch(`${API_BASE}/api/tags`)
+  fetch(`${API_BASE}/tags`)
     .then(res => res.json())
     .then(data => setTags(Array.isArray(data) ? data : data.tags || data.data || [])) 
     .catch(console.error);
@@ -361,7 +361,7 @@ const [forwardMessage,   setForwardMessage]   = useState(null);
     useEffect(() => {
       const user = JSON.parse(localStorage.getItem("user"));
       if (!user) return;
-      fetch(`${API_BASE}/api/chats/${user.phone}`)
+      fetch(`${API_BASE}/chats/${user.phone}`)
         .then(r => r.json())
         .then(data => {
           if (Array.isArray(data)) {
@@ -385,7 +385,7 @@ const [forwardMessage,   setForwardMessage]   = useState(null);
     s.emit("joinChat", chatId);
 
     // ✅ FETCH MESSAGES
-    fetch(`${API_BASE}/api/messages?chatId=${chatId}&userPhone=${currentUser?.phone}`)
+    fetch(`${API_BASE}/messages?chatId=${chatId}&userPhone=${currentUser?.phone}`)
       .then(r => r.json())
       .then(data => {
         setMessages(prev => ({
@@ -427,7 +427,7 @@ const [forwardMessage,   setForwardMessage]   = useState(null);
 
     // ✅ MARK READ
     if (currentUser) {
-      fetch(`${API_BASE}/api/messages/mark-read`, {
+      fetch(`${API_BASE}/messages/mark-read`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ chatId, userPhone: currentUser.phone }),
@@ -721,7 +721,7 @@ return () => document.removeEventListener("mousedown", handleClickOutside);
       if (!confirm("Delete this chat for yourself? The other person will still see it.")) return;
       const user = JSON.parse(localStorage.getItem("user"));
       try {
-        const res = await fetch(`${API_BASE}/api/chats/${chatId}`, {
+        const res = await fetch(`${API_BASE}/chats/${chatId}`, {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ userPhone: user.phone }),
@@ -757,7 +757,7 @@ const sendForward = async (targetChat) => {
     templateMeta: forwardMessage.templateMeta || null,
   };
 
-  await fetch(`${API_BASE}/api/messages`, {
+  await fetch(`${API_BASE}/messages`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -778,7 +778,7 @@ const sendForward = async (targetChat) => {
       if (!selectedMessageId) return;
       const user = JSON.parse(localStorage.getItem("user"));
       try {
-        const res = await fetch(`${API_BASE}/api/messages/${selectedMessageId}`, {
+        const res = await fetch(`${API_BASE}/messages/${selectedMessageId}`, {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ userPhone: user.phone, mode: "me" }),
@@ -808,7 +808,7 @@ const sendForward = async (targetChat) => {
       if (!selectedMessageId) return;
       const user = JSON.parse(localStorage.getItem("user"));
       try {
-        const res = await fetch(`${API_BASE}/api/messages/${selectedMessageId}`, {
+        const res = await fetch(`${API_BASE}/messages/${selectedMessageId}`, {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ userPhone: user.phone, mode: "everyone" }),
@@ -852,7 +852,7 @@ const sendForward = async (targetChat) => {
       const user = JSON.parse(localStorage.getItem("user"));
       if (!contact.mobile) return;
       try {
-        const res = await fetch(`${API_BASE}/api/chats`, {
+        const res = await fetch(`${API_BASE}/chats`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -876,7 +876,7 @@ const sendForward = async (targetChat) => {
     const deleteContact = async (contactId, contactName) => {
       if (!confirm(`Delete "${contactName}" from contacts?`)) return;
       try {
-        const res = await fetch(`${API_BASE}/api/contacts/${contactId}`, { method: "DELETE" });
+        const res = await fetch(`${API_BASE}/contacts/${contactId}`, { method: "DELETE" });
         if (res.ok) {
           setContacts(prev => prev.filter(c => c._id !== contactId));
         } else {
@@ -896,7 +896,7 @@ const sendForward = async (targetChat) => {
       const user = JSON.parse(localStorage.getItem("user"));
       const participants = [user.phone, ...selectedContactsForGroup.map(c => c.mobile)];
       try {
-        const res = await fetch(`${API_BASE}/api/groups`, {
+        const res = await fetch(`${API_BASE}/groups`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ groupName, participants, admin: user.phone }),
@@ -935,7 +935,7 @@ const sendForward = async (targetChat) => {
       }
 
       try {
-        const res = await fetch(`${API_BASE}/api/chats`, {
+        const res = await fetch(`${API_BASE}/chats`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -962,7 +962,7 @@ const sendForward = async (targetChat) => {
     const uploadFile = async (file) => {
       const formData = new FormData();
       formData.append("file", file);
-      const res = await fetch(`${API_BASE}/api/upload`, {
+      const res = await fetch(`${API_BASE}/upload`, {
         method: "POST",
         body: formData,
       });
@@ -992,7 +992,7 @@ const sendForward = async (targetChat) => {
             text: "",
           };
         }
-        await fetch(`${API_BASE}/api/messages`, {
+        await fetch(`${API_BASE}/messages`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(messageData),
@@ -1131,7 +1131,7 @@ const sendForward = async (targetChat) => {
     };
 
     console.log("SENDING PAYLOAD:", JSON.stringify(payload, null, 2)); // verify before removing
-    await fetch(`${API_BASE}/api/messages`, {
+    await fetch(`${API_BASE}/messages`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
