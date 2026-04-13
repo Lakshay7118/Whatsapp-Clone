@@ -240,16 +240,17 @@ export default function ContactsPage() {
 
   // Fetch all tags
   const fetchTags = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/tags`);
-      const data = await res.json();
+  try {
+    const res = await fetch(`${API_BASE}/tags`);
+    const data = await res.json();
 
-      console.log("TAGS RESPONSE:", data); 
-      setTags(data);
-    } catch (err) {
-      console.error(err);
-    }
-  };
+    console.log("TAGS RESPONSE:", data);
+
+    setTags(Array.isArray(data.tags) ? data.tags : []);
+  } catch (err) {
+    console.error(err);
+  }
+};
 
   useEffect(() => {
     fetchTags();
