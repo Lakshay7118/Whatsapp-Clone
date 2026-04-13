@@ -3,9 +3,11 @@
 import { io } from "socket.io-client";
 
 // ✅ Use env variable (Vercel) OR fallback to Railway
-const BACKEND =
+const BASE =
   process.env.NEXT_PUBLIC_BACKEND ||
   "https://whatsapp-backend-production-308a.up.railway.app";
+
+const API_BASE = `${BASE}/api`;
 
 let socket = null;
 
