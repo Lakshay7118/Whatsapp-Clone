@@ -301,6 +301,8 @@ const API_BASE = `${BASE}/api`;
     const [selectedMessageId,  setSelectedMessageId]  = useState(null);
     const [showForwardModal, setShowForwardModal] = useState(false);
 const [forwardMessage,   setForwardMessage]   = useState(null);
+const [showTemplateModal, setShowTemplateModal] = useState(false);
+const [templates, setTemplates] = useState([]);
 
     useEffect(() => {
       const user = JSON.parse(localStorage.getItem("user"));
@@ -357,6 +359,21 @@ const [forwardMessage,   setForwardMessage]   = useState(null);
 
     return () => s.disconnect();
   }, []);
+
+  useEffect(() => {
+  fetch(`${API_BASE}/templates`)
+    .then(res => res.json())
+    .then(data => {
+      console.log("TEMPLATES API:", data); // 🔥 DEBUG
+
+      setTemplates(
+        Array.isArray(data)
+          ? data
+          : data.templates || data.data || []
+      );
+    })
+    .catch(console.error);
+}, []);
 
     useEffect(() => {
       const user = JSON.parse(localStorage.getItem("user"));
@@ -1559,7 +1576,19 @@ const sendForward = async (targetChat) => {
                           </div>
 
                           <input type="text" value={input} onChange={handleInputChange} onKeyDown={(e) => e.key === "Enter" && handleSend()} placeholder="Type a message" className="form-control border-0 shadow-none" style={{ height: 42, borderRadius: 24, background: "#ffffff", paddingLeft: 16, paddingRight: 16 }} />
-
+                              <button
+  type="button"
+  onClick={() => setShowTemplateModal(true)}
+  className="btn border-0 rounded-circle d-flex align-items-center justify-content-center"
+  style={{
+    width: 42,
+    height: 42,
+    background: "#e7fef5",
+    color: "#00a884",
+  }}
+>
+  📄
+</button>
                           <button type="button" onClick={handleSend} className="send-btn btn border-0 rounded-circle d-flex align-items-center justify-content-center" style={{ width: 42, height: 42, background: "#00a884", color: "#ffffff", flexShrink: 0 }}><FiSend size={18} /></button>
                         </div>
                       </>
@@ -1626,6 +1655,7 @@ const sendForward = async (targetChat) => {
             </div>
           </div>
         )}
+
 
         {/* Forward Message Modal */}
 {showForwardModal && (
@@ -1756,10 +1786,70 @@ const sendForward = async (targetChat) => {
             </div>
           </div>
         )}
+
+             {/* ✅ TEMPLATE MODAL */}
+{showTemplateModal && (
+  <div
+    style={{
+      position: "fixed",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: "rgba(0,0,0,0.5)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      zIndex: 9999,
+    }}
+    onClick={() => setShowTemplateModal(false)}
+  >
+    <div
+      style={{
+        background: "#fff",
+        borderRadius: 12,
+        width: "400px",
+        maxHeight: "70vh",
+        overflowY: "auto",
+        padding: 16,
+      }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <h5>Select Template</h5>
+
+      {templates.length === 0 ? (
+        <p>No templates found</p>
+      ) : (
+        templates.map((t) => (
+          <div
+            key={t._id}
+            onClick={() => {
+              sendTemplate(t);
+              setShowTemplateModal(false);
+            }}
+            style={{
+              padding: 10,
+              borderBottom: "1px solid #eee",
+              cursor: "pointer",
+            }}
+          >
+            <div style={{ fontWeight: "bold" }}>{t.name}</div>
+            <div style={{ fontSize: 12, color: "#666" }}>
+              {t.format?.slice(0, 50)}
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  </div>
+)}
+
       </>
     );
   }
 
+  
+   
   /* ─────────────────────────────────────────────
     Sub-components
   ───────────────────────────────────────────── */
