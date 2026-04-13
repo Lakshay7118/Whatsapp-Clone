@@ -9,7 +9,9 @@ export default function Page() {
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL || "http://192.168.0.132:5000";
+  const BACKEND =
+  process.env.NEXT_PUBLIC_BACKEND ||
+  "https://whatsapp-backend-production-308a.up.railway.app";
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
