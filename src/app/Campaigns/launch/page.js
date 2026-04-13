@@ -353,7 +353,7 @@ export default function LaunchCampaignPage() {
 
   scheduledDateTime:
     form.recurrence.type === "one-time"
-      ? `${form.scheduledDate}T${form.scheduledTime}`
+      ? new Date(`${form.scheduledDate}T${form.scheduledTime}`).toISOString()
       : null,
 
   // ✅ FIXED NAME
