@@ -18,9 +18,11 @@ const steps = [
   "Preview & Send",
 ];
 
-const API_BASE =
+const BASE =
   process.env.NEXT_PUBLIC_BACKEND ||
-  "https://whatsapp-backend-production-308a.up.railway.app";  
+  "https://whatsapp-backend-production-308a.up.railway.app";
+
+const API_BASE = `${BASE}/api`;
 
 const extractVariables = (body = "") => {
   const regex = /{{(\d+)}}/g;
