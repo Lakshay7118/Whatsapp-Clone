@@ -18,7 +18,9 @@ const steps = [
   "Preview & Send",
 ];
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://192.168.0.132:5000/api";  
+const API_BASE =
+  process.env.NEXT_PUBLIC_BACKEND ||
+  "https://whatsapp-backend-production-308a.up.railway.app";  
 
 const extractVariables = (body = "") => {
   const regex = /{{(\d+)}}/g;

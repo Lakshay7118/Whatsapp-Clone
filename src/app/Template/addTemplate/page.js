@@ -26,7 +26,9 @@ import {
   Hash,
 } from "lucide-react";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://192.168.0.132:5000/api";
+const API_BASE =
+  process.env.NEXT_PUBLIC_BACKEND ||
+  "https://whatsapp-backend-production-308a.up.railway.app";
 
 const categoryOptions = ["Marketing", "Utility", "Authentication"];
 const languageOptions = ["English", "Hindi", "Spanish", "Arabic"];

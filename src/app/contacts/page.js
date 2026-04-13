@@ -4,7 +4,9 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { FiTrash2, FiEdit2 } from "react-icons/fi";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://192.168.0.132:5000/api";
+const API_BASE =
+  process.env.NEXT_PUBLIC_BACKEND ||
+  "https://whatsapp-backend-production-308a.up.railway.app";
 
 // ── TagBadge ──────────────────────────────────────────────────────────────
 function TagBadge({ label }) {
