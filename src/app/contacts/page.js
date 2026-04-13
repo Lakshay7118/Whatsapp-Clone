@@ -243,7 +243,9 @@ export default function ContactsPage() {
     try {
       const res = await fetch(`${API_BASE}/tags`);
       const data = await res.json();
-      setTags(data || []);
+
+      console.log("TAGS RESPONSE:", data); 
+      setTags(data);
     } catch (err) {
       console.error(err);
     }
