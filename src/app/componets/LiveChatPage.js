@@ -35,9 +35,7 @@ import { createPortal } from "react-dom";
   FiCheckSquare,
   } from "react-icons/fi";
 
-  const BASE =
-  process.env.NEXT_PUBLIC_BACKEND ||
-  "https://whatsapp-backend-production-308a.up.railway.app";
+const BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 const API_BASE = `${BASE}/api`;
 
@@ -2058,11 +2056,11 @@ const sendForward = async (targetChat) => {
           )}
 
           {/* BODY */}
-          {(t.body || t.resolvedText) && (
-            <div style={{ fontSize: "0.9rem", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
-              {parseTemplate(t.resolvedText || t.body || "", t.variables || {})}
-            </div>
-          )}
+          {(msg.text || t.body) && (
+  <div style={{ fontSize: "0.9rem", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
+    {msg.text || parseTemplate(t.resolvedText || t.body || "", t.variables || {})}
+  </div>
+)}
 
           {/* FOOTER */}
           {t.footer && (

@@ -876,3 +876,4 @@ function formatFileSize(bytes) {
   const kb = bytes / 1024;
   return kb < 1024 ? `${kb.toFixed(1)} KB` : `${(kb / 1024).toFixed(1)} MB`;
 }
+

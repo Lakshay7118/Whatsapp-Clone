@@ -16,9 +16,9 @@ import {
   Trash2,
 } from "lucide-react";
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_BACKEND ||
-  "https://whatsapp-backend-production-308a.up.railway.app";
+const BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
+
+const API_BASE = `${BASE}`;
 
 // ------------------------------------------------------------
 // Styles

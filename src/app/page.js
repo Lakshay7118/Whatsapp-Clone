@@ -9,9 +9,9 @@ export default function Page() {
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const BACKEND =
-  process.env.NEXT_PUBLIC_BACKEND ||
-  "https://whatsapp-backend-production-308a.up.railway.app";
+const BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
+
+const API_BASE = `${BASE}`;
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -25,7 +25,7 @@ export default function Page() {
 
     setLoading(true);
     try {
-      const res = await fetch(`${BACKEND}/api/users/login`, {
+      const res = await fetch(`${API_BASE}/api/users/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, phone }),

@@ -18,9 +18,7 @@ const steps = [
   "Preview & Send",
 ];
 
-const BASE =
-  process.env.NEXT_PUBLIC_BACKEND ||
-  "https://whatsapp-backend-production-308a.up.railway.app";
+const BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 const API_BASE = `${BASE}/api`;
 

@@ -28,9 +28,7 @@ import {
   Upload,
   Save,
 } from "lucide-react";
-const BASE =
-  process.env.NEXT_PUBLIC_BACKEND ||
-  "https://whatsapp-backend-production-308a.up.railway.app";
+const BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 const API_BASE = `${BASE}/api`;
 const BACKEND_URL = API_BASE.replace("/api", "");
