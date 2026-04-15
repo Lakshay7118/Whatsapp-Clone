@@ -1307,7 +1307,7 @@ const sendForward = async (targetChat) => {
         `}</style>
         <style>{shimmerCSS}</style>
 
-        <div ref={pageRef} className="sticky-chat-shell p-3">
+        <div ref={pageRef} className="sticky-chat-shell" style={{padding: "0 10px"}}>
           <input ref={imageInputRef} type="file" accept="image/*" hidden onChange={handleImagePick} />
           <input 
   ref={fileInputRef} 
