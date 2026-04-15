@@ -59,9 +59,20 @@ const firstFilled = (...values) => {
 const safeArray = (value) => (Array.isArray(value) ? value : []);
 
 const resolveUrl = (raw) => {
-  if (!raw) return "";
-  if (typeof raw !== "string") return "";
-  return raw.startsWith("http") ? raw : `${BACKEND_URL}${raw}`;
+  if (!raw || typeof raw !== "string") return "";
+
+  // ✅ base64 support (MOST IMPORTANT FIX)
+  if (raw.startsWith("data:image") || raw.startsWith("data:video")) {
+    return raw;
+  }
+
+  // ✅ cloudinary / external url
+  if (raw.startsWith("http")) {
+    return raw;
+  }
+
+  // ✅ local file
+  return `${BACKEND_URL}${raw}`;
 };
 
 const normalizeButtons = (item) => {
