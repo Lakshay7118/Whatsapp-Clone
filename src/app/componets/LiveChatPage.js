@@ -1513,7 +1513,41 @@ const sendForward = async (targetChat) => {
       justifyContent: msg.type === "sent" ? "flex-end" : "flex-start",
     }}
   >
-    <MessageBubble msg={msg} onDeleteClick={openDeleteModal} onForward={handleForwardMessage} />
+    <MessageBubble 
+  msg={msg} 
+  onDeleteClick={openDeleteModal} 
+  onForward={handleForwardMessage} 
+  onSendMessage={async (newMsg) => {
+  const user = JSON.parse(localStorage.getItem("user"));
+
+  // ✅ 1. UI me turant show (optimistic)
+  setMessages(prev => ({
+    ...prev,
+    [selectedChat._id]: [
+      ...(prev[selectedChat._id] || []),
+      newMsg
+    ]
+  }));
+
+  // ✅ 2. Backend ko bhejo (IMPORTANT)
+  try {
+    await fetch(`${API_BASE}/messages`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        chatId: selectedChat._id,
+        sender: user.phone,
+        text: newMsg.text,
+        messageType: "text",
+      }),
+    });
+  } catch (err) {
+    console.error("Send failed:", err);
+  }
+}}
+/>
   </div>
                           ))}
                           {isUserTyping && <div className="d-flex justify-content-start"><div className="px-3 py-2 rounded-3 bg-white" style={{ fontSize: "0.8rem", color: "#667781" }}>Typing...</div></div>}
@@ -1851,21 +1885,21 @@ const sendForward = async (targetChat) => {
   /* ─────────────────────────────────────────────
     Sub-components
   ───────────────────────────────────────────── */
-  function MessageBubble({
+function MessageBubble({
   msg,
   onDeleteClick,
   onForward,
   onSelect,
   isSelected,
   multiSelectMode,
+  onSendMessage,
 }) {
   const [showActions, setShowActions] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
-  const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
   const menuRef = useRef(null);
   const bubbleRef = useRef(null);
 
-  // Close menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
@@ -1877,20 +1911,26 @@ const sendForward = async (targetChat) => {
   }, []);
 
   const isMine = msg.type === "sent";
+  const isTemplate = !!msg.templateMeta;
 
+  // ── Bubble wrapper style — strip padding/bg/radius for templates
   const bubbleBase = {
     alignSelf: isMine ? "flex-end" : "flex-start",
-    maxWidth: "65%",
-    background: isMine ? "#d9fdd3" : "#ffffff",
+    maxWidth: isTemplate ? 280 : "65%",
+    // Templates own their own card — no double wrapper
+    background: isTemplate ? "transparent" : isMine ? "#d9fdd3" : "#ffffff",
     color: "#111b21",
-    padding: "6px 8px 6px 10px",
-    borderRadius: isMine ? "7.5px 7.5px 0 7.5px" : "7.5px 7.5px 7.5px 0",
-    boxShadow: "0 1px 0.5px rgba(11,20,26,0.13)",
+    padding: isTemplate ? 0 : "6px 8px 6px 10px",
+    borderRadius: isTemplate
+      ? 0
+      : isMine
+      ? "7.5px 7.5px 0 7.5px"
+      : "7.5px 7.5px 7.5px 0",
+    boxShadow: isTemplate ? "none" : "0 1px 0.5px rgba(11,20,26,0.13)",
     wordBreak: "break-word",
     position: "relative",
   };
 
-  // Deleted message placeholder
   if (msg.isDeleted) {
     return (
       <div style={bubbleBase}>
@@ -1901,120 +1941,224 @@ const sendForward = async (targetChat) => {
     );
   }
 
-  // Copy message text to clipboard
   const handleCopy = () => {
-    if (msg.messageType === "text" && msg.text) {
-      navigator.clipboard.writeText(msg.text);
-    }
+    if (msg.messageType === "text" && msg.text) navigator.clipboard.writeText(msg.text);
     setShowMenu(false);
   };
-
-  // Forward message
   const handleForward = () => {
     if (onForward) onForward(msg);
     else alert("Forward functionality not yet implemented.");
     setShowMenu(false);
   };
-
-  // Message info
   const handleInfo = () => {
-    alert(`Message sent at ${msg.time}`);
+    alert(`Message sent at ${getFormattedTime()}`);
     setShowMenu(false);
   };
-
-  // Toggle selection (multi-select)
   const handleSelectToggle = () => {
     if (onSelect) onSelect(msg.id);
     setShowMenu(false);
   };
-
-  // Open delete modal
   const handleDeleteClick = () => {
     onDeleteClick(msg.id);
     setShowMenu(false);
   };
 
-  // Helper: get button label regardless of which key is used
   const btnLabel = (btn) =>
     btn.label || btn.title || btn.text || btn.buttonText || "Button";
-
-  // Helper: get button URL
   const btnUrl = (btn) => btn.url || btn.value || btn.link || null;
-
-  // Helper: get copy value
   const btnCopyValue = (btn) => btn.value || btn.code || btn.copyCode || null;
 
-  // Parse template variables
   const parseTemplate = (text, variables = {}) => {
     if (!text) return "";
-    return text.replace(/\{\{(\d+)\}\}/g, (match, num) => {
-      const varConfig = variables[num];
-      if (!varConfig) return match;
-      if (varConfig.type === "name") return "[Contact Name]";
-      if (varConfig.type === "number") return "[Phone Number]";
-      return varConfig.value || match;
+    return text.replace(/\{\{(\d+)\}\}/g, (_, num) => {
+      const v = variables[num];
+      if (!v) return `{{${num}}}`;
+      if (v.type === "name") return "[Contact Name]";
+      if (v.type === "number") return "[Phone Number]";
+      return v.value || `{{${num}}}`;
     });
   };
 
+  // ── WhatsApp markdown: *bold*, _italic_, ~strike~
+  const parseWhatsAppMarkdown = (text) => {
+    if (!text) return null;
+    const parts = [];
+    const regex = /(\*[^*]+\*|_[^_]+_|~[^~]+~)/g;
+    let lastIndex = 0;
+    let match;
+    while ((match = regex.exec(text)) !== null) {
+      if (match.index > lastIndex)
+        parts.push(text.slice(lastIndex, match.index));
+      const raw = match[0];
+      if (raw.startsWith("*") && raw.endsWith("*"))
+        parts.push(<strong key={match.index}>{raw.slice(1, -1)}</strong>);
+      else if (raw.startsWith("_") && raw.endsWith("_"))
+        parts.push(<em key={match.index}>{raw.slice(1, -1)}</em>);
+      else if (raw.startsWith("~") && raw.endsWith("~"))
+        parts.push(<s key={match.index}>{raw.slice(1, -1)}</s>);
+      lastIndex = match.index + raw.length;
+    }
+    if (lastIndex < text.length) parts.push(text.slice(lastIndex));
+    return parts.length ? parts : text;
+  };
+
+  const getFormattedTime = () => {
+  const raw = msg.time || msg.createdAt;
+
+  if (!raw) return "";
+
+  // ✅ अगर already "11:31 AM" jaisa hai → directly return
+  if (typeof raw === "string" && raw.includes("AM") || raw.includes("PM")) {
+    return raw;
+  }
+
+  const date = new Date(raw);
+
+  if (isNaN(date.getTime())) {
+    console.log("❌ Invalid date:", raw);
+    return "";
+  }
+
+  return date.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+const handleQuickReplySend = (text) => {
+  const newMsg = {
+    id: Date.now(),
+    text: text,
+    type: "sent",
+    messageType: "text",
+    createdAt: new Date().toISOString(),
+  };
+
+  console.log("Sending quick reply:", newMsg);
+
+  // 🔴 IMPORTANT: yahan apna actual send function lagao
+  // Example:
+  if (typeof onSendMessage === "function") {
+    onSendMessage(newMsg);
+  }
+};
+
   const renderContent = () => {
-    // ─── TEMPLATE MESSAGE ──────────────────────────────────────────
+    // ─── TEMPLATE MESSAGE ───────────────────────────────────────
     if (msg.templateMeta) {
-      console.log("FULL templateMeta:", JSON.stringify(msg.templateMeta, null, 2));
-      console.log("MSG templateMeta:", JSON.stringify(msg.templateMeta, null, 2));
       const t = msg.templateMeta;
       const actions = t.actions || {};
 
-      // Parse dropdown options safely
       const dropdownsWithOptions = (actions.dropdownButtons || []).map((dd) => {
         let optionsArray = [];
-        if (Array.isArray(dd.options)) {
+        if (Array.isArray(dd.options))
           optionsArray = dd.options
             .map((o) => (typeof o === "object" ? o.label || o.value || "" : String(o)))
             .filter(Boolean);
-        } else if (typeof dd.options === "string") {
+        else if (typeof dd.options === "string")
           optionsArray = dd.options.split(",").map((o) => o.trim()).filter(Boolean);
-        } else if (dd.parsedOptions) {
-          optionsArray = dd.parsedOptions;
-        }
+        else if (dd.parsedOptions) optionsArray = dd.parsedOptions;
         return { ...dd, optionsArray };
       });
 
-      return (
-        <div style={{ display: "flex", flexDirection: "column", gap: "8px", minWidth: 220 }}>
-          {/* HEADER */}
-          {t.header && (
-            <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "#111b21" }}>
-              {t.header}
-            </div>
-          )}
+      const hasButtons =
+        dropdownsWithOptions.length > 0 ||
+        actions.inputFields?.length > 0 ||
+        actions.ctaButtons?.length > 0 ||
+        actions.copyCodeButtons?.length > 0 ||
+        actions.quickReplies?.length > 0;
 
-          {/* IMAGE */}
+      const bodyText = msg.text ||
+        parseTemplate(t.resolvedText || t.body || "", t.variables || {});
+
+      const waBtnBase = {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 6,
+        padding: "10px 12px",
+        fontSize: "0.88rem",
+        color: "#0096de",
+        fontWeight: 500,
+        cursor: "pointer",
+        background: "#fff",
+        border: "none",
+        borderTop: "0.5px solid #e0e0e0",
+        width: "100%",
+        fontFamily: "-apple-system, 'Helvetica Neue', sans-serif",
+      };
+
+      const ctaIcon = (btn) => {
+        const type = (btn.type || btn.subType || "").toLowerCase();
+        if (type.includes("phone") || type.includes("call"))
+          return (
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.6 19.79 19.79 0 0 1 1.61 5 2 2 0 0 1 3.58 3h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 10a16 16 0 0 0 6 6z" />
+            </svg>
+          );
+        return (
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+            <polyline points="15 3 21 3 21 9" />
+            <line x1="10" y1="14" x2="21" y2="3" />
+          </svg>
+        );
+      };
+
+      return (
+        <div
+          style={{
+            background: isMine ? "#d9fdd3" : "#ffffff",
+            borderRadius: isMine ? "8px 8px 0 8px" : "0 8px 8px 8px",
+            overflow: "hidden",
+            width: 280,
+            fontFamily: "-apple-system, 'Helvetica Neue', sans-serif",
+            boxShadow: "0 1px 2px rgba(11,20,26,0.13)",
+          }}
+        >
+          {/* ── HEADER IMAGE ── */}
           {t.mediaType === "Image" && t.mediaUrl && (
             <img
               src={t.mediaUrl.startsWith("http") ? t.mediaUrl : `${API_BASE}${t.mediaUrl}`}
               alt="template"
-              style={{ width: "240px", maxWidth: "100%", borderRadius: 6, display: "block" }}
+              style={{ width: "100%", height: 160, objectFit: "cover", display: "block" }}
             />
           )}
 
-          {/* VIDEO */}
+          {/* ── HEADER VIDEO ── */}
           {t.mediaType === "Video" && t.mediaUrl && (
-            <video controls style={{ width: "240px", maxWidth: "100%", borderRadius: 6 }}>
-              <source src={t.mediaUrl.startsWith("http") ? t.mediaUrl : `${API_BASE}${t.mediaUrl}`} />
+            <video controls style={{ width: "100%", display: "block", maxHeight: 180 }}>
+              <source
+                src={t.mediaUrl.startsWith("http") ? t.mediaUrl : `${API_BASE}${t.mediaUrl}`}
+              />
             </video>
           )}
 
-          {/* CAROUSEL */}
+          {/* ── HEADER TEXT (only when no media) ── */}
+          {t.header && t.mediaType !== "Image" && t.mediaType !== "Video" && (
+            <div
+              style={{
+                padding: "10px 10px 0",
+                fontWeight: 700,
+                fontSize: "0.95rem",
+                color: "#111b21",
+              }}
+            >
+              {t.header}
+            </div>
+          )}
+
+          {/* ── CAROUSEL ── */}
           {t.mediaType === "Carousel" && t.carouselItems?.length > 0 && (
-            <div style={{ display: "flex", overflowX: "auto", gap: 8, paddingBottom: 4 }}>
+            <div style={{ display: "flex", overflowX: "auto", gap: 8, padding: 8 }}>
               {t.carouselItems.map((item, idx) => (
                 <div
                   key={idx}
                   style={{
-                    minWidth: 200,
-                    border: "1px solid #e0e0e0",
+                    minWidth: 180,
+                    border: "0.5px solid #e0e0e0",
                     borderRadius: 8,
-                    padding: 8,
+                    overflow: "hidden",
                     background: "#fff",
                     flexShrink: 0,
                   }}
@@ -2023,141 +2167,149 @@ const sendForward = async (targetChat) => {
                     <img
                       src={item.mediaUrl.startsWith("http") ? item.mediaUrl : `${API_BASE}${item.mediaUrl}`}
                       alt=""
-                      style={{ width: "100%", borderRadius: 6, marginBottom: 6 }}
+                      style={{ width: "100%", height: 110, objectFit: "cover", display: "block" }}
                     />
                   )}
-                  {item.title && (
-                    <div style={{ fontWeight: 600, fontSize: "0.9rem" }}>{item.title}</div>
-                  )}
-                  {item.description && (
-                    <div style={{ fontSize: "0.82rem", color: "#4b5563", marginTop: 2 }}>
-                      {item.description}
-                    </div>
-                  )}
-                  {item.button && (
-                    <button
-                      style={{
-                        marginTop: 6,
-                        padding: "4px 10px",
-                        background: "#00a884",
-                        color: "#fff",
-                        border: "none",
-                        borderRadius: 6,
-                        cursor: "pointer",
-                        fontSize: "0.82rem",
-                      }}
-                    >
-                      {item.button}
-                    </button>
-                  )}
+                  <div style={{ padding: "6px 8px 8px" }}>
+                    {item.title && (
+                      <div style={{ fontWeight: 600, fontSize: "0.88rem", color: "#111b21" }}>
+                        {item.title}
+                      </div>
+                    )}
+                    {item.description && (
+                      <div style={{ fontSize: "0.8rem", color: "#667781", marginTop: 2 }}>
+                        {item.description}
+                      </div>
+                    )}
+                    {item.button && (
+                      <div
+                        style={{
+                          marginTop: 8,
+                          paddingTop: 6,
+                          borderTop: "0.5px solid #e0e0e0",
+                          color: "#0096de",
+                          fontSize: "0.85rem",
+                          fontWeight: 500,
+                          textAlign: "center",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {item.button}
+                      </div>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
           )}
 
-          {/* BODY */}
-          {(msg.text || t.body) && (
-  <div style={{ fontSize: "0.9rem", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
-    {msg.text || parseTemplate(t.resolvedText || t.body || "", t.variables || {})}
-  </div>
-)}
+          {/* ── BODY ── */}
+          {bodyText && (
+            <div
+              style={{
+                padding: "8px 10px 4px",
+                fontSize: "0.9rem",
+                lineHeight: 1.6,
+                color: "#111b21",
+                whiteSpace: "pre-wrap",
+              }}
+            >
+              {parseWhatsAppMarkdown(bodyText)}
+            </div>
+          )}
 
-          {/* FOOTER */}
+          {/* ── FOOTER ── */}
           {t.footer && (
-            <div style={{ fontSize: "0.78rem", color: "#667781" }}>
+            <div style={{ padding: "2px 10px 2px", fontSize: "0.75rem", color: "#667781" }}>
               {t.footer}
             </div>
           )}
 
-          {/* DIVIDER */}
-          {(
-            dropdownsWithOptions.length > 0 ||
-            actions.inputFields?.length > 0 ||
-            actions.ctaButtons?.length > 0 ||
-            actions.copyCodeButtons?.length > 0 ||
-            actions.quickReplies?.length > 0
-          ) && (
-            <div style={{ borderTop: "1px solid #e0e0e0", marginTop: 2 }} />
-          )}
+          {/* ── TIMESTAMP ── */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-end",
+              alignItems: "center",
+              gap: 4,
+              padding: "2px 8px 6px",
+              fontSize: 11,
+              color: "#667781",
+            }}
+          >
+            {getFormattedTime()}
+            {/* Read receipt ticks for sent messages */}
+            {isMine && (
+              <svg width="16" height="11" viewBox="0 0 16 11">
+                <path
+                  d="M11.071.653a.75.75 0 0 1 .001 1.06l-6.01 6.009a.75.75 0 0 1-1.06 0L1.47 5.19a.75.75 0 1 1 1.06-1.06l2.003 2.002 5.479-5.48a.75.75 0 0 1 1.059.001z"
+                  fill={msg.status === "read" ? "#53bdeb" : "#8696a0"}
+                />
+                <path
+                  d="M14.571.653a.75.75 0 0 1 .001 1.06l-6.01 6.009a.75.75 0 0 1-.53.22.75.75 0 0 1-.53-.22l-.53-.53a.75.75 0 1 1 1.06-1.06l5.479-5.48a.75.75 0 0 1 1.06.001z"
+                  fill={msg.status === "read" ? "#53bdeb" : "#8696a0"}
+                />
+              </svg>
+            )}
+          </div>
 
-          {/* DROPDOWNS */}
-          {dropdownsWithOptions.map((dd, i) => (
-            <div key={dd.id || i}>
-              {dd.title && (
-                <div style={{ fontSize: "0.8rem", fontWeight: 600, marginBottom: 4 }}>
-                  {dd.title}
+          {/* ── BUTTONS ── */}
+          {hasButtons && (
+            <>
+              <div style={{ height: "0.5px", background: "#e0e0e0" }} />
+
+              {/* Dropdowns */}
+              {dropdownsWithOptions.map((dd, i) => (
+                <div key={dd.id || i} style={{ padding: "6px 10px" }}>
+                  {dd.title && (
+                    <div style={{ fontSize: "0.8rem", fontWeight: 600, marginBottom: 4, color: "#111b21" }}>
+                      {dd.title}
+                    </div>
+                  )}
+                  <select
+                    defaultValue={dd.selected || ""}
+                    style={{
+                      width: "100%",
+                      padding: "6px 8px",
+                      borderRadius: 6,
+                      border: "1px solid #ccc",
+                      fontSize: "0.85rem",
+                      background: "#fff",
+                    }}
+                  >
+                    <option value="">{dd.placeholder || "Select an option"}</option>
+                    {dd.optionsArray.map((opt, idx) => (
+                      <option key={idx} value={opt}>{opt}</option>
+                    ))}
+                  </select>
                 </div>
-              )}
-              <select
-                defaultValue={dd.selected || ""}
-                style={{
-                  width: "100%",
-                  padding: "6px 8px",
-                  borderRadius: 6,
-                  border: "1px solid #ccc",
-                  fontSize: "0.85rem",
-                  background: "#fff",
-                }}
-              >
-                <option value="">{dd.placeholder || "Select an option"}</option>
-                {dd.optionsArray.map((opt, idx) => (
-                  <option key={idx} value={opt}>{opt}</option>
-                ))}
-              </select>
-            </div>
-          ))}
-
-          {/* INPUT FIELDS */}
-          {actions.inputFields?.map((field, i) => (
-            <div key={field.id || i}>
-              {field.label && (
-                <div style={{ fontSize: "0.8rem", fontWeight: 600, marginBottom: 4 }}>
-                  {field.label}
-                </div>
-              )}
-              <input
-                type="text"
-                placeholder={field.placeholder || ""}
-                defaultValue={field.value || ""}
-                style={{
-                  width: "100%",
-                  padding: "6px 8px",
-                  borderRadius: 6,
-                  border: "1px solid #ccc",
-                  fontSize: "0.85rem",
-                  background: "#fff",
-                }}
-              />
-            </div>
-          ))}
-
-          {/* CTA + COPY BUTTONS */}
-          {(actions.ctaButtons?.length > 0 || actions.copyCodeButtons?.length > 0) && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {actions.ctaButtons?.map((btn, i) => (
-                <button
-                  key={btn.id || i}
-                  onClick={() => {
-                    const url = btnUrl(btn);
-                    if (url) window.open(url, "_blank");
-                  }}
-                  style={{
-                    width: "100%",
-                    padding: "8px 12px",
-                    borderRadius: 6,
-                    border: "none",
-                    background: "#128C7E",
-                    color: "#fff",
-                    cursor: "pointer",
-                    fontSize: "0.88rem",
-                    fontWeight: 500,
-                    textAlign: "center",
-                  }}
-                >
-                  {btnLabel(btn)}
-                </button>
               ))}
 
+              {/* Input fields */}
+              {actions.inputFields?.map((field, i) => (
+                <div key={field.id || i} style={{ padding: "6px 10px" }}>
+                  {field.label && (
+                    <div style={{ fontSize: "0.8rem", fontWeight: 600, marginBottom: 4, color: "#111b21" }}>
+                      {field.label}
+                    </div>
+                  )}
+                  <input
+                    type="text"
+                    placeholder={field.placeholder || ""}
+                    defaultValue={field.value || ""}
+                    style={{
+                      width: "100%",
+                      padding: "6px 8px",
+                      borderRadius: 6,
+                      border: "1px solid #ccc",
+                      fontSize: "0.85rem",
+                      background: "#fff",
+                    }}
+                  />
+                </div>
+              ))}
+
+              {/* Copy code buttons */}
               {actions.copyCodeButtons?.map((btn, i) => (
                 <button
                   key={btn.id || i}
@@ -2165,52 +2317,80 @@ const sendForward = async (targetChat) => {
                     const val = btnCopyValue(btn);
                     if (val) navigator.clipboard.writeText(val);
                   }}
-                  style={{
-                    width: "100%",
-                    padding: "8px 12px",
-                    borderRadius: 6,
-                    border: "1px solid #128C7E",
-                    background: "#fff",
-                    color: "#128C7E",
-                    cursor: "pointer",
-                    fontSize: "0.88rem",
-                    fontWeight: 500,
-                    textAlign: "center",
-                  }}
+                  style={waBtnBase}
                 >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" />
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                  </svg>
                   {btnLabel(btn)}
                 </button>
               ))}
-            </div>
-          )}
 
-          {/* QUICK REPLIES */}
-          {actions.quickReplies?.length > 0 && (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-              {actions.quickReplies.map((reply, i) => (
-                <button
-                  key={reply.id || i}
+              {/* CTA buttons */}
+              {actions.ctaButtons?.length > 0 && (
+                <div
                   style={{
-                    padding: "5px 14px",
-                    color: "#128C7E",
-                    borderRadius: 16,
-                    border: "1px solid #128C7E",
-                    background: "#fff",
-                    fontSize: "0.85rem",
-                    cursor: "pointer",
-                    fontWeight: 500,
+                    display: "flex",
+                    flexDirection: actions.ctaButtons.length === 2 ? "row" : "column",
                   }}
                 >
-                  {btnLabel(reply)}
-                </button>
-              ))}
-            </div>
+                  {actions.ctaButtons.map((btn, i) => (
+                    <button
+                      key={btn.id || i}
+                      onClick={() => {
+                        const url = btnUrl(btn);
+                        if (url) window.open(url, "_blank");
+                      }}
+                      style={{
+                        ...waBtnBase,
+                        flex: 1,
+                        borderRight:
+                          actions.ctaButtons.length === 2 && i === 0
+                            ? "0.5px solid #e0e0e0"
+                            : "none",
+                      }}
+                    >
+                      {ctaIcon(btn)}
+                      {btnLabel(btn)}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Quick replies */}
+              {actions.quickReplies?.length > 0 && (
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: actions.quickReplies.length > 2 ? "column" : "row",
+                  }}
+                >
+                  {actions.quickReplies.map((reply, i) => (
+  <button
+    key={reply.id || i}
+    onClick={() => handleQuickReplySend(btnLabel(reply))}
+    style={{
+      ...waBtnBase,
+      flex: 1,
+      borderRight:
+        actions.quickReplies.length === 2 && i === 0
+          ? "0.5px solid #e0e0e0"
+          : "none",
+    }}
+  >
+    {btnLabel(reply)}
+  </button>
+))}
+                </div>
+              )}
+            </>
           )}
         </div>
       );
     }
 
-    // ─── IMAGE MESSAGE ─────────────────────────────────────────────
+    // ─── IMAGE MESSAGE ──────────────────────────────────────────
     if (msg.messageType === "image") {
       return (
         <>
@@ -2228,7 +2408,7 @@ const sendForward = async (targetChat) => {
       );
     }
 
-    // ─── FILE MESSAGE ──────────────────────────────────────────────
+    // ─── FILE MESSAGE ──────────────────────────────────────────
     if (msg.messageType === "file") {
       return (
         <div className="d-flex align-items-center gap-2">
@@ -2243,7 +2423,7 @@ const sendForward = async (targetChat) => {
       );
     }
 
-    // ─── TEXT MESSAGE ──────────────────────────────────────────────
+    // ─── TEXT MESSAGE ──────────────────────────────────────────
     return (
       <div style={{ fontSize: "0.9rem", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
         {msg.text}
@@ -2256,7 +2436,9 @@ const sendForward = async (targetChat) => {
       ref={bubbleRef}
       style={{
         ...bubbleBase,
-        ...(isSelected ? { border: "2px solid #00a884", boxShadow: "0 0 0 2px rgba(0,168,132,0.2)" } : {}),
+        ...(isSelected
+          ? { outline: "2px solid #00a884", outlineOffset: 1 }
+          : {}),
       }}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => {
@@ -2264,12 +2446,12 @@ const sendForward = async (targetChat) => {
         setShowMenu(false);
       }}
     >
-      {/* Multi-select checkbox (visible when mode is active) */}
+      {/* Multi-select checkbox */}
       {multiSelectMode && (
         <div
           style={{
             position: "absolute",
-            left: -24,
+            left: -28,
             top: "50%",
             transform: "translateY(-50%)",
           }}
@@ -2283,24 +2465,24 @@ const sendForward = async (targetChat) => {
         </div>
       )}
 
-      {/* Down arrow button (visible on hover) */}
+      {/* Hover action button */}
       {showActions && !multiSelectMode && (
         <button
           onClick={(e) => {
-  const rect = e.currentTarget.getBoundingClientRect();
-  const spaceBelow = window.innerHeight - rect.bottom;
-const menuHeight = 160; // approximate menu height
-setMenuPos({
-  top: spaceBelow < menuHeight ? rect.top - menuHeight - 4 : rect.bottom + 4,
-  left: rect.right - 180,
-});
-  setShowMenu(!showMenu);
-}}
+            const rect = e.currentTarget.getBoundingClientRect();
+            const spaceBelow = window.innerHeight - rect.bottom;
+            const menuHeight = 160;
+            setMenuPos({
+              top: spaceBelow < menuHeight ? rect.top - menuHeight - 4 : rect.bottom + 4,
+              left: rect.right - 180,
+            });
+            setShowMenu((s) => !s);
+          }}
           style={{
             position: "absolute",
             top: 4,
             right: 4,
-            background: "rgba(255,255,255,0.9)",
+            background: "rgba(255,255,255,0.92)",
             border: "1px solid #ddd",
             borderRadius: "50%",
             width: 24,
@@ -2317,49 +2499,51 @@ setMenuPos({
         </button>
       )}
 
-      {/* Dropdown menu */}
-      {showMenu && createPortal(
-  <div
-    ref={menuRef}
-    style={{
-      position: "fixed",
-      top: menuPos.top,
-      left: menuPos.left,
-zIndex: 9999,
-            background: "#fff",
-            borderRadius: 8,
-            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-            border: "1px solid #e0e0e0",
-            minWidth: 180,
-            zIndex: 10,
-            overflow: "hidden",
-          }}
-        >
-          <MenuItem icon={<FiShare2 size={14} />} label="Forward" onClick={handleForward} />
-          {msg.messageType === "text" && (
-            <MenuItem icon={<FiCopy size={14} />} label="Copy" onClick={handleCopy} />
-          )}
-          <MenuItem icon={<FiInfo size={14} />} label="Message info" onClick={handleInfo} />
-          <MenuItem
-            icon={<FiTrash2 size={14} />}
-            label="Delete"
-            onClick={handleDeleteClick}
-            danger
-          />
-          {multiSelectMode !== undefined && (
+      {/* Context menu portal */}
+      {showMenu &&
+        createPortal(
+          <div
+            ref={menuRef}
+            style={{
+              position: "fixed",
+              top: menuPos.top,
+              left: menuPos.left,
+              zIndex: 9999,
+              background: "#fff",
+              borderRadius: 8,
+              boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+              border: "1px solid #e0e0e0",
+              minWidth: 180,
+              overflow: "hidden",
+            }}
+          >
+            <MenuItem icon={<FiShare2 size={14} />} label="Forward" onClick={handleForward} />
+            {msg.messageType === "text" && (
+              <MenuItem icon={<FiCopy size={14} />} label="Copy" onClick={handleCopy} />
+            )}
+            <MenuItem icon={<FiInfo size={14} />} label="Message info" onClick={handleInfo} />
             <MenuItem
-              icon={<FiCheckSquare size={14} />}
-              label={isSelected ? "Deselect" : "Select"}
-              onClick={handleSelectToggle}
+              icon={<FiTrash2 size={14} />}
+              label="Delete"
+              onClick={handleDeleteClick}
+              danger
             />
-          )}
-        </div>,
-        document.body
-      )}
+            {multiSelectMode !== undefined && (
+              <MenuItem
+                icon={<FiCheckSquare size={14} />}
+                label={isSelected ? "Deselect" : "Select"}
+                onClick={handleSelectToggle}
+              />
+            )}
+          </div>,
+          document.body
+        )}
 
-      {/* Message content */}
+      {/* Content */}
       {renderContent()}
-      <MessageMeta msg={msg} inline={msg.messageType === "text"} />
+
+      {/* Meta (time + ticks) — only for non-template messages */}
+      {!isTemplate && <MessageMeta msg={msg} inline={msg.messageType === "text"} />}
     </div>
   );
 }
