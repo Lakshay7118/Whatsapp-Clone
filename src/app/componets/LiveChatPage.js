@@ -2238,60 +2238,96 @@ const handleQuickReplySend = (text) => {
             </div>
           )}
 
-          {/* ── CAROUSEL ── */}
           {t.mediaType === "Carousel" && t.carouselItems?.length > 0 && (
-            <div style={{ display: "flex", overflowX: "auto", gap: 8, padding: 8 }}>
-              {t.carouselItems.map((item, idx) => (
-                <div
-                  key={idx}
-                  style={{
-                    minWidth: 180,
-                    border: "0.5px solid #e0e0e0",
-                    borderRadius: 8,
-                    overflow: "hidden",
-                    background: "#fff",
-                    flexShrink: 0,
-                  }}
-                >
-                  {item.mediaUrl && (
-                    <img
-                      src={item.mediaUrl.startsWith("http") ? item.mediaUrl : `${API_BASE}${item.mediaUrl}`}
-                      alt=""
-                      style={{ width: "100%", height: 110, objectFit: "cover", display: "block" }}
-                    />
-                  )}
-                  <div style={{ padding: "6px 8px 8px" }}>
-                    {item.title && (
-                      <div style={{ fontWeight: 600, fontSize: "0.88rem", color: "#111b21" }}>
-                        {item.title}
-                      </div>
-                    )}
-                    {item.description && (
-                      <div style={{ fontSize: "0.8rem", color: "#667781", marginTop: 2 }}>
-                        {item.description}
-                      </div>
-                    )}
-                    {item.button && (
-                      <div
-                        style={{
-                          marginTop: 8,
-                          paddingTop: 6,
-                          borderTop: "0.5px solid #e0e0e0",
-                          color: "#0096de",
-                          fontSize: "0.85rem",
-                          fontWeight: 500,
-                          textAlign: "center",
-                          cursor: "pointer",
-                        }}
-                      >
-                        {item.button}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
+  <div style={{ display: "flex", overflowX: "auto", gap: 8, padding: 8 }}>
+    {t.carouselItems.map((item, idx) => {
+      const imgSrc =
+  item.mediaUrl?.startsWith("http") ||
+  item.mediaUrl?.startsWith("data:image")
+    ? item.mediaUrl
+    : item.mediaUrl
+    ? `${API_BASE}/${item.mediaUrl}`
+    : null;
+
+      return (
+        <div
+          key={idx}
+          style={{
+            minWidth: 180,
+            border: "0.5px solid #e0e0e0",
+            borderRadius: 8,
+            overflow: "hidden",
+            background: "#fff",
+            flexShrink: 0,
+          }}
+        >
+          {imgSrc ? (
+            <img
+              src={imgSrc}
+              alt=""
+              onError={(e) => {
+                e.target.src =
+                  "https://dummyimage.com/300x200/cccccc/000000&text=No+Image";
+              }}
+              style={{
+                width: "100%",
+                height: 110,
+                objectFit: "cover",
+                display: "block",
+              }}
+            />
+          ) : (
+            <div
+              style={{
+                width: "100%",
+                height: 110,
+                background: "#eee",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 12,
+                color: "#888",
+              }}
+            >
+              No Image
             </div>
           )}
+
+          <div style={{ padding: "6px 8px 8px" }}>
+            {item.title && (
+              <div style={{ fontWeight: 600, fontSize: "0.88rem", color: "#111b21" }}>
+                {item.title}
+              </div>
+            )}
+
+            {item.description && (
+              <div style={{ fontSize: "0.8rem", color: "#667781", marginTop: 2 }}>
+                {item.description}
+              </div>
+            )}
+
+            {item.button && (
+              <div
+                style={{
+                  marginTop: 8,
+                  paddingTop: 6,
+                  borderTop: "0.5px solid #e0e0e0",
+                  color: "#0096de",
+                  fontSize: "0.85rem",
+                  fontWeight: 500,
+                  textAlign: "center",
+                  cursor: "pointer",
+                }}
+              >
+                {item.button}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    })}
+  </div>
+)}
 
           {/* ── BODY ── */}
           {bodyText && (
