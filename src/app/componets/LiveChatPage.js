@@ -1,351 +1,352 @@
-  "use client";
-  import { getSocket } from "../lib/socket";
+"use client";
+import { getSocket } from "../lib/socket";
 
 
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-  import { gsap } from "gsap";
-  import { AnimatePresence, motion } from "framer-motion";
-  import {
-    FiPhone,
-    FiSearch,
-    FiMoreVertical,
-    FiSmile,
-    FiSend,
-    FiTag,
-    FiInfo,
-    FiMessageSquare,
-    FiFile,
-    FiImage,
-    FiX,
-    FiCheck,
-    FiCheckCircle,
-    FiArrowLeft,
-    FiPlus,
-    FiCamera,
-    FiHeadphones,
-    FiUser,
-    FiCalendar,
-    FiUsers,
-    FiTrash2,
-    FiChevronDown,
+import { gsap } from "gsap";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  FiPhone,
+  FiSearch,
+  FiMoreVertical,
+  FiSmile,
+  FiSend,
+  FiTag,
+  FiInfo,
+  FiMessageSquare,
+  FiFile,
+  FiImage,
+  FiX,
+  FiCheck,
+  FiCheckCircle,
+  FiArrowLeft,
+  FiPlus,
+  FiCamera,
+  FiHeadphones,
+  FiUser,
+  FiCalendar,
+  FiUsers,
+  FiTrash2,
+  FiChevronDown,
   FiShare2,
   FiCopy,
   FiCheckSquare,
-  } from "react-icons/fi";
+} from "react-icons/fi";
 
 const BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 const API_BASE = `${BASE}/api`;
 
-  /* ─────────────────────────────────────────────
-    Skeleton components (unchanged)
-  ───────────────────────────────────────────── */
-  const shimmerCSS = `
+/* ─────────────────────────────────────────────
+  Skeleton components (unchanged)
+───────────────────────────────────────────── */
+const shimmerCSS = `
   @keyframes lc-shimmer {
     0%   { transform: translateX(-100%); }
     100% { transform: translateX(100%); }
   }
   `;
 
-  function Skeleton({ width = "100%", height = 14, radius = 6, style = {} }) {
-    return (
+function Skeleton({ width = "100%", height = 14, radius = 6, style = {} }) {
+  return (
+    <div
+      style={{
+        position: "relative",
+        overflow: "hidden",
+        backgroundColor: "#e9edef",
+        borderRadius: radius,
+        width,
+        height,
+        flexShrink: 0,
+        ...style,
+      }}
+    >
       <div
         style={{
-          position: "relative",
-          overflow: "hidden",
-          backgroundColor: "#e9edef",
-          borderRadius: radius,
-          width,
-          height,
-          flexShrink: 0,
-          ...style,
+          position: "absolute",
+          inset: 0,
+          background:
+            "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.6) 50%, transparent 100%)",
+          animation: "lc-shimmer 1.6s ease-in-out infinite",
         }}
-      >
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            background:
-              "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.6) 50%, transparent 100%)",
-            animation: "lc-shimmer 1.6s ease-in-out infinite",
-          }}
-        />
-      </div>
-    );
-  }
+      />
+    </div>
+  );
+}
 
-  function HeaderSkeleton({ wide = false }) {
-    return (
-      <div
-        className="d-flex align-items-center justify-content-between px-3 border-bottom flex-shrink-0"
-        style={{ height: 59, background: "#f0f2f5" }}
-      >
-        <div className="d-flex align-items-center gap-3">
-          <Skeleton width={40} height={40} radius={999} />
-          {wide && <Skeleton width={80} height={14} />}
-        </div>
-        <div className="d-flex gap-2">
-          <Skeleton width={30} height={30} radius={999} />
-          <Skeleton width={30} height={30} radius={999} />
-          {wide && <Skeleton width={30} height={30} radius={999} />}
-        </div>
+function HeaderSkeleton({ wide = false }) {
+  return (
+    <div
+      className="d-flex align-items-center justify-content-between px-3 border-bottom flex-shrink-0"
+      style={{ height: 59, background: "#f0f2f5" }}
+    >
+      <div className="d-flex align-items-center gap-3">
+        <Skeleton width={40} height={40} radius={999} />
+        {wide && <Skeleton width={80} height={14} />}
       </div>
-    );
-  }
+      <div className="d-flex gap-2">
+        <Skeleton width={30} height={30} radius={999} />
+        <Skeleton width={30} height={30} radius={999} />
+        {wide && <Skeleton width={30} height={30} radius={999} />}
+      </div>
+    </div>
+  );
+}
 
-  function ChatListSkeleton() {
-    return (
-      <div
-        className="d-flex flex-column bg-white border-end"
-        style={{ width: 380, minWidth: 380, height: "100%", overflow: "hidden" }}
-      >
-        <HeaderSkeleton />
-        <div className="p-2 border-bottom bg-white flex-shrink-0">
-          <Skeleton height={36} radius={8} />
-        </div>
-        <div className="d-flex gap-2 p-2 border-bottom bg-white flex-shrink-0">
-          {[110, 130, 130].map((w, i) => (
-            <Skeleton key={i} width={w} height={32} radius={999} />
-          ))}
-        </div>
-        <div className="flex-grow-1" style={{ overflowY: "hidden" }}>
-          {[...Array(7)].map((_, i) => (
-            <div
-              key={i}
-              className="d-flex align-items-center gap-3 px-3 py-3"
-              style={{ borderBottom: "1px solid #f0f2f5" }}
-            >
-              <Skeleton width={49} height={49} radius={999} style={{ flexShrink: 0 }} />
-              <div className="flex-grow-1">
-                <div className="d-flex justify-content-between mb-2">
-                  <Skeleton width="50%" height={13} />
-                  <Skeleton width={40} height={11} />
-                </div>
-                <Skeleton width="75%" height={11} />
+function ChatListSkeleton() {
+  return (
+    <div
+      className="d-flex flex-column bg-white border-end"
+      style={{ width: 380, minWidth: 380, height: "100%", overflow: "hidden" }}
+    >
+      <HeaderSkeleton />
+      <div className="p-2 border-bottom bg-white flex-shrink-0">
+        <Skeleton height={36} radius={8} />
+      </div>
+      <div className="d-flex gap-2 p-2 border-bottom bg-white flex-shrink-0">
+        {[110, 130, 130].map((w, i) => (
+          <Skeleton key={i} width={w} height={32} radius={999} />
+        ))}
+      </div>
+      <div className="flex-grow-1" style={{ overflowY: "hidden" }}>
+        {[...Array(7)].map((_, i) => (
+          <div
+            key={i}
+            className="d-flex align-items-center gap-3 px-3 py-3"
+            style={{ borderBottom: "1px solid #f0f2f5" }}
+          >
+            <Skeleton width={49} height={49} radius={999} style={{ flexShrink: 0 }} />
+            <div className="flex-grow-1">
+              <div className="d-flex justify-content-between mb-2">
+                <Skeleton width="50%" height={13} />
+                <Skeleton width={40} height={11} />
               </div>
+              <Skeleton width="75%" height={11} />
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
-    );
-  }
+    </div>
+  );
+}
 
-  function ChatWindowSkeleton() {
-    const bubbles = [
-      { side: "left",  w: "55%" },
-      { side: "right", w: "42%" },
-      { side: "left",  w: "68%" },
-      { side: "right", w: "35%" },
-      { side: "left",  w: "50%" },
-      { side: "right", w: "60%" },
-      { side: "right", w: "30%" },
-    ];
-    return (
+function ChatWindowSkeleton() {
+  const bubbles = [
+    { side: "left", w: "55%" },
+    { side: "right", w: "42%" },
+    { side: "left", w: "68%" },
+    { side: "right", w: "35%" },
+    { side: "left", w: "50%" },
+    { side: "right", w: "60%" },
+    { side: "right", w: "30%" },
+  ];
+  return (
+    <div
+      className="d-flex flex-column chat-bg"
+      style={{ flex: 1, height: "100%", overflow: "hidden", minWidth: 0 }}
+    >
+      <HeaderSkeleton wide />
       <div
-        className="d-flex flex-column chat-bg"
-        style={{ flex: 1, height: "100%", overflow: "hidden", minWidth: 0 }}
+        className="flex-grow-1 d-flex flex-column gap-3 px-4 py-4"
+        style={{ overflowY: "hidden" }}
       >
-        <HeaderSkeleton wide />
-        <div
-          className="flex-grow-1 d-flex flex-column gap-3 px-4 py-4"
-          style={{ overflowY: "hidden" }}
-        >
-          {bubbles.map((b, i) => (
+        {bubbles.map((b, i) => (
+          <div
+            key={i}
+            className="d-flex"
+            style={{ justifyContent: b.side === "right" ? "flex-end" : "flex-start" }}
+          >
             <div
-              key={i}
-              className="d-flex"
-              style={{ justifyContent: b.side === "right" ? "flex-end" : "flex-start" }}
+              style={{
+                position: "relative",
+                overflow: "hidden",
+                backgroundColor: b.side === "right" ? "#d1f5c9" : "#e9edef",
+                borderRadius: b.side === "right" ? "12px 12px 0 12px" : "12px 12px 12px 0",
+                width: b.w,
+                height: 42,
+                flexShrink: 0,
+              }}
             >
               <div
                 style={{
-                  position: "relative",
-                  overflow: "hidden",
-                  backgroundColor: b.side === "right" ? "#d1f5c9" : "#e9edef",
-                  borderRadius: b.side === "right" ? "12px 12px 0 12px" : "12px 12px 12px 0",
-                  width: b.w,
-                  height: 42,
-                  flexShrink: 0,
+                  position: "absolute",
+                  inset: 0,
+                  background:
+                    "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.55) 50%, transparent 100%)",
+                  animation: "lc-shimmer 1.6s ease-in-out infinite",
+                  animationDelay: `${i * 0.1}s`,
                 }}
-              >
-                <div
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    background:
-                      "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.55) 50%, transparent 100%)",
-                    animation: "lc-shimmer 1.6s ease-in-out infinite",
-                    animationDelay: `${i * 0.1}s`,
-                  }}
-                />
-              </div>
+              />
             </div>
-          ))}
-        </div>
-        <div
-          className="d-flex align-items-center gap-2 p-3 border-top flex-shrink-0"
-          style={{ background: "#f0f2f5" }}
-        >
-          <Skeleton width={42} height={42} radius={999} />
-          <Skeleton width={42} height={42} radius={999} />
-          <Skeleton height={42} radius={24} />
-          <Skeleton width={42} height={42} radius={999} />
-        </div>
-      </div>
-    );
-  }
-
-  function ContactInfoSkeleton() {
-    return (
-      <div
-        className="d-flex flex-column border-start bg-white"
-        style={{ width: 340, minWidth: 340, height: "100%", overflow: "hidden" }}
-      >
-        <div
-          className="d-flex align-items-center justify-content-center border-bottom flex-shrink-0"
-          style={{ height: 59, background: "#f0f2f5" }}
-        >
-          <Skeleton width={120} height={14} />
-        </div>
-        <div className="flex-grow-1" style={{ background: "#f7f8fa", overflowY: "hidden" }}>
-          <div className="bg-white text-center px-3 py-4" style={{ borderBottom: "10px solid #f0f2f5" }}>
-            <Skeleton width={92} height={92} radius={999} style={{ margin: "0 auto 16px" }} />
-            <Skeleton width={140} height={16} radius={6} style={{ margin: "0 auto 10px" }} />
-            <Skeleton width={110} height={12} radius={6} style={{ margin: "0 auto" }} />
           </div>
-          {["Basic Info", "Lead Tag", "Notes"].map((section, si) => (
-            <div key={si} className="bg-white mb-2 px-3 py-3">
-              <div className="d-flex align-items-center gap-2 mb-3">
-                <Skeleton width={16} height={16} radius={4} />
-                <Skeleton width={80} height={13} />
-              </div>
-              {[...Array(si === 0 ? 4 : 1)].map((_, i) => (
-                <div key={i} className="mb-3">
-                  <Skeleton width={50} height={10} style={{ marginBottom: 6 }} />
-                  <Skeleton width="80%" height={13} />
-                </div>
-              ))}
-            </div>
-          ))}
+        ))}
+      </div>
+      <div
+        className="d-flex align-items-center gap-2 p-3 border-top flex-shrink-0"
+        style={{ background: "#f0f2f5" }}
+      >
+        <Skeleton width={42} height={42} radius={999} />
+        <Skeleton width={42} height={42} radius={999} />
+        <Skeleton height={42} radius={24} />
+        <Skeleton width={42} height={42} radius={999} />
+      </div>
+    </div>
+  );
+}
+
+function ContactInfoSkeleton() {
+  return (
+    <div
+      className="d-flex flex-column border-start bg-white"
+      style={{ width: 340, minWidth: 340, height: "100%", overflow: "hidden" }}
+    >
+      <div
+        className="d-flex align-items-center justify-content-center border-bottom flex-shrink-0"
+        style={{ height: 59, background: "#f0f2f5" }}
+      >
+        <Skeleton width={120} height={14} />
+      </div>
+      <div className="flex-grow-1" style={{ background: "#f7f8fa", overflowY: "hidden" }}>
+        <div className="bg-white text-center px-3 py-4" style={{ borderBottom: "10px solid #f0f2f5" }}>
+          <Skeleton width={92} height={92} radius={999} style={{ margin: "0 auto 16px" }} />
+          <Skeleton width={140} height={16} radius={6} style={{ margin: "0 auto 10px" }} />
+          <Skeleton width={110} height={12} radius={6} style={{ margin: "0 auto" }} />
         </div>
+        {["Basic Info", "Lead Tag", "Notes"].map((section, si) => (
+          <div key={si} className="bg-white mb-2 px-3 py-3">
+            <div className="d-flex align-items-center gap-2 mb-3">
+              <Skeleton width={16} height={16} radius={4} />
+              <Skeleton width={80} height={13} />
+            </div>
+            {[...Array(si === 0 ? 4 : 1)].map((_, i) => (
+              <div key={i} className="mb-3">
+                <Skeleton width={50} height={10} style={{ marginBottom: 6 }} />
+                <Skeleton width="80%" height={13} />
+              </div>
+            ))}
+          </div>
+        ))}
       </div>
-    );
-  }
+    </div>
+  );
+}
 
-  function LiveChatSkeleton() {
-    return (
-      <div style={{ display: "flex", width: "100%", height: "100%", overflow: "hidden" }}>
-        <ChatListSkeleton />
-        <ChatWindowSkeleton />
-        <ContactInfoSkeleton />
-      </div>
-    );
-  }
+function LiveChatSkeleton() {
+  return (
+    <div style={{ display: "flex", width: "100%", height: "100%", overflow: "hidden" }}>
+      <ChatListSkeleton />
+      <ChatWindowSkeleton />
+      <ContactInfoSkeleton />
+    </div>
+  );
+}
 
-  /* ─────────────────────────────────────────────
-    Constants
-  ───────────────────────────────────────────── */
-  const emojiList = [
-    "😀","😁","😂","🤣","😊","😍","😘","😎","🤩","😭",
-    "😡","👍","👏","🙏","🔥","🎉","❤️","💯","👌","✨",
-  ];
+/* ─────────────────────────────────────────────
+  Constants
+───────────────────────────────────────────── */
+const emojiList = [
+  "😀", "😁", "😂", "🤣", "😊", "😍", "😘", "😎", "🤩", "😭",
+  "😡", "👍", "👏", "🙏", "🔥", "🎉", "❤️", "💯", "👌", "✨",
+];
 
-  const attachmentItems = [
-    { id: "document", label: "Document",        icon: FiFile,          color: "#6c63ff" },
-    { id: "photos",   label: "Photos & videos", icon: FiImage,         color: "#3b82f6" },
-    { id: "camera",   label: "Camera",          icon: FiCamera,        color: "#ec4899" },
-    { id: "audio",    label: "Audio",           icon: FiHeadphones,    color: "#f97316" },
-    { id: "contact",  label: "Contact",         icon: FiUser,          color: "#0ea5e9" },
-    { id: "poll",     label: "Poll",            icon: FiMessageSquare, color: "#f59e0b" },
-    { id: "event",    label: "Event",           icon: FiCalendar,      color: "#ef4444" },
-    { id: "sticker",  label: "New sticker",     icon: FiPlus,          color: "#10b981" },
-  ];
+const attachmentItems = [
+  { id: "document", label: "Document", icon: FiFile, color: "#6c63ff" },
+  { id: "photos", label: "Photos & videos", icon: FiImage, color: "#3b82f6" },
+  { id: "camera", label: "Camera", icon: FiCamera, color: "#ec4899" },
+  { id: "audio", label: "Audio", icon: FiHeadphones, color: "#f97316" },
+  { id: "contact", label: "Contact", icon: FiUser, color: "#0ea5e9" },
+  { id: "poll", label: "Poll", icon: FiMessageSquare, color: "#f59e0b" },
+  { id: "event", label: "Event", icon: FiCalendar, color: "#ef4444" },
+  { id: "sticker", label: "New sticker", icon: FiPlus, color: "#10b981" },
+];
 
-  const popupVariants = {
-    hidden:  { opacity: 0, y: 12, scale: 0.96 },
-    visible: { opacity: 1, y: 0,  scale: 1, transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] } },
-    exit:    { opacity: 0, y: 10, scale: 0.97, transition: { duration: 0.16, ease: [0.4, 0, 1, 1] } },
-  };
+const popupVariants = {
+  hidden: { opacity: 0, y: 12, scale: 0.96 },
+  visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] } },
+  exit: { opacity: 0, y: 10, scale: 0.97, transition: { duration: 0.16, ease: [0.4, 0, 1, 1] } },
+};
 
-  /* ─────────────────────────────────────────────
-    Main component
-  ───────────────────────────────────────────── */
-  export default function LiveChatPage() {
+/* ─────────────────────────────────────────────
+  Main component
+───────────────────────────────────────────── */
+export default function LiveChatPage() {
 
-    // ── 1. ALL useState ──────────────────────────
-    const [isLoading,          setIsLoading]          = useState(true);
-    const [activeTab,          setActiveTab]          = useState("active");
-    const [chatList,           setChatList]           = useState([]);
-    const [selectedChat,       setSelectedChat]       = useState(null);
-    const [contacts,           setContacts]           = useState([]);
-    const [tags, setTags] = useState([]);
-    const [messages,           setMessages]           = useState({});
-    const [input,              setInput]              = useState("");
-    const [search,             setSearch]             = useState("");
-    const [showEmojiPicker,    setShowEmojiPicker]    = useState(false);
-    const [attachmentMenuOpen, setAttachmentMenuOpen] = useState(false);
-    const [pendingAttachment,  setPendingAttachment]  = useState(null);
-    const [mobileChatOpen,     setMobileChatOpen]     = useState(false);
-    const [isMobile,           setIsMobile]           = useState(false);
-    const [isUserTyping,       setIsUserTyping]       = useState(false);
-    const [typingTimeout,      setTypingTimeout]      = useState(null);
-    const [showContacts,       setShowContacts]       = useState(false);
-    const [currentUser,        setCurrentUser]        = useState(null);
-    const [showGroupModal,     setShowGroupModal]     = useState(false);
-    const [groupName,          setGroupName]          = useState("");
-    const [selectedContactsForGroup, setSelectedContactsForGroup] = useState([]);
-    const [showDeleteModal,    setShowDeleteModal]    = useState(false);
-    const [selectedMessageId,  setSelectedMessageId]  = useState(null);
-    const [showForwardModal, setShowForwardModal] = useState(false);
-const [forwardMessage,   setForwardMessage]   = useState(null);
-const [showTemplateModal, setShowTemplateModal] = useState(false);
-const [templates, setTemplates] = useState([]);
+  // ── 1. ALL useState ──────────────────────────
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("active");
+  const [chatList, setChatList] = useState([]);
+  const [selectedChat, setSelectedChat] = useState(null);
+  const [contacts, setContacts] = useState([]);
+  const [tags, setTags] = useState([]);
+  const [messages, setMessages] = useState({});
+  const [input, setInput] = useState("");
+  const [search, setSearch] = useState("");
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [attachmentMenuOpen, setAttachmentMenuOpen] = useState(false);
+  const [pendingAttachment, setPendingAttachment] = useState(null);
+  const [mobileChatOpen, setMobileChatOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [isUserTyping, setIsUserTyping] = useState(false);
+  const [typingTimeout, setTypingTimeout] = useState(null);
+  const [showContacts, setShowContacts] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [showGroupModal, setShowGroupModal] = useState(false);
+  const [groupName, setGroupName] = useState("");
+  const [selectedContactsForGroup, setSelectedContactsForGroup] = useState([]);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedMessageId, setSelectedMessageId] = useState(null);
+  const [showForwardModal, setShowForwardModal] = useState(false);
+  const [forwardMessage, setForwardMessage] = useState(null);
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [templates, setTemplates] = useState([]);
+  const [showContactInfo, setShowContactInfo] = useState(false);
 
-    useEffect(() => {
-      const user = JSON.parse(localStorage.getItem("user"));
-      setCurrentUser(user);
-    }, []);
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("user"));
+    setCurrentUser(user);
+  }, []);
 
-    // ── 2. ALL useRef ─────────────────────────────
-    const pageRef           = useRef(null);
-    const listPanelRef      = useRef(null);
-    const centerPanelRef    = useRef(null);
-    const rightPanelRef     = useRef(null);
-    const messageScrollRef  = useRef(null);
-    const fileInputRef      = useRef(null);
-    const imageInputRef     = useRef(null);
-    const attachmentWrapRef = useRef(null);
-    const emojiWrapRef      = useRef(null);
-    const currentUserRef    = useRef(null);
+  // ── 2. ALL useRef ─────────────────────────────
+  const pageRef = useRef(null);
+  const listPanelRef = useRef(null);
+  const centerPanelRef = useRef(null);
+  const rightPanelRef = useRef(null);
+  const messageScrollRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const imageInputRef = useRef(null);
+  const attachmentWrapRef = useRef(null);
+  const emojiWrapRef = useRef(null);
+  const currentUserRef = useRef(null);
 
-    useEffect(() => {
-      currentUserRef.current = currentUser;
-    }, [currentUser]);
+  useEffect(() => {
+    currentUserRef.current = currentUser;
+  }, [currentUser]);
 
-    // ── 3. ALL useEffect ──────────────────────────
-    useEffect(() => {
-      const handleResize = () => setIsMobile(window.innerWidth <= 820);
-      handleResize();
-      window.addEventListener("resize", handleResize);
-      return () => window.removeEventListener("resize", handleResize);
-    }, []);
+  // ── 3. ALL useEffect ──────────────────────────
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 820);
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
-    useEffect(() => {
-      fetch(`${API_BASE}/contacts`)
-        .then(res => res.json())
-        .then(data => setContacts(data))
-        .catch(console.error);
-    }, []);
+  useEffect(() => {
+    fetch(`${API_BASE}/contacts`)
+      .then(res => res.json())
+      .then(data => setContacts(data))
+      .catch(console.error);
+  }, []);
 
-    useEffect(() => {
-  fetch(`${API_BASE}/tags`)
-    .then(res => res.json())
-    .then(data => setTags(Array.isArray(data) ? data : data.tags || data.data || [])) 
-    .catch(console.error);
-}, []);
+  useEffect(() => {
+    fetch(`${API_BASE}/tags`)
+      .then(res => res.json())
+      .then(data => setTags(Array.isArray(data) ? data : data.tags || data.data || []))
+      .catch(console.error);
+  }, []);
 
-    useEffect(() => {
+  useEffect(() => {
     const s = getSocket();
     s.connect();
 
@@ -359,39 +360,39 @@ const [templates, setTemplates] = useState([]);
   }, []);
 
   useEffect(() => {
-  fetch(`${API_BASE}/templates`)
-    .then(res => res.json())
-    .then(data => {
-      console.log("TEMPLATES API:", data); // 🔥 DEBUG
+    fetch(`${API_BASE}/templates`)
+      .then(res => res.json())
+      .then(data => {
+        console.log("TEMPLATES API:", data); // 🔥 DEBUG
 
-      setTemplates(
-        Array.isArray(data)
-          ? data
-          : data.templates || data.data || []
-      );
-    })
-    .catch(console.error);
-}, []);
+        setTemplates(
+          Array.isArray(data)
+            ? data
+            : data.templates || data.data || []
+        );
+      })
+      .catch(console.error);
+  }, []);
 
-    useEffect(() => {
-      const user = JSON.parse(localStorage.getItem("user"));
-      if (!user) return;
-      fetch(`${API_BASE}/chats/${user.phone}`)
-        .then(r => r.json())
-        .then(data => {
-          if (Array.isArray(data)) {
-            setChatList(data);
-            if (data.length > 0) setSelectedChat(data[0]);
-          } else {
-            console.error("Chat list is not an array:", data);
-            setChatList([]);
-          }
-        })
-        .catch(console.error)
-        .finally(() => setIsLoading(false));
-    }, []);
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("user"));
+    if (!user) return;
+    fetch(`${API_BASE}/chats/${user.phone}`)
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setChatList(data);
+          if (data.length > 0) setSelectedChat(data[0]);
+        } else {
+          console.error("Chat list is not an array:", data);
+          setChatList([]);
+        }
+      })
+      .catch(console.error)
+      .finally(() => setIsLoading(false));
+  }, []);
 
-    useEffect(() => {
+  useEffect(() => {
     if (!selectedChat) return;
 
     const chatId = selectedChat._id;
@@ -407,7 +408,7 @@ const [templates, setTemplates] = useState([]);
           ...prev,
           [chatId]: data.map(m => {
             const isSentByMe =
-    String(m.sender) === String(currentUserRef.current?.phone);
+              String(m.sender) === String(currentUserRef.current?.phone);
 
             return {
               id: m._id,
@@ -456,7 +457,7 @@ const [templates, setTemplates] = useState([]);
       if (String(msg.chatId) !== String(chatId)) return;
 
       const isSentByMe =
-    String(msg.sender) === String(currentUserRef.current?.phone);
+        String(msg.sender) === String(currentUserRef.current?.phone);
 
       setMessages(prev => {
         const currentMsgs = prev[chatId] || [];
@@ -535,7 +536,7 @@ const [templates, setTemplates] = useState([]);
       });
     };
 
-    
+
 
     // ✅ MESSAGE DELIVERED
     const handleMessageDelivered = ({ messageId, chatId: deliveredChatId }) => {
@@ -604,13 +605,13 @@ const [templates, setTemplates] = useState([]);
           updated[chatId] = chatMessages.map(msg =>
             msg.id === messageId
               ? {
-                  ...msg,
-                  isDeleted: true,
-                  text: "This message was deleted",
-                  fileUrl: null,
-                  fileName: null,
-                  fileSize: null,
-                }
+                ...msg,
+                isDeleted: true,
+                text: "This message was deleted",
+                fileUrl: null,
+                fileName: null,
+                fileSize: null,
+              }
               : msg
           );
         }
@@ -657,418 +658,418 @@ const [templates, setTemplates] = useState([]);
 
   }, [selectedChat, currentUser]);
 
-    useEffect(() => {
-      if (messageScrollRef.current)
-        messageScrollRef.current.scrollTop = messageScrollRef.current.scrollHeight;
-    }, [messages, selectedChat, pendingAttachment]);
+  useEffect(() => {
+    if (messageScrollRef.current)
+      messageScrollRef.current.scrollTop = messageScrollRef.current.scrollHeight;
+  }, [messages, selectedChat, pendingAttachment]);
 
-    useEffect(() => {
-      const handleClickOutside = (e) => {
-        if (attachmentWrapRef.current && !attachmentWrapRef.current.contains(e.target))
-          setAttachmentMenuOpen(false);
-        if (emojiWrapRef.current && !emojiWrapRef.current.contains(e.target))
-          setShowEmojiPicker(false);
-      };
-      document.addEventListener("mousedown", handleClickOutside);
-return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, []);
-
-    // ── 4. useMemo ────────────────────────────────
-    const tabs = useMemo(() => {
-      if (!Array.isArray(chatList)) return [];
-      const count = (s) => chatList.filter((c) => c.status === s).length;
-      return [
-        { id: "active", label: "ACTIVE", count: count("active") },
-        { id: "requesting", label: "REQUESTING", count: count("requesting") },
-        { id: "intervened", label: "INTERVENED", count: count("intervened") },
-      ];
-    }, [chatList]);
-
-    const searchSuggestions = useMemo(() => {
-  if (!search.trim() || showContacts) return [];
-  return contacts.filter(c =>
-    c.name?.toLowerCase().includes(search.toLowerCase()) ||
-    c.mobile?.includes(search)
-  ).slice(0, 5);
-}, [search, contacts, showContacts]);
-
-    const filteredChats = useMemo(() => {
-      if (!Array.isArray(chatList)) return [];
-      return chatList
-        .filter((c) => c.status === activeTab)
-        .filter((c) => {
-          const v = search.toLowerCase();
-          return (
-            (c.name  || "").toLowerCase().includes(v) ||
-            (c.phone || "").toLowerCase().includes(v) ||
-            (c.email || "").toLowerCase().includes(v)
-          );
-        });
-    }, [activeTab, chatList, search]);
-
-    useLayoutEffect(() => {
-      if (isLoading) return;
-      const ctx = gsap.context(() => {
-        const tl = gsap.timeline({ defaults: { ease: "power2.out", duration: 0.35 } });
-        if (listPanelRef.current)   tl.fromTo(listPanelRef.current,   { opacity: 0, x: -12 }, { opacity: 1, x: 0 });
-        if (centerPanelRef.current) tl.fromTo(centerPanelRef.current, { opacity: 0, y: 10  }, { opacity: 1, y: 0  }, "-=0.2");
-        if (rightPanelRef.current)  tl.fromTo(rightPanelRef.current,  { opacity: 0, x: 12  }, { opacity: 1, x: 0  }, "-=0.2");
-      }, pageRef);
-      return () => ctx.revert();
-    }, [isLoading]);
-
-    // ── 6. Handlers ───────────────────────────────
-    const getTimeNow = () =>
-      new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-
-    const handleSelectChat = (chat) => {
-      setSelectedChat(chat);
-      if (isMobile) setMobileChatOpen(true);
-      setShowEmojiPicker(false);
-      setAttachmentMenuOpen(false);
-      setPendingAttachment(null);
-      setChatList((prev) =>
-        prev.map((item) => item._id === chat._id ? { ...item, unread: 0 } : item)
-      );
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (attachmentWrapRef.current && !attachmentWrapRef.current.contains(e.target))
+        setAttachmentMenuOpen(false);
+      if (emojiWrapRef.current && !emojiWrapRef.current.contains(e.target))
+        setShowEmojiPicker(false);
     };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
-    const handleDeleteChat = async (chatId) => {
-      if (!confirm("Delete this chat for yourself? The other person will still see it.")) return;
-      const user = JSON.parse(localStorage.getItem("user"));
-      try {
-        const res = await fetch(`${API_BASE}/chats/${chatId}`, {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userPhone: user.phone }),
-        });
-        if (res.ok) {
-          setChatList(prev => prev.filter(chat => chat._id !== chatId));
-          if (selectedChat?._id === chatId) setSelectedChat(null);
-        } else {
-          alert("Failed to delete chat");
-        }
-      } catch (err) {
-        console.error(err);
-        alert("Error deleting chat");
-      }
-    };
+  // ── 4. useMemo ────────────────────────────────
+  const tabs = useMemo(() => {
+    if (!Array.isArray(chatList)) return [];
+    const count = (s) => chatList.filter((c) => c.status === s).length;
+    return [
+      { id: "active", label: "ACTIVE", count: count("active") },
+      { id: "requesting", label: "REQUESTING", count: count("requesting") },
+      { id: "intervened", label: "INTERVENED", count: count("intervened") },
+    ];
+  }, [chatList]);
 
-    const handleForwardMessage = (msg) => {
-  setForwardMessage(msg);
-  setShowForwardModal(true);
-};
+  const searchSuggestions = useMemo(() => {
+    if (!search.trim() || showContacts) return [];
+    return contacts.filter(c =>
+      c.name?.toLowerCase().includes(search.toLowerCase()) ||
+      c.mobile?.includes(search)
+    ).slice(0, 5);
+  }, [search, contacts, showContacts]);
 
-const sendForward = async (targetChat) => {
-  const user = JSON.parse(localStorage.getItem("user"));
-  if (!forwardMessage || !targetChat) return;
+  const filteredChats = useMemo(() => {
+    if (!Array.isArray(chatList)) return [];
+    return chatList
+      .filter((c) => c.status === activeTab)
+      .filter((c) => {
+        const v = search.toLowerCase();
+        return (
+          (c.name || "").toLowerCase().includes(v) ||
+          (c.phone || "").toLowerCase().includes(v) ||
+          (c.email || "").toLowerCase().includes(v)
+        );
+      });
+  }, [activeTab, chatList, search]);
 
-  const payload = {
-    chatId: targetChat._id,
-    sender: user.phone,
-    messageType: forwardMessage.messageType,
-    text: forwardMessage.text || "",
-    fileUrl: forwardMessage.url || null,
-    fileName: forwardMessage.fileName || null,
-    templateMeta: forwardMessage.templateMeta || null,
+  useLayoutEffect(() => {
+    if (isLoading) return;
+    const ctx = gsap.context(() => {
+      const tl = gsap.timeline({ defaults: { ease: "power2.out", duration: 0.35 } });
+      if (listPanelRef.current) tl.fromTo(listPanelRef.current, { opacity: 0, x: -12 }, { opacity: 1, x: 0 });
+      if (centerPanelRef.current) tl.fromTo(centerPanelRef.current, { opacity: 0, y: 10 }, { opacity: 1, y: 0 }, "-=0.2");
+      if (rightPanelRef.current) tl.fromTo(rightPanelRef.current, { opacity: 0, x: 12 }, { opacity: 1, x: 0 }, "-=0.2");
+    }, pageRef);
+    return () => ctx.revert();
+  }, [isLoading]);
+
+  // ── 6. Handlers ───────────────────────────────
+  const getTimeNow = () =>
+    new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+  const handleSelectChat = (chat) => {
+    setSelectedChat(chat);
+    if (isMobile) setMobileChatOpen(true);
+    setShowEmojiPicker(false);
+    setAttachmentMenuOpen(false);
+    setPendingAttachment(null);
+    setChatList((prev) =>
+      prev.map((item) => item._id === chat._id ? { ...item, unread: 0 } : item)
+    );
   };
 
-  await fetch(`${API_BASE}/messages`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  }).catch(console.error);
-
-  setShowForwardModal(false);
-  setForwardMessage(null);
-  setSelectedChat(targetChat);
-};
-
-    // ----- Message deletion handlers -----
-    const openDeleteModal = (messageId) => {
-      setSelectedMessageId(messageId);
-      setShowDeleteModal(true);
-    };
-
-    const deleteForMe = async () => {
-      if (!selectedMessageId) return;
-      const user = JSON.parse(localStorage.getItem("user"));
-      try {
-        const res = await fetch(`${API_BASE}/messages/${selectedMessageId}`, {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userPhone: user.phone, mode: "me" }),
-        });
-        if (res.ok) {
-          // Remove message from local state
-          setMessages(prev => {
-            const updated = { ...prev };
-            const chatId = selectedChat._id;
-            if (updated[chatId]) {
-              updated[chatId] = updated[chatId].filter(msg => msg.id !== selectedMessageId);
-            }
-            return updated;
-          });
-          setShowDeleteModal(false);
-          setSelectedMessageId(null);
-        } else {
-          alert("Failed to delete message for yourself");
-        }
-      } catch (err) {
-        console.error(err);
-        alert("Error deleting message");
-      }
-    };
-
-    const deleteForEveryone = async () => {
-      if (!selectedMessageId) return;
-      const user = JSON.parse(localStorage.getItem("user"));
-      try {
-        const res = await fetch(`${API_BASE}/messages/${selectedMessageId}`, {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userPhone: user.phone, mode: "everyone" }),
-        });
-        if (res.ok) {
-          // Update local message to show deleted placeholder
-          setMessages(prev => {
-            const updated = { ...prev };
-            const chatId = selectedChat._id;
-            if (updated[chatId]) {
-              updated[chatId] = updated[chatId].map(msg =>
-                msg.id === selectedMessageId
-                  ? { ...msg, isDeleted: true, text: "This message was deleted", fileUrl: null, fileName: null }
-                  : msg
-              );
-            }
-            return updated;
-          });
-          setShowDeleteModal(false);
-          setSelectedMessageId(null);
-        } else {
-          alert("Failed to delete message for everyone");
-        }
-      } catch (err) {
-        console.error(err);
-        alert("Error deleting message");
-      }
-    };
-
-    const handleTabChange = (tabId) => {
-      setActiveTab(tabId);
-      const next = chatList.filter((c) => c.status === tabId);
-      setSelectedChat(next[0] || null);
-      setMobileChatOpen(false);
-      setShowEmojiPicker(false);
-      setAttachmentMenuOpen(false);
-      setPendingAttachment(null);
-    };
-
-    const startChatWithContact = async (contact) => {
-      const user = JSON.parse(localStorage.getItem("user"));
-      if (!contact.mobile) return;
-      try {
-        const res = await fetch(`${API_BASE}/chats`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            senderPhone: user.phone,
-            receiverPhone: contact.mobile,
-          }),
-        });
-        const chat = await res.json();
-        if (!chat._id) throw new Error("Chat creation failed");
-        setChatList(prev => (Array.isArray(prev) ? [chat, ...prev] : [chat]));
-        setSelectedChat(chat);
-        setShowContacts(false);
-        if (isMobile) setMobileChatOpen(true);
-        setSearch("");
-      } catch (err) {
-        console.error(err);
-        alert("Could not create chat with this contact.");
-      }
-    };
-
-    const deleteContact = async (contactId, contactName) => {
-      if (!confirm(`Delete "${contactName}" from contacts?`)) return;
-      try {
-        const res = await fetch(`${API_BASE}/contacts/${contactId}`, { method: "DELETE" });
-        if (res.ok) {
-          setContacts(prev => prev.filter(c => c._id !== contactId));
-        } else {
-          alert("Failed to delete contact");
-        }
-      } catch (err) {
-        console.error(err);
-        alert("Error deleting contact");
-      }
-    };
-
-    const createGroup = async () => {
-      if (!groupName.trim() || selectedContactsForGroup.length === 0) {
-        alert("Please enter a group name and select at least one contact");
-        return;
-      }
-      const user = JSON.parse(localStorage.getItem("user"));
-      const participants = [user.phone, ...selectedContactsForGroup.map(c => c.mobile)];
-      try {
-        const res = await fetch(`${API_BASE}/groups`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ groupName, participants, admin: user.phone }),
-        });
-        const newGroup = await res.json();
-        if (!newGroup._id) throw new Error("Group creation failed");
-        setChatList(prev => [newGroup, ...prev]);
-        setSelectedChat(newGroup);
-        setShowGroupModal(false);
-        setGroupName("");
-        setSelectedContactsForGroup([]);
-        if (isMobile) setMobileChatOpen(true);
-      } catch (err) {
-        console.error(err);
-        alert("Failed to create group. Make sure your backend has the /api/groups endpoint.");
-      }
-    };
-
-    const handleSearchUser = async () => {
-      const user = JSON.parse(localStorage.getItem("user"));
-      if (!search.trim()) return;
-
-      let receiverPhone = search.trim();
-      const matchedContact = contacts.find(
-        (c) =>
-          c.name?.toLowerCase() === search.trim().toLowerCase() ||
-          c.mobile === search.trim()
-      );
-      if (matchedContact) {
-        receiverPhone = matchedContact.mobile;
-      }
-
-      if (!/^[0-9+\-\s()]+$/.test(receiverPhone)) {
-        alert("Please enter a valid phone number or contact name");
-        return;
-      }
-
-      try {
-        const res = await fetch(`${API_BASE}/chats`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            senderPhone: user.phone,
-            receiverPhone: receiverPhone,
-          }),
-        });
-        const chat = await res.json();
-        if (!chat._id) throw new Error("Chat creation failed");
-
-        setChatList((prev) => {
-          if (!Array.isArray(prev)) return [chat];
-          const exists = prev.find((c) => c._id === chat._id);
-          return exists ? prev : [chat, ...prev];
-        });
-        setSelectedChat(chat);
-        setSearch("");
-      } catch (err) {
-        console.error(err);
-        alert("User not found or error creating chat. Make sure the phone number exists.");
-      }
-    };
-
-    const uploadFile = async (file) => {
-      const formData = new FormData();
-      formData.append("file", file);
-      const res = await fetch(`${API_BASE}/upload`, {
-        method: "POST",
-        body: formData,
+  const handleDeleteChat = async (chatId) => {
+    if (!confirm("Delete this chat for yourself? The other person will still see it.")) return;
+    const user = JSON.parse(localStorage.getItem("user"));
+    try {
+      const res = await fetch(`${API_BASE}/chats/${chatId}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userPhone: user.phone }),
       });
-      if (!res.ok) throw new Error("Upload failed");
-      return await res.json();
+      if (res.ok) {
+        setChatList(prev => prev.filter(chat => chat._id !== chatId));
+        if (selectedChat?._id === chatId) setSelectedChat(null);
+      } else {
+        alert("Failed to delete chat");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error deleting chat");
+    }
+  };
+
+  const handleForwardMessage = (msg) => {
+    setForwardMessage(msg);
+    setShowForwardModal(true);
+  };
+
+  const sendForward = async (targetChat) => {
+    const user = JSON.parse(localStorage.getItem("user"));
+    if (!forwardMessage || !targetChat) return;
+
+    const payload = {
+      chatId: targetChat._id,
+      sender: user.phone,
+      messageType: forwardMessage.messageType,
+      text: forwardMessage.text || "",
+      fileUrl: forwardMessage.url || null,
+      fileName: forwardMessage.fileName || null,
+      templateMeta: forwardMessage.templateMeta || null,
     };
 
-    const handleSend = async () => {
-      if (!selectedChat || (!input.trim() && !pendingAttachment)) return;
-      const chatId = selectedChat._id;
-      const user = JSON.parse(localStorage.getItem("user"));
+    await fetch(`${API_BASE}/messages`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).catch(console.error);
 
-      const sendMessage = async (textToSend, attachmentData = null) => {
-        let messageData = {
-          chatId,
-          sender: user.phone,
-          text: textToSend || "",
-          messageType: "text",
-        };
-        if (attachmentData) {
-          messageData = {
-            ...messageData,
-            messageType: attachmentData.messageType,
-            fileUrl: attachmentData.fileUrl,
-            fileName: attachmentData.fileName,
-            fileSize: attachmentData.fileSize,
-            text: "",
-          };
-        }
-        await fetch(`${API_BASE}/messages`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(messageData),
-        }).catch(console.error);
-      };
+    setShowForwardModal(false);
+    setForwardMessage(null);
+    setSelectedChat(targetChat);
+  };
 
-      if (pendingAttachment) {
-        const pa = pendingAttachment;
-        setPendingAttachment(null);
-        if (pa.url && pa.url.startsWith("blob:")) {
-          try {
-            const blob = await fetch(pa.url).then(r => r.blob());
-            const file = new File([blob], pa.fileName, { type: blob.type });
-            const uploadData = await uploadFile(file);
-            await sendMessage("", {
-              messageType: uploadData.messageType,
-              fileUrl: uploadData.fileUrl,
-              fileName: uploadData.fileName,
-              fileSize: uploadData.fileSize,
-            });
-          } catch (err) {
-            console.error("Upload failed", err);
-            alert("Failed to upload file");
+  // ----- Message deletion handlers -----
+  const openDeleteModal = (messageId) => {
+    setSelectedMessageId(messageId);
+    setShowDeleteModal(true);
+  };
+
+  const deleteForMe = async () => {
+    if (!selectedMessageId) return;
+    const user = JSON.parse(localStorage.getItem("user"));
+    try {
+      const res = await fetch(`${API_BASE}/messages/${selectedMessageId}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userPhone: user.phone, mode: "me" }),
+      });
+      if (res.ok) {
+        // Remove message from local state
+        setMessages(prev => {
+          const updated = { ...prev };
+          const chatId = selectedChat._id;
+          if (updated[chatId]) {
+            updated[chatId] = updated[chatId].filter(msg => msg.id !== selectedMessageId);
           }
-        } else {
-          await sendMessage("", {
-            messageType: pa.kind,
-            fileUrl: pa.url,
-            fileName: pa.fileName,
-            fileSize: pa.fileSize,
-          });
-        }
+          return updated;
+        });
+        setShowDeleteModal(false);
+        setSelectedMessageId(null);
+      } else {
+        alert("Failed to delete message for yourself");
       }
+    } catch (err) {
+      console.error(err);
+      alert("Error deleting message");
+    }
+  };
 
-      if (input.trim()) {
-        const text = input.trim();
-        setInput("");
-        setMessages(prev => ({
-          ...prev,
-          [chatId]: [
-            ...(prev[chatId] || []),
-            {
-  id: `tmp-${Date.now()}`,
-  type: "sent",
-  messageType: "text",
-  text,
-  time: getTimeNow(),
-  createdAt: new Date().toISOString(),
-  delivered: false,
-  seen: false,
-},
-          ],
-        }));
-        await sendMessage(text);
+  const deleteForEveryone = async () => {
+    if (!selectedMessageId) return;
+    const user = JSON.parse(localStorage.getItem("user"));
+    try {
+      const res = await fetch(`${API_BASE}/messages/${selectedMessageId}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userPhone: user.phone, mode: "everyone" }),
+      });
+      if (res.ok) {
+        // Update local message to show deleted placeholder
+        setMessages(prev => {
+          const updated = { ...prev };
+          const chatId = selectedChat._id;
+          if (updated[chatId]) {
+            updated[chatId] = updated[chatId].map(msg =>
+              msg.id === selectedMessageId
+                ? { ...msg, isDeleted: true, text: "This message was deleted", fileUrl: null, fileName: null }
+                : msg
+            );
+          }
+          return updated;
+        });
+        setShowDeleteModal(false);
+        setSelectedMessageId(null);
+      } else {
+        alert("Failed to delete message for everyone");
       }
+    } catch (err) {
+      console.error(err);
+      alert("Error deleting message");
+    }
+  };
 
-      setShowEmojiPicker(false);
-      setAttachmentMenuOpen(false);
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
+    const next = chatList.filter((c) => c.status === tabId);
+    setSelectedChat(next[0] || null);
+    setMobileChatOpen(false);
+    setShowEmojiPicker(false);
+    setAttachmentMenuOpen(false);
+    setPendingAttachment(null);
+  };
+
+  const startChatWithContact = async (contact) => {
+    const user = JSON.parse(localStorage.getItem("user"));
+    if (!contact.mobile) return;
+    try {
+      const res = await fetch(`${API_BASE}/chats`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          senderPhone: user.phone,
+          receiverPhone: contact.mobile,
+        }),
+      });
+      const chat = await res.json();
+      if (!chat._id) throw new Error("Chat creation failed");
+      setChatList(prev => (Array.isArray(prev) ? [chat, ...prev] : [chat]));
+      setSelectedChat(chat);
+      setShowContacts(false);
+      if (isMobile) setMobileChatOpen(true);
+      setSearch("");
+    } catch (err) {
+      console.error(err);
+      alert("Could not create chat with this contact.");
+    }
+  };
+
+  const deleteContact = async (contactId, contactName) => {
+    if (!confirm(`Delete "${contactName}" from contacts?`)) return;
+    try {
+      const res = await fetch(`${API_BASE}/contacts/${contactId}`, { method: "DELETE" });
+      if (res.ok) {
+        setContacts(prev => prev.filter(c => c._id !== contactId));
+      } else {
+        alert("Failed to delete contact");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error deleting contact");
+    }
+  };
+
+  const createGroup = async () => {
+    if (!groupName.trim() || selectedContactsForGroup.length === 0) {
+      alert("Please enter a group name and select at least one contact");
+      return;
+    }
+    const user = JSON.parse(localStorage.getItem("user"));
+    const participants = [user.phone, ...selectedContactsForGroup.map(c => c.mobile)];
+    try {
+      const res = await fetch(`${API_BASE}/groups`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ groupName, participants, admin: user.phone }),
+      });
+      const newGroup = await res.json();
+      if (!newGroup._id) throw new Error("Group creation failed");
+      setChatList(prev => [newGroup, ...prev]);
+      setSelectedChat(newGroup);
+      setShowGroupModal(false);
+      setGroupName("");
+      setSelectedContactsForGroup([]);
+      if (isMobile) setMobileChatOpen(true);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to create group. Make sure your backend has the /api/groups endpoint.");
+    }
+  };
+
+  const handleSearchUser = async () => {
+    const user = JSON.parse(localStorage.getItem("user"));
+    if (!search.trim()) return;
+
+    let receiverPhone = search.trim();
+    const matchedContact = contacts.find(
+      (c) =>
+        c.name?.toLowerCase() === search.trim().toLowerCase() ||
+        c.mobile === search.trim()
+    );
+    if (matchedContact) {
+      receiverPhone = matchedContact.mobile;
+    }
+
+    if (!/^[0-9+\-\s()]+$/.test(receiverPhone)) {
+      alert("Please enter a valid phone number or contact name");
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/chats`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          senderPhone: user.phone,
+          receiverPhone: receiverPhone,
+        }),
+      });
+      const chat = await res.json();
+      if (!chat._id) throw new Error("Chat creation failed");
+
+      setChatList((prev) => {
+        if (!Array.isArray(prev)) return [chat];
+        const exists = prev.find((c) => c._id === chat._id);
+        return exists ? prev : [chat, ...prev];
+      });
+      setSelectedChat(chat);
+      setSearch("");
+    } catch (err) {
+      console.error(err);
+      alert("User not found or error creating chat. Make sure the phone number exists.");
+    }
+  };
+
+  const uploadFile = async (file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch(`${API_BASE}/upload`, {
+      method: "POST",
+      body: formData,
+    });
+    if (!res.ok) throw new Error("Upload failed");
+    return await res.json();
+  };
+
+  const handleSend = async () => {
+    if (!selectedChat || (!input.trim() && !pendingAttachment)) return;
+    const chatId = selectedChat._id;
+    const user = JSON.parse(localStorage.getItem("user"));
+
+    const sendMessage = async (textToSend, attachmentData = null) => {
+      let messageData = {
+        chatId,
+        sender: user.phone,
+        text: textToSend || "",
+        messageType: "text",
+      };
+      if (attachmentData) {
+        messageData = {
+          ...messageData,
+          messageType: attachmentData.messageType,
+          fileUrl: attachmentData.fileUrl,
+          fileName: attachmentData.fileName,
+          fileSize: attachmentData.fileSize,
+          text: "",
+        };
+      }
+      await fetch(`${API_BASE}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(messageData),
+      }).catch(console.error);
     };
 
-    const sendTemplate = async (template) => {
+    if (pendingAttachment) {
+      const pa = pendingAttachment;
+      setPendingAttachment(null);
+      if (pa.url && pa.url.startsWith("blob:")) {
+        try {
+          const blob = await fetch(pa.url).then(r => r.blob());
+          const file = new File([blob], pa.fileName, { type: blob.type });
+          const uploadData = await uploadFile(file);
+          await sendMessage("", {
+            messageType: uploadData.messageType,
+            fileUrl: uploadData.fileUrl,
+            fileName: uploadData.fileName,
+            fileSize: uploadData.fileSize,
+          });
+        } catch (err) {
+          console.error("Upload failed", err);
+          alert("Failed to upload file");
+        }
+      } else {
+        await sendMessage("", {
+          messageType: pa.kind,
+          fileUrl: pa.url,
+          fileName: pa.fileName,
+          fileSize: pa.fileSize,
+        });
+      }
+    }
+
+    if (input.trim()) {
+      const text = input.trim();
+      setInput("");
+      setMessages(prev => ({
+        ...prev,
+        [chatId]: [
+          ...(prev[chatId] || []),
+          {
+            id: `tmp-${Date.now()}`,
+            type: "sent",
+            messageType: "text",
+            text,
+            time: getTimeNow(),
+            createdAt: new Date().toISOString(),
+            delivered: false,
+            seen: false,
+          },
+        ],
+      }));
+      await sendMessage(text);
+    }
+
+    setShowEmojiPicker(false);
+    setAttachmentMenuOpen(false);
+  };
+
+  const sendTemplate = async (template) => {
     const user = JSON.parse(localStorage.getItem("user"));
 
     // Convert variables Map to plain object
@@ -1093,51 +1094,51 @@ const sendForward = async (targetChat) => {
         // ✅ FIX 1: try all possible ID fields
         templateId: template._id || template.id || null,
 
-        header:    template.name    || "",
-        footer:    template.footer  || "",
+        header: template.name || "",
+        footer: template.footer || "",
         mediaType: template.mediaType || "None",
-        mediaUrl:  template.imageFile?.url  ||
-                  template.imageFile?.path ||
-                  template.videoFile?.url  ||
-                  template.videoFile?.path || null,
-        body:      template.format  || "",
+        mediaUrl: template.imageFile?.url ||
+          template.imageFile?.path ||
+          template.videoFile?.url ||
+          template.videoFile?.path || null,
+        body: template.format || "",
         variables,
 
         actions: {
           // ✅ FIX 2: map title→label, value→url correctly
           ctaButtons: (template.ctaButtons || []).map(btn => ({
-            id:      btn.id,
-            label:   btn.title  || btn.label || "",
-            url:     btn.value  || btn.url   || "",
+            id: btn.id,
+            label: btn.title || btn.label || "",
+            url: btn.value || btn.url || "",
             btnType: btn.btnType || "",
           })),
 
           quickReplies: (template.quickReplies || []).map(r => ({
-            id:    r.id,
+            id: r.id,
             title: r.title || r.label || "",
           })),
 
           copyCodeButtons: (template.copyCodeButtons || []).map(btn => ({
-            id:    btn.id,
+            id: btn.id,
             label: btn.title || btn.label || "",
-            value: btn.value || btn.code  || "",
+            value: btn.value || btn.code || "",
           })),
 
           // ✅ FIX 3: dropdownButtons and inputFields were not being mapped
           dropdownButtons: (template.dropdownButtons || []).map(dd => ({
-            id:          dd.id,
-            title:       dd.title       || "",
+            id: dd.id,
+            title: dd.title || "",
             placeholder: dd.placeholder || "",
-            options:     dd.options     || "",
+            options: dd.options || "",
             parsedOptions: dd.parsedOptions || [],
-            selected:    dd.selected    || "",
+            selected: dd.selected || "",
           })),
 
           inputFields: (template.inputFields || []).map(f => ({
-            id:          f.id,
-            label:       f.label       || "",
+            id: f.id,
+            label: f.label || "",
             placeholder: f.placeholder || "",
-            value:       f.value       || "",
+            value: f.value || "",
           })),
         },
 
@@ -1151,72 +1152,72 @@ const sendForward = async (targetChat) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
-  };  
+  };
 
-    const handleImagePick = (e) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-      setPendingAttachment({
-        kind: "image", fileName: file.name,
-        fileSize: formatFileSize(file.size), url: URL.createObjectURL(file),
-      });
-      setAttachmentMenuOpen(false);
-      e.target.value = "";
-    };
+  const handleImagePick = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPendingAttachment({
+      kind: "image", fileName: file.name,
+      fileSize: formatFileSize(file.size), url: URL.createObjectURL(file),
+    });
+    setAttachmentMenuOpen(false);
+    e.target.value = "";
+  };
 
-    const handleFilePick = (e) => {
-  const file = e.target.files?.[0];
-  if (!file) return;
+  const handleFilePick = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  const isImage = file.type.startsWith("image/");
-  const isVideo = file.type.startsWith("video/");
+    const isImage = file.type.startsWith("image/");
+    const isVideo = file.type.startsWith("video/");
 
-  setPendingAttachment({
-    kind: isImage ? "image" : isVideo ? "video" : "file",
-    fileName: file.name,
-    fileSize: formatFileSize(file.size),
-    url: URL.createObjectURL(file),
-  });
+    setPendingAttachment({
+      kind: isImage ? "image" : isVideo ? "video" : "file",
+      fileName: file.name,
+      fileSize: formatFileSize(file.size),
+      url: URL.createObjectURL(file),
+    });
 
-  setAttachmentMenuOpen(false);
-  e.target.value = "";
-};
+    setAttachmentMenuOpen(false);
+    e.target.value = "";
+  };
 
-    const handleAttachmentAction = (type) => {
+  const handleAttachmentAction = (type) => {
 
-      if (type === "photos") {
-  fileInputRef.current?.click(); // ✅ video + image dono
-}
+    if (type === "photos") {
+      fileInputRef.current?.click(); // ✅ video + image dono
+    }
 
-      if (type === "document") { fileInputRef.current?.click();  return; }
-      setAttachmentMenuOpen(false);
-    };
+    if (type === "document") { fileInputRef.current?.click(); return; }
+    setAttachmentMenuOpen(false);
+  };
 
-    const handleInputChange = (e) => {
-      setInput(e.target.value);
-      if (selectedChat && currentUser) {
-        const s = getSocket();
-        s.emit("typing", { chatId: selectedChat._id, user: currentUser.name });
-        if (typingTimeout) clearTimeout(typingTimeout);
-        setTypingTimeout(setTimeout(() => {}, 1000));
-      }
-    };
+  const handleInputChange = (e) => {
+    setInput(e.target.value);
+    if (selectedChat && currentUser) {
+      const s = getSocket();
+      s.emit("typing", { chatId: selectedChat._id, user: currentUser.name });
+      if (typingTimeout) clearTimeout(typingTimeout);
+      setTypingTimeout(setTimeout(() => { }, 1000));
+    }
+  };
 
-    const lastMessageText = (chatId) => {
-      const last = messages[chatId]?.[messages[chatId].length - 1];
-      if (!last) return "Start conversation";
-      if (last.messageType === "image") return "📷 Photo";
-      if (last.messageType === "file")  return `📎 ${last.fileName}`;
-      return last.text;
-    };
+  const lastMessageText = (chatId) => {
+    const last = messages[chatId]?.[messages[chatId].length - 1];
+    if (!last) return "Start conversation";
+    if (last.messageType === "image") return "📷 Photo";
+    if (last.messageType === "file") return `📎 ${last.fileName}`;
+    return last.text;
+  };
 
-    const lastMessageTime = (chatId) =>
-      messages[chatId]?.[messages[chatId].length - 1]?.time || "";
+  const lastMessageTime = (chatId) =>
+    messages[chatId]?.[messages[chatId].length - 1]?.time || "";
 
-    // ── 7. JSX ────────────────────────────────────
-    return (
-      <>
-        <style>{`
+  // ── 7. JSX ────────────────────────────────────
+  return (
+    <>
+      <style>{`
           html, body { height: 100%; overflow: hidden; }
           .sticky-chat-shell {
             position: fixed;
@@ -1305,674 +1306,700 @@ const sendForward = async (targetChat) => {
             .emoji-panel  { width: 250px; }
           }
         `}</style>
-        <style>{shimmerCSS}</style>
+      <style>{shimmerCSS}</style>
 
-        <div ref={pageRef} className="sticky-chat-shell" style={{padding: "0 10px"}}>
-          <input ref={imageInputRef} type="file" accept="image/*" hidden onChange={handleImagePick} />
-          <input 
-  ref={fileInputRef} 
-  type="file" 
-  accept="video/*,image/*"  // 🔥 yeh add karna hai
-  hidden 
-  onChange={handleFilePick} 
-/>
+      <div ref={pageRef} className="sticky-chat-shell" style={{ padding: "0 10px" }}>
+        <input ref={imageInputRef} type="file" accept="image/*" hidden onChange={handleImagePick} />
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="video/*,image/*"  // 🔥 yeh add karna hai
+          hidden
+          onChange={handleFilePick}
+        />
 
-          <div style={{ display: "flex", width: "100%", height: "100%" }}>
-            {isLoading ? (
-              <LiveChatSkeleton />
-            ) : (
-              <>
-                {/* LEFT PANEL (unchanged) */}
-                {(!isMobile || !mobileChatOpen) && (
-                  <div
-                    ref={listPanelRef}
-                    className="d-flex flex-column bg-white border-end"
-                    style={{ width: isMobile ? "100%" : "380px", minWidth: isMobile ? "100%" : "380px", height: "100%", minHeight: 0, overflow: "hidden" }}
-                  >
-                    <div className="d-flex align-items-center justify-content-between px-3 border-bottom flex-shrink-0" style={{ height: 59, background: "#f0f2f5" }}>
-                      <div className="d-flex align-items-center gap-3">
-                        <div className="rounded-circle d-flex align-items-center justify-content-center fw-bold" style={{ width: 40, height: 40, background: "#dfe5e7", color: "#54656f" }}>K</div>
-                        <div className="fw-semibold" style={{ color: "#111b21" }}>
-                          <button onClick={() => setShowContacts(false)} className="btn btn-sm p-0 me-2" style={{ fontWeight: !showContacts ? 'bold' : 'normal', color: !showContacts ? '#111b21' : '#54656f', background: 'none', border: 'none' }}>Chats</button>
-                          <span style={{ color: '#54656f' }}>|</span>
-                          <button onClick={() => setShowContacts(true)} className="btn btn-sm p-0 ms-2" style={{ fontWeight: showContacts ? 'bold' : 'normal', color: showContacts ? '#111b21' : '#54656f', background: 'none', border: 'none' }}>Contacts</button>
-                        </div>
-                      </div>
-                      <div className="d-flex gap-1">
-                        <button type="button" onClick={() => setShowGroupModal(true)} className="icon-btn btn border-0 rounded-circle d-flex align-items-center justify-content-center" style={{ width: 38, height: 38, background: "transparent", color: "#54656f" }}><FiUsers size={18} /></button>
-                        <HeaderIcon icon={<FiMoreVertical size={18} />} />
+        <div style={{ display: "flex", width: "100%", height: "100%" }}>
+          {isLoading ? (
+            <LiveChatSkeleton />
+          ) : (
+            <>
+              {/* LEFT PANEL (unchanged) */}
+              {(!isMobile || !mobileChatOpen) && (
+                <div
+                  ref={listPanelRef}
+                  className="d-flex flex-column bg-white border-end"
+                  style={{ width: isMobile ? "100%" : "380px", minWidth: isMobile ? "100%" : "380px", height: "100%", minHeight: 0, overflow: "hidden" }}
+                >
+                  <div className="d-flex align-items-center justify-content-between px-3 border-bottom flex-shrink-0" style={{ height: 59, background: "#f0f2f5" }}>
+                    <div className="d-flex align-items-center gap-3">
+                      <div className="rounded-circle d-flex align-items-center justify-content-center fw-bold" style={{ width: 40, height: 40, background: "#dfe5e7", color: "#54656f" }}>K</div>
+                      <div className="fw-semibold" style={{ color: "#111b21" }}>
+                        <button onClick={() => setShowContacts(false)} className="btn btn-sm p-0 me-2" style={{ fontWeight: !showContacts ? 'bold' : 'normal', color: !showContacts ? '#111b21' : '#54656f', background: 'none', border: 'none' }}>Chats</button>
+                        <span style={{ color: '#54656f' }}>|</span>
+                        <button onClick={() => setShowContacts(true)} className="btn btn-sm p-0 ms-2" style={{ fontWeight: showContacts ? 'bold' : 'normal', color: showContacts ? '#111b21' : '#54656f', background: 'none', border: 'none' }}>Contacts</button>
                       </div>
                     </div>
+                    <div className="d-flex gap-1">
+                      <button type="button" onClick={() => setShowGroupModal(true)} className="icon-btn btn border-0 rounded-circle d-flex align-items-center justify-content-center" style={{ width: 38, height: 38, background: "transparent", color: "#54656f" }}><FiUsers size={18} /></button>
+                      <HeaderIcon icon={<FiMoreVertical size={18} />} />
+                    </div>
+                  </div>
 
-                    <div className="p-2 border-bottom flex-shrink-0 bg-white" style={{ position: "relative" }}>
-  <div className="d-flex align-items-center gap-2 px-3" style={{ height: 36, borderRadius: 8, background: "#f0f2f5" }}>
-    <FiSearch size={15} color="#54656f" />
-    <input type="text" placeholder={showContacts ? "Search contacts..." : "Search or start new chat"} value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !showContacts) handleSearchUser(); }} style={{ flex: 1, background: "transparent", border: "none", outline: "none" }} />
-    {search && <button onClick={() => setSearch("")} style={{ background: "none", border: "none", color: "#54656f", cursor: "pointer", padding: 0 }}><FiX size={14} /></button>}
-  </div>
-  {searchSuggestions.length > 0 && (
-    <div style={{ position: "absolute", top: "100%", left: 8, right: 8, background: "#fff", borderRadius: 8, boxShadow: "0 4px 12px rgba(0,0,0,0.12)", border: "1px solid #e9edef", zIndex: 999, overflow: "hidden" }}>
-      {searchSuggestions.map(contact => (
-        <div
-          key={contact._id || contact.mobile}
-          onClick={() => { startChatWithContact(contact); setSearch(""); }}
-          className="d-flex align-items-center gap-3 px-3 py-2"
-          style={{ cursor: "pointer", borderBottom: "1px solid #f0f2f5" }}
-          onMouseEnter={e => e.currentTarget.style.background = "#f5f6f6"}
-          onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-        >
-          <div className="rounded-circle d-flex align-items-center justify-content-center fw-bold flex-shrink-0" style={{ width: 36, height: 36, background: "#dfe5e7", color: "#54656f", fontSize: "0.9rem" }}>
-            {contact.name?.charAt(0) || "C"}
-          </div>
-          <div>
-            <div style={{ fontSize: "0.92rem", fontWeight: 500, color: "#111b21" }}>{contact.name}</div>
-            <div style={{ fontSize: "0.78rem", color: "#667781" }}>{contact.mobile}</div>
-          </div>
-        </div>
-      ))}
-    </div>
-  )}
-</div>
-
-                    {!showContacts && (
-                      <div className="d-flex gap-2 p-2 border-bottom bg-white flex-shrink-0 scroll-hidden">
-                        {tabs.map((tab) => (
-                          <button key={tab.id} type="button" onClick={() => handleTabChange(tab.id)} className={`btn rounded-pill px-3 py-2 tab-pill ${activeTab === tab.id ? "active-tab" : ""}`}>{tab.label} ({tab.count})</button>
+                  <div className="p-2 border-bottom flex-shrink-0 bg-white" style={{ position: "relative" }}>
+                    <div className="d-flex align-items-center gap-2 px-3" style={{ height: 36, borderRadius: 8, background: "#f0f2f5" }}>
+                      <FiSearch size={15} color="#54656f" />
+                      <input type="text" placeholder={showContacts ? "Search contacts..." : "Search or start new chat"} value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !showContacts) handleSearchUser(); }} style={{ flex: 1, background: "transparent", border: "none", outline: "none" }} />
+                      {search && <button onClick={() => setSearch("")} style={{ background: "none", border: "none", color: "#54656f", cursor: "pointer", padding: 0 }}><FiX size={14} /></button>}
+                    </div>
+                    {searchSuggestions.length > 0 && (
+                      <div style={{ position: "absolute", top: "100%", left: 8, right: 8, background: "#fff", borderRadius: 8, boxShadow: "0 4px 12px rgba(0,0,0,0.12)", border: "1px solid #e9edef", zIndex: 999, overflow: "hidden" }}>
+                        {searchSuggestions.map(contact => (
+                          <div
+                            key={contact._id || contact.mobile}
+                            onClick={() => { startChatWithContact(contact); setSearch(""); }}
+                            className="d-flex align-items-center gap-3 px-3 py-2"
+                            style={{ cursor: "pointer", borderBottom: "1px solid #f0f2f5" }}
+                            onMouseEnter={e => e.currentTarget.style.background = "#f5f6f6"}
+                            onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                          >
+                            <div className="rounded-circle d-flex align-items-center justify-content-center fw-bold flex-shrink-0" style={{ width: 36, height: 36, background: "#dfe5e7", color: "#54656f", fontSize: "0.9rem" }}>
+                              {contact.name?.charAt(0) || "C"}
+                            </div>
+                            <div>
+                              <div style={{ fontSize: "0.92rem", fontWeight: 500, color: "#111b21" }}>{contact.name}</div>
+                              <div style={{ fontSize: "0.78rem", color: "#667781" }}>{contact.mobile}</div>
+                            </div>
+                          </div>
                         ))}
                       </div>
                     )}
+                  </div>
 
-                    <div className="flex-grow-1 scroll-hidden" style={{ minHeight: 0, background: "#fff" }}>
-                      {showContacts ? (
-                        contacts.length === 0 ? (
-                          <div className="text-center p-4" style={{ color: "#667781" }}>No contacts found</div>
-                        ) : (
-                          contacts
-                            .filter((contact) =>
-                              search
-                                ? (contact.name?.toLowerCase().includes(search.toLowerCase()) ||
-                                  contact.mobile?.includes(search))
-                                : true
-                            )
-                            .map((contact) => (
-                              <div
-                                key={contact._id || contact.mobile}
-                                className="chat-item w-100 border-0 d-flex align-items-center gap-3 px-3 py-3"
-                                style={{ borderBottom: "1px solid #f0f2f5", cursor: "pointer" }}
-                              >
-                                <div
-                                  className="rounded-circle d-flex align-items-center justify-content-center fw-bold flex-shrink-0"
-                                  style={{ width: 49, height: 49, background: "#dfe5e7", color: "#54656f" }}
-                                  onClick={() => startChatWithContact(contact)}
-                                >
-                                  {contact.name?.charAt(0) || "C"}
-                                </div>
-                                <div
-                                  className="flex-grow-1 overflow-hidden"
-                                  onClick={() => startChatWithContact(contact)}
-                                >
-                                  <div className="text-truncate" style={{ fontSize: "0.98rem", fontWeight: 500, color: "#111b21" }}>
-                                    {contact.name}
-                                  </div>
-                                  <div className="text-truncate" style={{ fontSize: "0.84rem", color: "#667781" }}>
-                                    {contact.mobile}
-                                  </div>
-                                </div>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    deleteContact(contact._id, contact.name);
-                                  }}
-                                  className="btn btn-sm p-1"
-                                  style={{ color: "#dc3545", background: "transparent", border: "none" }}
-                                  title="Delete contact"
-                                >
-                                  <FiTrash2 size={16} />
-                                </button>
-                              </div>
-                            ))
-                        )
+                  {!showContacts && (
+                    <div className="d-flex gap-2 p-2 border-bottom bg-white flex-shrink-0 scroll-hidden">
+                      {tabs.map((tab) => (
+                        <button key={tab.id} type="button" onClick={() => handleTabChange(tab.id)} className={`btn rounded-pill px-3 py-2 tab-pill ${activeTab === tab.id ? "active-tab" : ""}`}>{tab.label} ({tab.count})</button>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="flex-grow-1 scroll-hidden" style={{ minHeight: 0, background: "#fff" }}>
+                    {showContacts ? (
+                      contacts.length === 0 ? (
+                        <div className="text-center p-4" style={{ color: "#667781" }}>No contacts found</div>
                       ) : (
-                        filteredChats.length === 0 ? (
-                          <div className="text-center p-4" style={{ color: "#667781" }}>No chats found</div>
-                        ) : (
-                          filteredChats.map((item) => (
+                        contacts
+                          .filter((contact) =>
+                            search
+                              ? (contact.name?.toLowerCase().includes(search.toLowerCase()) ||
+                                contact.mobile?.includes(search))
+                              : true
+                          )
+                          .map((contact) => (
                             <div
-                              key={item._id}
+                              key={contact._id || contact.mobile}
                               className="chat-item w-100 border-0 d-flex align-items-center gap-3 px-3 py-3"
-                              style={{
-                                background: selectedChat?._id === item._id ? "#f0f2f5" : "#ffffff",
-                                borderBottom: "1px solid #f0f2f5",
-                                cursor: "pointer",
-                              }}
-                              onClick={() => handleSelectChat(item)}
+                              style={{ borderBottom: "1px solid #f0f2f5", cursor: "pointer" }}
                             >
                               <div
                                 className="rounded-circle d-flex align-items-center justify-content-center fw-bold flex-shrink-0"
                                 style={{ width: 49, height: 49, background: "#dfe5e7", color: "#54656f" }}
+                                onClick={() => startChatWithContact(contact)}
                               >
-                                {item.name?.charAt(0) || "U"}
+                                {contact.name?.charAt(0) || "C"}
                               </div>
-                              <div className="flex-grow-1 overflow-hidden">
-                                <div className="d-flex align-items-center justify-content-between gap-2">
-                                  <div className="text-truncate" style={{ fontSize: "0.98rem", fontWeight: 500, color: "#111b21" }}>
-                                    {item.name || item.phone}
-                                  </div>
-                                  <div className="flex-shrink-0" style={{ fontSize: "0.72rem", color: item.unread > 0 ? "#25d366" : "#667781" }}>
-                                    {lastMessageTime(item._id)}
-                                  </div>
+                              <div
+                                className="flex-grow-1 overflow-hidden"
+                                onClick={() => startChatWithContact(contact)}
+                              >
+                                <div className="text-truncate" style={{ fontSize: "0.98rem", fontWeight: 500, color: "#111b21" }}>
+                                  {contact.name}
                                 </div>
-                                <div className="d-flex align-items-center justify-content-between gap-2 mt-1">
-                                  <div className="text-truncate" style={{ fontSize: "0.84rem", color: "#667781" }}>
-                                    {lastMessageText(item._id)}
-                                  </div>
-                                  {item.unread > 0 && (
-                                    <div
-                                      className="rounded-pill d-flex align-items-center justify-content-center text-white fw-bold flex-shrink-0"
-                                      style={{ minWidth: 20, height: 20, background: "#25d366", fontSize: "0.7rem", padding: "0 6px" }}
-                                    >
-                                      {item.unread}
-                                    </div>
-                                  )}
+                                <div className="text-truncate" style={{ fontSize: "0.84rem", color: "#667781" }}>
+                                  {contact.mobile}
                                 </div>
                               </div>
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleDeleteChat(item._id);
+                                  deleteContact(contact._id, contact.name);
                                 }}
                                 className="btn btn-sm p-1"
                                 style={{ color: "#dc3545", background: "transparent", border: "none" }}
-                                title="Delete chat"
+                                title="Delete contact"
                               >
                                 <FiTrash2 size={16} />
                               </button>
                             </div>
                           ))
-                        )
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* CENTER PANEL */}
-                {(!isMobile || mobileChatOpen) && (
-                  <div ref={centerPanelRef} className="d-flex flex-column chat-bg" style={{ flex: 1, height: "100%", minHeight: 0, overflow: "hidden", minWidth: 0 }}>
-                    {!selectedChat ? (
-                      <div className="d-flex flex-grow-1 align-items-center justify-content-center">Select a chat</div>
+                      )
                     ) : (
-                      <>
-                        <div className="d-flex align-items-center justify-content-between px-3 border-bottom flex-shrink-0" style={{ height: 59, background: "#f0f2f5" }}>
-                          <div className="d-flex align-items-center gap-3 overflow-hidden">
-                            {isMobile && <button type="button" className="btn btn-sm border-0 shadow-none p-1" onClick={() => setMobileChatOpen(false)} style={{ color: "#54656f" }}><FiArrowLeft size={20} /></button>}
-                            <div className="rounded-circle d-flex align-items-center justify-content-center fw-bold flex-shrink-0" style={{ width: 40, height: 40, background: "#dfe5e7", color: "#54656f" }}>{selectedChat?.name?.charAt(0) || "U"}</div>
+                      filteredChats.length === 0 ? (
+                        <div className="text-center p-4" style={{ color: "#667781" }}>No chats found</div>
+                      ) : (
+                        filteredChats.map((item) => (
+                          <div
+                            key={item._id}
+                            className="chat-item w-100 border-0 d-flex align-items-center gap-3 px-3 py-3"
+                            style={{
+                              background: selectedChat?._id === item._id ? "#f0f2f5" : "#ffffff",
+                              borderBottom: "1px solid #f0f2f5",
+                              cursor: "pointer",
+                            }}
+                            onClick={() => handleSelectChat(item)}
+                          >
+                            <div
+                              className="rounded-circle d-flex align-items-center justify-content-center fw-bold flex-shrink-0"
+                              style={{ width: 49, height: 49, background: "#dfe5e7", color: "#54656f" }}
+                            >
+                              {item.name?.charAt(0) || "U"}
+                            </div>
+                            <div className="flex-grow-1 overflow-hidden">
+                              <div className="d-flex align-items-center justify-content-between gap-2">
+                                <div className="text-truncate" style={{ fontSize: "0.98rem", fontWeight: 500, color: "#111b21" }}>
+                                  {item.name || item.phone}
+                                </div>
+                                <div className="flex-shrink-0" style={{ fontSize: "0.72rem", color: item.unread > 0 ? "#25d366" : "#667781" }}>
+                                  {lastMessageTime(item._id)}
+                                </div>
+                              </div>
+                              <div className="d-flex align-items-center justify-content-between gap-2 mt-1">
+                                <div className="text-truncate" style={{ fontSize: "0.84rem", color: "#667781" }}>
+                                  {lastMessageText(item._id)}
+                                </div>
+                                {item.unread > 0 && (
+                                  <div
+                                    className="rounded-pill d-flex align-items-center justify-content-center text-white fw-bold flex-shrink-0"
+                                    style={{ minWidth: 20, height: 20, background: "#25d366", fontSize: "0.7rem", padding: "0 6px" }}
+                                  >
+                                    {item.unread}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteChat(item._id);
+                              }}
+                              className="btn btn-sm p-1"
+                              style={{ color: "#dc3545", background: "transparent", border: "none" }}
+                              title="Delete chat"
+                            >
+                              <FiTrash2 size={16} />
+                            </button>
+                          </div>
+                        ))
+                      )
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* CENTER PANEL */}
+              {(!isMobile || mobileChatOpen) && (
+                <div ref={centerPanelRef} className="d-flex flex-column chat-bg" style={{ flex: 1, height: "100%", minHeight: 0, overflow: "hidden", minWidth: 0 }}>
+                  {!selectedChat ? (
+                    <div className="d-flex flex-grow-1 align-items-center justify-content-center">Select a chat</div>
+                  ) : (
+                    <>
+                      <div className="d-flex align-items-center justify-content-between px-3 border-bottom flex-shrink-0" style={{ height: 59, background: "#f0f2f5" }}>
+                        <div className="d-flex align-items-center gap-3 overflow-hidden">
+                          {isMobile && (
+                            <button type="button" className="btn btn-sm border-0 shadow-none p-1" onClick={() => setMobileChatOpen(false)} style={{ color: "#54656f" }}>
+                              <FiArrowLeft size={20} />
+                            </button>
+                          )}
+                          <div
+                            className="d-flex align-items-center gap-3 overflow-hidden"
+                            onClick={() => !isMobile && setShowContactInfo(p => !p)}
+                            style={{ cursor: isMobile ? "default" : "pointer", minWidth: 0 }}
+                          >
+                            <div className="rounded-circle d-flex align-items-center justify-content-center fw-bold flex-shrink-0" style={{ width: 40, height: 40, background: "#dfe5e7", color: "#54656f" }}>
+                              {selectedChat?.name?.charAt(0) || "U"}
+                            </div>
                             <div className="overflow-hidden">
                               <div className="text-truncate" style={{ fontSize: "0.96rem", fontWeight: 500, color: "#111b21" }}>{selectedChat?.name}</div>
                               <div style={{ fontSize: "0.78rem", color: "#667781" }}>{selectedChat.lastSeen}</div>
                             </div>
                           </div>
-                          <div className="d-flex gap-1 flex-shrink-0">
-                            <HeaderIcon icon={<FiSearch size={18} />} />
-                            <HeaderIcon icon={<FiPhone size={18} />} />
-                            <HeaderIcon icon={<FiMoreVertical size={18} />} />
+                        </div>
+                        <div className="d-flex gap-1 flex-shrink-0">
+                          <HeaderIcon icon={<FiSearch size={18} />} />
+                          <HeaderIcon icon={<FiPhone size={18} />} />
+                          <button
+                            type="button"
+                            onClick={() => setShowContactInfo(p => !p)}
+                            className="icon-btn btn border-0 rounded-circle d-flex align-items-center justify-content-center"
+                            style={{
+                              width: 38,
+                              height: 38,
+                              background: showContactInfo ? "#d9fdd3" : "transparent",
+                              color: showContactInfo ? "#00a884" : "#54656f",
+                            }}
+                            title="Contact info"
+                          >
+                            <FiInfo size={18} />
+                          </button>
+                          <HeaderIcon icon={<FiMoreVertical size={18} />} />
+                        </div>
+                      </div>
+
+                      <div ref={messageScrollRef} className="flex-grow-1 scroll-hidden d-flex flex-column gap-2 px-3 px-md-4 py-3" style={{ minHeight: 0 }}>
+                        {(messages[selectedChat?._id] || []).map((msg, index) => (
+                          <div
+                            key={msg.id}
+                            className="msg-enter"
+                            style={{
+                              animationDelay: `${index * 0.02}s`,
+                              display: "flex",
+                              justifyContent: msg.type === "sent" ? "flex-end" : "flex-start",
+                            }}
+                          >
+                            <MessageBubble
+                              msg={msg}
+                              onDeleteClick={openDeleteModal}
+                              onForward={handleForwardMessage}
+                              onSendMessage={async (newMsg) => {
+                                const user = JSON.parse(localStorage.getItem("user"));
+
+                                // ✅ 1. UI me turant show (optimistic)
+                                setMessages(prev => ({
+                                  ...prev,
+                                  [selectedChat._id]: [
+                                    ...(prev[selectedChat._id] || []),
+                                    newMsg
+                                  ]
+                                }));
+
+                                // ✅ 2. Backend ko bhejo (IMPORTANT)
+                                try {
+                                  await fetch(`${API_BASE}/messages`, {
+                                    method: "POST",
+                                    headers: {
+                                      "Content-Type": "application/json",
+                                    },
+                                    body: JSON.stringify({
+                                      chatId: selectedChat._id,
+                                      sender: user.phone,
+                                      text: newMsg.text,
+                                      messageType: "text",
+                                    }),
+                                  });
+                                } catch (err) {
+                                  console.error("Send failed:", err);
+                                }
+                              }}
+                            />
+                          </div>
+                        ))}
+                        {isUserTyping && <div className="d-flex justify-content-start"><div className="px-3 py-2 rounded-3 bg-white" style={{ fontSize: "0.8rem", color: "#667781" }}>Typing...</div></div>}
+                      </div>
+
+                      {pendingAttachment && (
+                        <div
+                          className="p-2 border-top flex-shrink-0"
+                          style={{ background: "#f0f2f5" }}
+                        >
+                          <div
+                            className="position-relative d-flex align-items-center gap-3 p-2 bg-white border rounded"
+                            style={{ minHeight: 96 }}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => setPendingAttachment(null)}
+                              className="btn btn-sm rounded-circle position-absolute border-0"
+                              style={{
+                                top: 8,
+                                right: 8,
+                                width: 28,
+                                height: 28,
+                                background: "#f0f2f5",
+                              }}
+                            >
+                              <FiX size={14} />
+                            </button>
+
+                            {/* 🔥 IMAGE */}
+                            {pendingAttachment.kind === "image" ? (
+                              <img
+                                src={pendingAttachment.url}
+                                alt={pendingAttachment.fileName}
+                                style={{
+                                  width: 76,
+                                  height: 76,
+                                  objectFit: "cover",
+                                  borderRadius: 8,
+                                  flexShrink: 0,
+                                }}
+                              />
+
+                            ) : pendingAttachment.kind === "video" ? (
+                              /* 🔥 VIDEO (NEW) */
+                              <video
+                                src={pendingAttachment.url}
+                                controls
+                                style={{
+                                  width: 76,
+                                  height: 76,
+                                  objectFit: "cover",
+                                  borderRadius: 8,
+                                  flexShrink: 0,
+                                }}
+                              />
+
+                            ) : (
+                              /* 🔥 FILE */
+                              <div
+                                className="d-flex align-items-center justify-content-center rounded flex-shrink-0"
+                                style={{
+                                  width: 76,
+                                  height: 76,
+                                  background: "#f0f2f5",
+                                }}
+                              >
+                                <FiFile size={28} color="#54656f" />
+                              </div>
+                            )}
+
+                            {/* FILE INFO */}
+                            <div className="overflow-hidden">
+                              <div
+                                className="fw-semibold pe-4 text-break"
+                                style={{ color: "#111b21" }}
+                              >
+                                {pendingAttachment.fileName}
+                              </div>
+                              <div
+                                className="mt-1"
+                                style={{ fontSize: "0.82rem", color: "#667781" }}
+                              >
+                                {pendingAttachment.fileSize}
+                              </div>
+                            </div>
                           </div>
                         </div>
+                      )}
 
-                        <div ref={messageScrollRef} className="flex-grow-1 scroll-hidden d-flex flex-column gap-2 px-3 px-md-4 py-3" style={{ minHeight: 0 }}>
-                          {(messages[selectedChat?._id] || []).map((msg, index) => (
-                            <div
-    key={msg.id}
-    className="msg-enter"
-    style={{
-      animationDelay: `${index * 0.02}s`,
-      display: "flex",
-      justifyContent: msg.type === "sent" ? "flex-end" : "flex-start",
-    }}
-  >
-    <MessageBubble 
-  msg={msg} 
-  onDeleteClick={openDeleteModal} 
-  onForward={handleForwardMessage} 
-  onSendMessage={async (newMsg) => {
-  const user = JSON.parse(localStorage.getItem("user"));
-
-  // ✅ 1. UI me turant show (optimistic)
-  setMessages(prev => ({
-    ...prev,
-    [selectedChat._id]: [
-      ...(prev[selectedChat._id] || []),
-      newMsg
-    ]
-  }));
-
-  // ✅ 2. Backend ko bhejo (IMPORTANT)
-  try {
-    await fetch(`${API_BASE}/messages`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        chatId: selectedChat._id,
-        sender: user.phone,
-        text: newMsg.text,
-        messageType: "text",
-      }),
-    });
-  } catch (err) {
-    console.error("Send failed:", err);
-  }
-}}
-/>
-  </div>
-                          ))}
-                          {isUserTyping && <div className="d-flex justify-content-start"><div className="px-3 py-2 rounded-3 bg-white" style={{ fontSize: "0.8rem", color: "#667781" }}>Typing...</div></div>}
+                      <div className="d-flex align-items-center gap-2 p-2 p-md-3 border-top position-relative flex-shrink-0" style={{ background: "#f0f2f5" }}>
+                        <div ref={attachmentWrapRef} className="position-relative">
+                          <motion.button type="button" onClick={() => { setAttachmentMenuOpen((p) => !p); setShowEmojiPicker(false); }} className={`composer-action-btn ${attachmentMenuOpen ? "active" : ""}`} whileTap={{ scale: 0.9 }}>
+                            <motion.div animate={{ rotate: attachmentMenuOpen ? 90 : 0 }} transition={{ duration: 0.18, ease: "easeOut" }}>{attachmentMenuOpen ? <FiX size={22} /> : <FiPlus size={24} />}</motion.div>
+                          </motion.button>
+                          <AnimatePresence>
+                            {attachmentMenuOpen && (
+                              <motion.div variants={popupVariants} initial="hidden" animate="visible" exit="exit" className="attach-sheet">
+                                {attachmentItems.map((item, index) => {
+                                  const Icon = item.icon;
+                                  return (
+                                    <motion.button key={item.id} type="button" onClick={() => handleAttachmentAction(item.id)} className="attach-row-btn" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 6 }} transition={{ duration: 0.18, delay: index * 0.02 }} whileHover={{ x: 2 }} whileTap={{ scale: 0.98 }}>
+                                      <div className="attach-icon-box" style={{ color: item.color }}><Icon size={18} /></div>
+                                      <span style={{ fontSize: "0.98rem", fontWeight: 500, color: "#1f2937" }}>{item.label}</span>
+                                    </motion.button>
+                                  );
+                                })}
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </div>
 
-                        {pendingAttachment && (
-  <div
-    className="p-2 border-top flex-shrink-0"
-    style={{ background: "#f0f2f5" }}
-  >
-    <div
-      className="position-relative d-flex align-items-center gap-3 p-2 bg-white border rounded"
-      style={{ minHeight: 96 }}
-    >
-      <button
-        type="button"
-        onClick={() => setPendingAttachment(null)}
-        className="btn btn-sm rounded-circle position-absolute border-0"
-        style={{
-          top: 8,
-          right: 8,
-          width: 28,
-          height: 28,
-          background: "#f0f2f5",
-        }}
-      >
-        <FiX size={14} />
-      </button>
+                        <div ref={emojiWrapRef} className="position-relative">
+                          <motion.button type="button" onClick={() => { setShowEmojiPicker((p) => !p); setAttachmentMenuOpen(false); }} className={`composer-action-btn ${showEmojiPicker ? "active" : ""}`} whileTap={{ scale: 0.9 }}>
+                            <motion.div animate={{ rotate: showEmojiPicker ? -8 : 0, scale: showEmojiPicker ? 1.05 : 1 }} transition={{ duration: 0.18, ease: "easeOut" }}><FiSmile size={21} /></motion.div>
+                          </motion.button>
+                          <AnimatePresence>
+                            {showEmojiPicker && (
+                              <motion.div variants={popupVariants} initial="hidden" animate="visible" exit="exit" className="emoji-panel">
+                                <div className="row g-2">
+                                  {emojiList.map((emoji, index) => (
+                                    <div className="col-2" key={emoji}>
+                                      <motion.button type="button" onClick={() => setInput((p) => p + emoji)} className="emoji-chip" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.16, delay: index * 0.008 }} whileTap={{ scale: 0.9 }}>{emoji}</motion.button>
+                                    </div>
+                                  ))}
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
 
-      {/* 🔥 IMAGE */}
-      {pendingAttachment.kind === "image" ? (
-        <img
-          src={pendingAttachment.url}
-          alt={pendingAttachment.fileName}
-          style={{
-            width: 76,
-            height: 76,
-            objectFit: "cover",
-            borderRadius: 8,
-            flexShrink: 0,
-          }}
-        />
+                        <input type="text" value={input} onChange={handleInputChange} onKeyDown={(e) => e.key === "Enter" && handleSend()} placeholder="Type a message" className="form-control border-0 shadow-none" style={{ height: 42, borderRadius: 24, background: "#ffffff", paddingLeft: 16, paddingRight: 16 }} />
+                        <button
+                          type="button"
+                          onClick={() => setShowTemplateModal(true)}
+                          className="btn border-0 rounded-circle d-flex align-items-center justify-content-center"
+                          style={{
+                            width: 42,
+                            height: 42,
+                            background: "#e7fef5",
+                            color: "#00a884",
+                          }}
+                        >
+                          📄
+                        </button>
+                        <button type="button" onClick={handleSend} className="send-btn btn border-0 rounded-circle d-flex align-items-center justify-content-center" style={{ width: 42, height: 42, background: "#00a884", color: "#ffffff", flexShrink: 0 }}><FiSend size={18} /></button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
 
-      ) : pendingAttachment.kind === "video" ? (
-        /* 🔥 VIDEO (NEW) */
-        <video
-          src={pendingAttachment.url}
-          controls
-          style={{
-            width: 76,
-            height: 76,
-            objectFit: "cover",
-            borderRadius: 8,
-            flexShrink: 0,
-          }}
-        />
+              {/* RIGHT PANEL (unchanged) */}
+              {!isMobile && showContactInfo && (
+                <div ref={rightPanelRef} className="d-none d-xl-flex flex-column border-start bg-white" style={{ width: "340px", minWidth: "340px", height: "100%", minHeight: 0, overflow: "hidden" }}>
+                  <div className="d-flex align-items-center justify-content-center border-bottom flex-shrink-0 fw-semibold" style={{ height: 59, background: "#f0f2f5", color: "#111b21" }}>{selectedChat?.isGroup ? "Group Info" : "Contact Info"}</div>
+                  <div className="flex-grow-1 scroll-hidden" style={{ minHeight: 0, background: "#f7f8fa" }}>
+                    {selectedChat ? (
+                      <>
+                        <div className="bg-white text-center px-3 py-4" style={{ borderBottom: "10px solid #f0f2f5" }}>
+                          <div className="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3 fw-bold" style={{ width: 92, height: 92, background: "#dfe5e7", color: "#54656f", fontSize: "1.8rem" }}>{selectedChat?.name?.charAt(0) || "U"}</div>
+                          <div style={{ fontSize: "1.08rem", fontWeight: 500, color: "#111b21" }}>{selectedChat?.name}</div>
+                          {!selectedChat?.isGroup && <div style={{ fontSize: "0.84rem", color: "#667781", marginTop: 4 }}>{selectedChat?.phone}</div>}
+                        </div>
 
-      ) : (
-        /* 🔥 FILE */
-        <div
-          className="d-flex align-items-center justify-content-center rounded flex-shrink-0"
-          style={{
-            width: 76,
-            height: 76,
-            background: "#f0f2f5",
-          }}
-        >
-          <FiFile size={28} color="#54656f" />
+                        {selectedChat?.isGroup ? (
+                          <DetailCard icon={<FiUsers size={16} />} title="Members" customContent={<div>{selectedChat.participants?.join(", ")}</div>} />
+                        ) : (
+                          <>
+                            <DetailCard icon={<FiInfo size={16} />} title="Basic Info" items={[{ label: "Phone", value: selectedChat?.phone }, { label: "Email", value: selectedChat?.email }, { label: "City", value: selectedChat?.city }, { label: "Status", value: selectedChat?.lastSeen }]} />
+                            <DetailCard icon={<FiTag size={16} />} title="Lead Tag" items={[{ label: "Tag", value: tags.find(t => t._id === selectedChat.tag)?.name || selectedChat.tag || "No tag" }]} />
+                            <DetailCard icon={<FiMessageSquare size={16} />} title="Notes" customContent={<div style={{ fontSize: "0.9rem", color: "#3b4a54", lineHeight: 1.6 }}>{selectedChat.notes}</div>} />
+                          </>
+                        )}
+                      </>
+                    ) : (
+                      <div className="text-center p-4" style={{ color: "#667781" }}>No chat selected</div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Group Creation Modal (unchanged) */}
+      {showGroupModal && (
+        <div className="modal-overlay" onClick={() => setShowGroupModal(false)} style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ background: "white", padding: "20px", borderRadius: "12px", width: "90%", maxWidth: "400px", maxHeight: "80vh", overflowY: "auto" }}>
+            <h4>Create Group</h4>
+            <input type="text" placeholder="Group name" value={groupName} onChange={(e) => setGroupName(e.target.value)} className="form-control mb-2" style={{ width: "100%", padding: "8px", marginBottom: "10px" }} />
+            <p>Select contacts:</p>
+            <div style={{ maxHeight: "200px", overflowY: "auto" }}>
+              {contacts.map(contact => (
+                <label key={contact.mobile} className="d-flex align-items-center gap-2 mb-2">
+                  <input type="checkbox" checked={selectedContactsForGroup.some(c => c.mobile === contact.mobile)} onChange={(e) => {
+                    if (e.target.checked) setSelectedContactsForGroup([...selectedContactsForGroup, contact]);
+                    else setSelectedContactsForGroup(selectedContactsForGroup.filter(c => c.mobile !== contact.mobile));
+                  }} />
+                  {contact.name} ({contact.mobile})
+                </label>
+              ))}
+            </div>
+            <div className="d-flex justify-content-end gap-2 mt-3">
+              <button className="btn btn-secondary" onClick={() => setShowGroupModal(false)}>Cancel</button>
+              <button className="btn btn-primary" onClick={createGroup}>Create</button>
+            </div>
+          </div>
         </div>
       )}
 
-      {/* FILE INFO */}
-      <div className="overflow-hidden">
+
+      {/* Forward Message Modal */}
+      {showForwardModal && (
         <div
-          className="fw-semibold pe-4 text-break"
-          style={{ color: "#111b21" }}
+          onClick={() => setShowForwardModal(false)}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}
         >
-          {pendingAttachment.fileName}
-        </div>
-        <div
-          className="mt-1"
-          style={{ fontSize: "0.82rem", color: "#667781" }}
-        >
-          {pendingAttachment.fileSize}
-        </div>
-      </div>
-    </div>
-  </div>
-)}
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ background: "#fff", borderRadius: 12, width: 360, maxHeight: "70vh", display: "flex", flexDirection: "column", overflow: "hidden" }}
+          >
+            {/* Header */}
+            <div style={{ padding: "14px 16px", borderBottom: "1px solid #e9edef", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span style={{ fontWeight: 600, fontSize: "1rem", color: "#111b21" }}>Forward message to</span>
+              <button onClick={() => setShowForwardModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#54656f" }}><FiX size={20} /></button>
+            </div>
 
-                        <div className="d-flex align-items-center gap-2 p-2 p-md-3 border-top position-relative flex-shrink-0" style={{ background: "#f0f2f5" }}>
-                          <div ref={attachmentWrapRef} className="position-relative">
-                            <motion.button type="button" onClick={() => { setAttachmentMenuOpen((p) => !p); setShowEmojiPicker(false); }} className={`composer-action-btn ${attachmentMenuOpen ? "active" : ""}`} whileTap={{ scale: 0.9 }}>
-                              <motion.div animate={{ rotate: attachmentMenuOpen ? 90 : 0 }} transition={{ duration: 0.18, ease: "easeOut" }}>{attachmentMenuOpen ? <FiX size={22} /> : <FiPlus size={24} />}</motion.div>
-                            </motion.button>
-                            <AnimatePresence>
-                              {attachmentMenuOpen && (
-                                <motion.div variants={popupVariants} initial="hidden" animate="visible" exit="exit" className="attach-sheet">
-                                  {attachmentItems.map((item, index) => {
-                                    const Icon = item.icon;
-                                    return (
-                                      <motion.button key={item.id} type="button" onClick={() => handleAttachmentAction(item.id)} className="attach-row-btn" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 6 }} transition={{ duration: 0.18, delay: index * 0.02 }} whileHover={{ x: 2 }} whileTap={{ scale: 0.98 }}>
-                                        <div className="attach-icon-box" style={{ color: item.color }}><Icon size={18} /></div>
-                                        <span style={{ fontSize: "0.98rem", fontWeight: 500, color: "#1f2937" }}>{item.label}</span>
-                                      </motion.button>
-                                    );
-                                  })}
-                                </motion.div>
-                              )}
-                            </AnimatePresence>
-                          </div>
+            {/* Preview of message being forwarded */}
+            {forwardMessage && (
+              <div style={{ margin: "10px 16px", padding: "8px 12px", background: "#f0f2f5", borderRadius: 8, fontSize: "0.85rem", color: "#54656f", borderLeft: "3px solid #00a884" }}>
+                {forwardMessage.messageType === "image" ? "📷 Photo" :
+                  forwardMessage.messageType === "file" ? `📎 ${forwardMessage.fileName}` :
+                    forwardMessage.messageType === "template" ? `📋 ${forwardMessage.templateMeta?.header || "Template"}` :
+                      forwardMessage.text}
+              </div>
+            )}
 
-                          <div ref={emojiWrapRef} className="position-relative">
-                            <motion.button type="button" onClick={() => { setShowEmojiPicker((p) => !p); setAttachmentMenuOpen(false); }} className={`composer-action-btn ${showEmojiPicker ? "active" : ""}`} whileTap={{ scale: 0.9 }}>
-                              <motion.div animate={{ rotate: showEmojiPicker ? -8 : 0, scale: showEmojiPicker ? 1.05 : 1 }} transition={{ duration: 0.18, ease: "easeOut" }}><FiSmile size={21} /></motion.div>
-                            </motion.button>
-                            <AnimatePresence>
-                              {showEmojiPicker && (
-                                <motion.div variants={popupVariants} initial="hidden" animate="visible" exit="exit" className="emoji-panel">
-                                  <div className="row g-2">
-                                    {emojiList.map((emoji, index) => (
-                                      <div className="col-2" key={emoji}>
-                                        <motion.button type="button" onClick={() => setInput((p) => p + emoji)} className="emoji-chip" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.16, delay: index * 0.008 }} whileTap={{ scale: 0.9 }}>{emoji}</motion.button>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </motion.div>
-                              )}
-                            </AnimatePresence>
-                          </div>
-
-                          <input type="text" value={input} onChange={handleInputChange} onKeyDown={(e) => e.key === "Enter" && handleSend()} placeholder="Type a message" className="form-control border-0 shadow-none" style={{ height: 42, borderRadius: 24, background: "#ffffff", paddingLeft: 16, paddingRight: 16 }} />
-                              <button
-  type="button"
-  onClick={() => setShowTemplateModal(true)}
-  className="btn border-0 rounded-circle d-flex align-items-center justify-content-center"
-  style={{
-    width: 42,
-    height: 42,
-    background: "#e7fef5",
-    color: "#00a884",
-  }}
->
-  📄
-</button>
-                          <button type="button" onClick={handleSend} className="send-btn btn border-0 rounded-circle d-flex align-items-center justify-content-center" style={{ width: 42, height: 42, background: "#00a884", color: "#ffffff", flexShrink: 0 }}><FiSend size={18} /></button>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                )}
-
-                {/* RIGHT PANEL (unchanged) */}
-                {!isMobile && (
-                  <div ref={rightPanelRef} className="d-none d-xl-flex flex-column border-start bg-white" style={{ width: "340px", minWidth: "340px", height: "100%", minHeight: 0, overflow: "hidden" }}>
-                    <div className="d-flex align-items-center justify-content-center border-bottom flex-shrink-0 fw-semibold" style={{ height: 59, background: "#f0f2f5", color: "#111b21" }}>{selectedChat?.isGroup ? "Group Info" : "Contact Info"}</div>
-                    <div className="flex-grow-1 scroll-hidden" style={{ minHeight: 0, background: "#f7f8fa" }}>
-                      {selectedChat ? (
-                        <>
-                          <div className="bg-white text-center px-3 py-4" style={{ borderBottom: "10px solid #f0f2f5" }}>
-                            <div className="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3 fw-bold" style={{ width: 92, height: 92, background: "#dfe5e7", color: "#54656f", fontSize: "1.8rem" }}>{selectedChat?.name?.charAt(0) || "U"}</div>
-                            <div style={{ fontSize: "1.08rem", fontWeight: 500, color: "#111b21" }}>{selectedChat?.name}</div>
-                            {!selectedChat?.isGroup && <div style={{ fontSize: "0.84rem", color: "#667781", marginTop: 4 }}>{selectedChat?.phone}</div>}
-                          </div>
-
-                          {selectedChat?.isGroup ? (
-                            <DetailCard icon={<FiUsers size={16} />} title="Members" customContent={<div>{selectedChat.participants?.join(", ")}</div>} />
-                          ) : (
-                            <>
-                              <DetailCard icon={<FiInfo size={16} />} title="Basic Info" items={[{ label: "Phone", value: selectedChat?.phone }, { label: "Email", value: selectedChat?.email }, { label: "City", value: selectedChat?.city }, { label: "Status", value: selectedChat?.lastSeen }]} />
-                              <DetailCard icon={<FiTag size={16} />} title="Lead Tag" items={[{ label: "Tag", value: tags.find(t => t._id === selectedChat.tag)?.name || selectedChat.tag || "No tag" }]} />
-                              <DetailCard icon={<FiMessageSquare size={16} />} title="Notes" customContent={<div style={{ fontSize: "0.9rem", color: "#3b4a54", lineHeight: 1.6 }}>{selectedChat.notes}</div>} />
-                            </>
-                          )}
-                        </>
-                      ) : (
-                        <div className="text-center p-4" style={{ color: "#667781" }}>No chat selected</div>
-                      )}
+            {/* Chat list */}
+            <div style={{ overflowY: "auto", flex: 1 }}>
+              {chatList.length === 0 ? (
+                <div style={{ padding: 20, textAlign: "center", color: "#667781" }}>No chats available</div>
+              ) : (
+                chatList.map(chat => (
+                  <div
+                    key={chat._id}
+                    onClick={() => sendForward(chat)}
+                    style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", cursor: "pointer", borderBottom: "1px solid #f0f2f5" }}
+                    onMouseEnter={e => e.currentTarget.style.background = "#f5f6f6"}
+                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                  >
+                    <div style={{ width: 42, height: 42, borderRadius: "50%", background: "#dfe5e7", color: "#54656f", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, flexShrink: 0 }}>
+                      {chat.name?.charAt(0) || "U"}
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 500, fontSize: "0.95rem", color: "#111b21" }}>{chat.name || chat.phone}</div>
+                      <div style={{ fontSize: "0.8rem", color: "#667781" }}>{chat.phone}</div>
                     </div>
                   </div>
-                )}
-              </>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Message Modal */}
+      {showDeleteModal && (
+        <div
+          className="modal-overlay"
+          onClick={() => setShowDeleteModal(false)}
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0,0,0,0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+          }}
+        >
+          <div
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "white",
+              padding: "20px",
+              borderRadius: "12px",
+              width: "300px",
+              textAlign: "center",
+            }}
+          >
+            <h4>Delete message</h4>
+            <p>Choose an option:</p>
+            <div className="d-flex flex-column gap-2" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              <button
+                onClick={deleteForMe}
+                style={{
+                  padding: "8px 16px",
+                  background: "#6c757d",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                }}
+              >
+                Delete for me
+              </button>
+              <button
+                onClick={deleteForEveryone}
+                style={{
+                  padding: "8px 16px",
+                  background: "#dc3545",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                }}
+              >
+                Delete for everyone
+              </button>
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                style={{
+                  padding: "8px 16px",
+                  background: "#f8f9fa",
+                  color: "#212529",
+                  border: "1px solid #dee2e6",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ✅ TEMPLATE MODAL */}
+      {showTemplateModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0,0,0,0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+          }}
+          onClick={() => setShowTemplateModal(false)}
+        >
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: 12,
+              width: "400px",
+              maxHeight: "70vh",
+              overflowY: "auto",
+              padding: 16,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h5>Select Template</h5>
+
+            {templates.length === 0 ? (
+              <p>No templates found</p>
+            ) : (
+              templates.map((t) => (
+                <div
+                  key={t._id}
+                  onClick={() => {
+                    sendTemplate(t);
+                    setShowTemplateModal(false);
+                  }}
+                  style={{
+                    padding: 10,
+                    borderBottom: "1px solid #eee",
+                    cursor: "pointer",
+                  }}
+                >
+                  <div style={{ fontWeight: "bold" }}>{t.name}</div>
+                  <div style={{ fontSize: 12, color: "#666" }}>
+                    {t.format?.slice(0, 50)}
+                  </div>
+                </div>
+              ))
             )}
           </div>
         </div>
-
-        {/* Group Creation Modal (unchanged) */}
-        {showGroupModal && (
-          <div className="modal-overlay" onClick={() => setShowGroupModal(false)} style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-            <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ background: "white", padding: "20px", borderRadius: "12px", width: "90%", maxWidth: "400px", maxHeight: "80vh", overflowY: "auto" }}>
-              <h4>Create Group</h4>
-              <input type="text" placeholder="Group name" value={groupName} onChange={(e) => setGroupName(e.target.value)} className="form-control mb-2" style={{ width: "100%", padding: "8px", marginBottom: "10px" }} />
-              <p>Select contacts:</p>
-              <div style={{ maxHeight: "200px", overflowY: "auto" }}>
-                {contacts.map(contact => (
-                  <label key={contact.mobile} className="d-flex align-items-center gap-2 mb-2">
-                    <input type="checkbox" checked={selectedContactsForGroup.some(c => c.mobile === contact.mobile)} onChange={(e) => {
-                      if (e.target.checked) setSelectedContactsForGroup([...selectedContactsForGroup, contact]);
-                      else setSelectedContactsForGroup(selectedContactsForGroup.filter(c => c.mobile !== contact.mobile));
-                    }} />
-                    {contact.name} ({contact.mobile})
-                  </label>
-                ))}
-              </div>
-              <div className="d-flex justify-content-end gap-2 mt-3">
-                <button className="btn btn-secondary" onClick={() => setShowGroupModal(false)}>Cancel</button>
-                <button className="btn btn-primary" onClick={createGroup}>Create</button>
-              </div>
-            </div>
-          </div>
-        )}
-
-
-        {/* Forward Message Modal */}
-{showForwardModal && (
-  <div
-    onClick={() => setShowForwardModal(false)}
-    style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}
-  >
-    <div
-      onClick={e => e.stopPropagation()}
-      style={{ background: "#fff", borderRadius: 12, width: 360, maxHeight: "70vh", display: "flex", flexDirection: "column", overflow: "hidden" }}
-    >
-      {/* Header */}
-      <div style={{ padding: "14px 16px", borderBottom: "1px solid #e9edef", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <span style={{ fontWeight: 600, fontSize: "1rem", color: "#111b21" }}>Forward message to</span>
-        <button onClick={() => setShowForwardModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#54656f" }}><FiX size={20} /></button>
-      </div>
-
-      {/* Preview of message being forwarded */}
-      {forwardMessage && (
-        <div style={{ margin: "10px 16px", padding: "8px 12px", background: "#f0f2f5", borderRadius: 8, fontSize: "0.85rem", color: "#54656f", borderLeft: "3px solid #00a884" }}>
-          {forwardMessage.messageType === "image" ? "📷 Photo" :
-           forwardMessage.messageType === "file"  ? `📎 ${forwardMessage.fileName}` :
-           forwardMessage.messageType === "template" ? `📋 ${forwardMessage.templateMeta?.header || "Template"}` :
-           forwardMessage.text}
-        </div>
       )}
 
-      {/* Chat list */}
-      <div style={{ overflowY: "auto", flex: 1 }}>
-        {chatList.length === 0 ? (
-          <div style={{ padding: 20, textAlign: "center", color: "#667781" }}>No chats available</div>
-        ) : (
-          chatList.map(chat => (
-            <div
-              key={chat._id}
-              onClick={() => sendForward(chat)}
-              style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", cursor: "pointer", borderBottom: "1px solid #f0f2f5" }}
-              onMouseEnter={e => e.currentTarget.style.background = "#f5f6f6"}
-              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-            >
-              <div style={{ width: 42, height: 42, borderRadius: "50%", background: "#dfe5e7", color: "#54656f", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, flexShrink: 0 }}>
-                {chat.name?.charAt(0) || "U"}
-              </div>
-              <div>
-                <div style={{ fontWeight: 500, fontSize: "0.95rem", color: "#111b21" }}>{chat.name || chat.phone}</div>
-                <div style={{ fontSize: "0.8rem", color: "#667781" }}>{chat.phone}</div>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-    </div>
-  </div>
-)}
+    </>
+  );
+}
 
-        {/* Delete Message Modal */}
-        {showDeleteModal && (
-          <div
-            className="modal-overlay"
-            onClick={() => setShowDeleteModal(false)}
-            style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: "rgba(0,0,0,0.5)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              zIndex: 1000,
-            }}
-          >
-            <div
-              className="modal-content"
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                background: "white",
-                padding: "20px",
-                borderRadius: "12px",
-                width: "300px",
-                textAlign: "center",
-              }}
-            >
-              <h4>Delete message</h4>
-              <p>Choose an option:</p>
-              <div className="d-flex flex-column gap-2" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                <button
-                  onClick={deleteForMe}
-                  style={{
-                    padding: "8px 16px",
-                    background: "#6c757d",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "6px",
-                    cursor: "pointer",
-                  }}
-                >
-                  Delete for me
-                </button>
-                <button
-                  onClick={deleteForEveryone}
-                  style={{
-                    padding: "8px 16px",
-                    background: "#dc3545",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "6px",
-                    cursor: "pointer",
-                  }}
-                >
-                  Delete for everyone
-                </button>
-                <button
-                  onClick={() => setShowDeleteModal(false)}
-                  style={{
-                    padding: "8px 16px",
-                    background: "#f8f9fa",
-                    color: "#212529",
-                    border: "1px solid #dee2e6",
-                    borderRadius: "6px",
-                    cursor: "pointer",
-                  }}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
 
-             {/* ✅ TEMPLATE MODAL */}
-{showTemplateModal && (
-  <div
-    style={{
-      position: "fixed",
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      background: "rgba(0,0,0,0.5)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      zIndex: 9999,
-    }}
-    onClick={() => setShowTemplateModal(false)}
-  >
-    <div
-      style={{
-        background: "#fff",
-        borderRadius: 12,
-        width: "400px",
-        maxHeight: "70vh",
-        overflowY: "auto",
-        padding: 16,
-      }}
-      onClick={(e) => e.stopPropagation()}
-    >
-      <h5>Select Template</h5>
 
-      {templates.length === 0 ? (
-        <p>No templates found</p>
-      ) : (
-        templates.map((t) => (
-          <div
-            key={t._id}
-            onClick={() => {
-              sendTemplate(t);
-              setShowTemplateModal(false);
-            }}
-            style={{
-              padding: 10,
-              borderBottom: "1px solid #eee",
-              cursor: "pointer",
-            }}
-          >
-            <div style={{ fontWeight: "bold" }}>{t.name}</div>
-            <div style={{ fontSize: 12, color: "#666" }}>
-              {t.format?.slice(0, 50)}
-            </div>
-          </div>
-        ))
-      )}
-    </div>
-  </div>
-)}
-
-      </>
-    );
-  }
-
-  
-   
-  /* ─────────────────────────────────────────────
-    Sub-components
-  ───────────────────────────────────────────── */
+/* ─────────────────────────────────────────────
+  Sub-components
+───────────────────────────────────────────── */
 function MessageBubble({
   msg,
   onDeleteClick,
@@ -2014,8 +2041,8 @@ function MessageBubble({
     borderRadius: isTemplate
       ? 0
       : isMine
-      ? "7.5px 7.5px 0 7.5px"
-      : "7.5px 7.5px 7.5px 0",
+        ? "7.5px 7.5px 0 7.5px"
+        : "7.5px 7.5px 7.5px 0",
     boxShadow: isTemplate ? "none" : "0 1px 0.5px rgba(11,20,26,0.13)",
     wordBreak: "break-word",
     position: "relative",
@@ -2093,45 +2120,45 @@ function MessageBubble({
   };
 
   const getFormattedTime = () => {
-  const raw = msg.time || msg.createdAt;
+    const raw = msg.time || msg.createdAt;
 
-  if (!raw) return "";
+    if (!raw) return "";
 
-  // ✅ अगर already "11:31 AM" jaisa hai → directly return
-  if (typeof raw === "string" && raw.includes("AM") || raw.includes("PM")) {
-    return raw;
-  }
+    // ✅ अगर already "11:31 AM" jaisa hai → directly return
+    if (typeof raw === "string" && raw.includes("AM") || raw.includes("PM")) {
+      return raw;
+    }
 
-  const date = new Date(raw);
+    const date = new Date(raw);
 
-  if (isNaN(date.getTime())) {
-    console.log("❌ Invalid date:", raw);
-    return "";
-  }
+    if (isNaN(date.getTime())) {
+      console.log("❌ Invalid date:", raw);
+      return "";
+    }
 
-  return date.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
-
-const handleQuickReplySend = (text) => {
-  const newMsg = {
-    id: Date.now(),
-    text: text,
-    type: "sent",
-    messageType: "text",
-    createdAt: new Date().toISOString(),
+    return date.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
 
-  console.log("Sending quick reply:", newMsg);
+  const handleQuickReplySend = (text) => {
+    const newMsg = {
+      id: Date.now(),
+      text: text,
+      type: "sent",
+      messageType: "text",
+      createdAt: new Date().toISOString(),
+    };
 
-  // 🔴 IMPORTANT: yahan apna actual send function lagao
-  // Example:
-  if (typeof onSendMessage === "function") {
-    onSendMessage(newMsg);
-  }
-};
+    console.log("Sending quick reply:", newMsg);
+
+    // 🔴 IMPORTANT: yahan apna actual send function lagao
+    // Example:
+    if (typeof onSendMessage === "function") {
+      onSendMessage(newMsg);
+    }
+  };
 
   const renderContent = () => {
     // ─── TEMPLATE MESSAGE ───────────────────────────────────────
@@ -2239,95 +2266,95 @@ const handleQuickReplySend = (text) => {
           )}
 
           {t.mediaType === "Carousel" && t.carouselItems?.length > 0 && (
-  <div style={{ display: "flex", overflowX: "auto", gap: 8, padding: 8 }}>
-    {t.carouselItems.map((item, idx) => {
-      const imgSrc =
-  item.mediaUrl?.startsWith("http") ||
-  item.mediaUrl?.startsWith("data:image")
-    ? item.mediaUrl
-    : item.mediaUrl
-    ? `${API_BASE}/${item.mediaUrl}`
-    : null;
+            <div style={{ display: "flex", overflowX: "auto", gap: 8, padding: 8 }}>
+              {t.carouselItems.map((item, idx) => {
+                const imgSrc =
+                  item.mediaUrl?.startsWith("http") ||
+                    item.mediaUrl?.startsWith("data:image")
+                    ? item.mediaUrl
+                    : item.mediaUrl
+                      ? `${API_BASE}/${item.mediaUrl}`
+                      : null;
 
-      return (
-        <div
-          key={idx}
-          style={{
-            minWidth: 180,
-            border: "0.5px solid #e0e0e0",
-            borderRadius: 8,
-            overflow: "hidden",
-            background: "#fff",
-            flexShrink: 0,
-          }}
-        >
-          {imgSrc ? (
-            <img
-              src={imgSrc}
-              alt=""
-              onError={(e) => {
-                e.target.src =
-                  "https://dummyimage.com/300x200/cccccc/000000&text=No+Image";
-              }}
-              style={{
-                width: "100%",
-                height: 110,
-                objectFit: "cover",
-                display: "block",
-              }}
-            />
-          ) : (
-            <div
-              style={{
-                width: "100%",
-                height: 110,
-                background: "#eee",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 12,
-                color: "#888",
-              }}
-            >
-              No Image
+                return (
+                  <div
+                    key={idx}
+                    style={{
+                      minWidth: 180,
+                      border: "0.5px solid #e0e0e0",
+                      borderRadius: 8,
+                      overflow: "hidden",
+                      background: "#fff",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {imgSrc ? (
+                      <img
+                        src={imgSrc}
+                        alt=""
+                        onError={(e) => {
+                          e.target.src =
+                            "https://dummyimage.com/300x200/cccccc/000000&text=No+Image";
+                        }}
+                        style={{
+                          width: "100%",
+                          height: 110,
+                          objectFit: "cover",
+                          display: "block",
+                        }}
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          width: "100%",
+                          height: 110,
+                          background: "#eee",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 12,
+                          color: "#888",
+                        }}
+                      >
+                        No Image
+                      </div>
+                    )}
+
+                    <div style={{ padding: "6px 8px 8px" }}>
+                      {item.title && (
+                        <div style={{ fontWeight: 600, fontSize: "0.88rem", color: "#111b21" }}>
+                          {item.title}
+                        </div>
+                      )}
+
+                      {item.description && (
+                        <div style={{ fontSize: "0.8rem", color: "#667781", marginTop: 2 }}>
+                          {item.description}
+                        </div>
+                      )}
+
+                      {item.button && (
+                        <div
+                          style={{
+                            marginTop: 8,
+                            paddingTop: 6,
+                            borderTop: "0.5px solid #e0e0e0",
+                            color: "#0096de",
+                            fontSize: "0.85rem",
+                            fontWeight: 500,
+                            textAlign: "center",
+                            cursor: "pointer",
+                          }}
+                        >
+                          {item.button}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
-
-          <div style={{ padding: "6px 8px 8px" }}>
-            {item.title && (
-              <div style={{ fontWeight: 600, fontSize: "0.88rem", color: "#111b21" }}>
-                {item.title}
-              </div>
-            )}
-
-            {item.description && (
-              <div style={{ fontSize: "0.8rem", color: "#667781", marginTop: 2 }}>
-                {item.description}
-              </div>
-            )}
-
-            {item.button && (
-              <div
-                style={{
-                  marginTop: 8,
-                  paddingTop: 6,
-                  borderTop: "0.5px solid #e0e0e0",
-                  color: "#0096de",
-                  fontSize: "0.85rem",
-                  fontWeight: 500,
-                  textAlign: "center",
-                  cursor: "pointer",
-                }}
-              >
-                {item.button}
-              </div>
-            )}
-          </div>
-        </div>
-      );
-    })}
-  </div>
-)}
 
           {/* ── BODY ── */}
           {bodyText && (
@@ -2436,36 +2463,36 @@ const handleQuickReplySend = (text) => {
               ))}
 
               {/* Copy code buttons */}
-{actions.copyCodeButtons?.map((btn, i) => (
-  <button
-    key={btn.id || i}
-    onClick={() => {
-      const val = btn.value || btn.code || btn.text || btn.label;
+              {actions.copyCodeButtons?.map((btn, i) => (
+                <button
+                  key={btn.id || i}
+                  onClick={() => {
+                    const val = btn.value || btn.code || btn.text || btn.label;
 
-      console.log("COPY VALUE:", val); // debug
-      console.log("BTN OBJECT:", btn);
+                    console.log("COPY VALUE:", val); // debug
+                    console.log("BTN OBJECT:", btn);
 
-      if (!val) return;
+                    if (!val) return;
 
-      navigator.clipboard.writeText(val);
+                    navigator.clipboard.writeText(val);
 
-      // ✅ Show feedback
-      setCopiedIndex(i);
+                    // ✅ Show feedback
+                    setCopiedIndex(i);
 
-      setTimeout(() => {
-        setCopiedIndex(null);
-      }, 1500);
-    }}
-    style={waBtnBase}
-  >
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="9" y="9" width="13" height="13" rx="2" />
-      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-    </svg>
+                    setTimeout(() => {
+                      setCopiedIndex(null);
+                    }, 1500);
+                  }}
+                  style={waBtnBase}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" />
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                  </svg>
 
-    {copiedIndex === i ? "Copied ✓" : (btn.label || btn.text || "Copy")}
-  </button>
-))}
+                  {copiedIndex === i ? "Copied ✓" : (btn.label || btn.text || "Copy")}
+                </button>
+              ))}
 
               {/* CTA buttons */}
               {actions.ctaButtons?.length > 0 && (
@@ -2507,21 +2534,21 @@ const handleQuickReplySend = (text) => {
                   }}
                 >
                   {actions.quickReplies.map((reply, i) => (
-  <button
-    key={reply.id || i}
-    onClick={() => handleQuickReplySend(btnLabel(reply))}
-    style={{
-      ...waBtnBase,
-      flex: 1,
-      borderRight:
-        actions.quickReplies.length === 2 && i === 0
-          ? "0.5px solid #e0e0e0"
-          : "none",
-    }}
-  >
-    {btnLabel(reply)}
-  </button>
-))}
+                    <button
+                      key={reply.id || i}
+                      onClick={() => handleQuickReplySend(btnLabel(reply))}
+                      style={{
+                        ...waBtnBase,
+                        flex: 1,
+                        borderRight:
+                          actions.quickReplies.length === 2 && i === 0
+                            ? "0.5px solid #e0e0e0"
+                            : "none",
+                      }}
+                    >
+                      {btnLabel(reply)}
+                    </button>
+                  ))}
                 </div>
               )}
             </>
@@ -2535,43 +2562,43 @@ const handleQuickReplySend = (text) => {
       return (
         <>
           <img
-  src={msg.url}
-  alt={msg.fileName || "image"}
-  onClick={() =>
-    setPreviewMedia({ type: "image", url: msg.url })
-  }
-  style={{
-    width: "240px",
-    maxWidth: "100%",
-    borderRadius: 6,
-    display: "block",
-    cursor: "pointer", // 👈 important
-  }}
-/>
+            src={msg.url}
+            alt={msg.fileName || "image"}
+            onClick={() =>
+              setPreviewMedia({ type: "image", url: msg.url })
+            }
+            style={{
+              width: "240px",
+              maxWidth: "100%",
+              borderRadius: 6,
+              display: "block",
+              cursor: "pointer", // 👈 important
+            }}
+          />
         </>
       );
     }
 
     // ─── VIDEO MESSAGE ──────────────────────────────────────────
-if (msg.messageType === "video") {
-  return (
-    <>
-      <video
-  src={msg.url}
-  controls
-  onClick={() =>
-    setPreviewMedia({ type: "video", url: msg.url })
-  }
-  style={{
-    width: "240px",
-    maxWidth: "100%",
-    borderRadius: 6,
-    cursor: "pointer",
-  }}
-/>
-    </>
-  );
-}
+    if (msg.messageType === "video") {
+      return (
+        <>
+          <video
+            src={msg.url}
+            controls
+            onClick={() =>
+              setPreviewMedia({ type: "video", url: msg.url })
+            }
+            style={{
+              width: "240px",
+              maxWidth: "100%",
+              borderRadius: 6,
+              cursor: "pointer",
+            }}
+          />
+        </>
+      );
+    }
 
     // ─── FILE MESSAGE ──────────────────────────────────────────
     if (msg.messageType === "file") {
@@ -2711,66 +2738,66 @@ if (msg.messageType === "video") {
       {!isTemplate && <MessageMeta msg={msg} inline={msg.messageType === "text"} />}
 
       {previewMedia &&
-  createPortal(
-    <div
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        width: "100vw",
-        height: "100vh",
-        background: "rgba(0,0,0,0.95)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 99999,
-      }}
-    >
-      {/* ❌ CLOSE BUTTON */}
-      <button
-        onClick={() => setPreviewMedia(null)}
-        style={{
-          position: "absolute",
-          top: 20,
-          right: 20,
-          background: "rgba(255,255,255,0.2)",
-          border: "none",
-          borderRadius: "50%",
-          width: 40,
-          height: 40,
-          color: "#fff",
-          fontSize: 20,
-          cursor: "pointer",
-        }}
-      >
-        ✕
-      </button>
+        createPortal(
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              width: "100vw",
+              height: "100vh",
+              background: "rgba(0,0,0,0.95)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 99999,
+            }}
+          >
+            {/* ❌ CLOSE BUTTON */}
+            <button
+              onClick={() => setPreviewMedia(null)}
+              style={{
+                position: "absolute",
+                top: 20,
+                right: 20,
+                background: "rgba(255,255,255,0.2)",
+                border: "none",
+                borderRadius: "50%",
+                width: 40,
+                height: 40,
+                color: "#fff",
+                fontSize: 20,
+                cursor: "pointer",
+              }}
+            >
+              ✕
+            </button>
 
-      {/* MEDIA */}
-      {previewMedia.type === "image" ? (
-        <img
-          src={previewMedia.url}
-          alt=""
-          style={{
-            maxWidth: "95%",
-            maxHeight: "95%",
-            objectFit: "contain",
-          }}
-        />
-      ) : (
-        <video
-          src={previewMedia.url}
-          controls
-          autoPlay
-          style={{
-            maxWidth: "95%",
-            maxHeight: "95%",
-          }}
-        />
-      )}
-    </div>,
-    document.body
-  )}
+            {/* MEDIA */}
+            {previewMedia.type === "image" ? (
+              <img
+                src={previewMedia.url}
+                alt=""
+                style={{
+                  maxWidth: "95%",
+                  maxHeight: "95%",
+                  objectFit: "contain",
+                }}
+              />
+            ) : (
+              <video
+                src={previewMedia.url}
+                controls
+                autoPlay
+                style={{
+                  maxWidth: "95%",
+                  maxHeight: "95%",
+                }}
+              />
+            )}
+          </div>,
+          document.body
+        )}
     </div>
   );
 }
@@ -2804,68 +2831,68 @@ function MenuItem({ icon, label, onClick, danger = false }) {
   );
 }
 
-  function MessageMeta({ msg, inline = false }) {
-    return (
-      <div
-        className="d-flex justify-content-end align-items-center gap-1"
-        style={{ marginTop: inline ? "-2px" : "5px", fontSize: "0.68rem", color: "#667781" }}
-      >
-        <span>{msg.time}</span>
-        {msg.type === "sent" && (
-          <>
-            {msg.seen ? (
-              // Blue double tick (seen)
-              <span style={{ color: "#53bdeb", display: "flex", alignItems: "center" }}>
-                <FiCheckCircle size={12} />
-              </span>
-            ) : msg.delivered ? (
-              // Grey double tick (delivered but not seen)
-              <span style={{ display: "flex", alignItems: "center", gap: "-4px" }}>
-                <FiCheck size={12} />
-                <FiCheck size={12} style={{ marginLeft: "-5px" }} />
-              </span>
-            ) : (
-              // Single grey tick (sent but not delivered)
-              <span style={{ display: "flex", alignItems: "center" }}>
-                <FiCheck size={12} />
-              </span>
-            )}
-          </>
-        )}
-      </div>
-    );
-  }
+function MessageMeta({ msg, inline = false }) {
+  return (
+    <div
+      className="d-flex justify-content-end align-items-center gap-1"
+      style={{ marginTop: inline ? "-2px" : "5px", fontSize: "0.68rem", color: "#667781" }}
+    >
+      <span>{msg.time}</span>
+      {msg.type === "sent" && (
+        <>
+          {msg.seen ? (
+            // Blue double tick (seen)
+            <span style={{ color: "#53bdeb", display: "flex", alignItems: "center" }}>
+              <FiCheckCircle size={12} />
+            </span>
+          ) : msg.delivered ? (
+            // Grey double tick (delivered but not seen)
+            <span style={{ display: "flex", alignItems: "center", gap: "-4px" }}>
+              <FiCheck size={12} />
+              <FiCheck size={12} style={{ marginLeft: "-5px" }} />
+            </span>
+          ) : (
+            // Single grey tick (sent but not delivered)
+            <span style={{ display: "flex", alignItems: "center" }}>
+              <FiCheck size={12} />
+            </span>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
 
-  function HeaderIcon({ icon }) {
-    return (
-      <button type="button" className="icon-btn btn border-0 rounded-circle d-flex align-items-center justify-content-center" style={{ width: 38, height: 38, background: "transparent", color: "#54656f" }}>
-        {icon}
-      </button>
-    );
-  }
+function HeaderIcon({ icon }) {
+  return (
+    <button type="button" className="icon-btn btn border-0 rounded-circle d-flex align-items-center justify-content-center" style={{ width: 38, height: 38, background: "transparent", color: "#54656f" }}>
+      {icon}
+    </button>
+  );
+}
 
-  function DetailCard({ icon, title, items = [], customContent }) {
-    return (
-      <div className="bg-white mb-2 px-3 py-3">
-        <div className="d-flex align-items-center gap-2 mb-3 fw-semibold" style={{ color: "#008069", fontSize: "0.92rem" }}>{icon}{title}</div>
-        {customContent ? (
-          <div>{customContent}</div>
-        ) : (
-          <div className="d-grid gap-3">
-            {items.map((item, i) => (
-              <div key={i}>
-                <div style={{ fontSize: "0.76rem", color: "#667781", marginBottom: 4 }}>{item.label}</div>
-                <div className="text-break" style={{ fontSize: "0.9rem", fontWeight: 500 }}>{item.value}</div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  }
+function DetailCard({ icon, title, items = [], customContent }) {
+  return (
+    <div className="bg-white mb-2 px-3 py-3">
+      <div className="d-flex align-items-center gap-2 mb-3 fw-semibold" style={{ color: "#008069", fontSize: "0.92rem" }}>{icon}{title}</div>
+      {customContent ? (
+        <div>{customContent}</div>
+      ) : (
+        <div className="d-grid gap-3">
+          {items.map((item, i) => (
+            <div key={i}>
+              <div style={{ fontSize: "0.76rem", color: "#667781", marginBottom: 4 }}>{item.label}</div>
+              <div className="text-break" style={{ fontSize: "0.9rem", fontWeight: 500 }}>{item.value}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
-  function formatFileSize(bytes) {
-    if (!bytes) return "0 KB";
-    const kb = bytes / 1024;
-    return kb < 1024 ? `${kb.toFixed(1)} KB` : `${(kb / 1024).toFixed(1)} MB`;
-  }
+function formatFileSize(bytes) {
+  if (!bytes) return "0 KB";
+  const kb = bytes / 1024;
+  return kb < 1024 ? `${kb.toFixed(1)} KB` : `${(kb / 1024).toFixed(1)} MB`;
+}
