@@ -1165,19 +1165,29 @@ const sendForward = async (targetChat) => {
     };
 
     const handleFilePick = (e) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-      const isImage = file.type.startsWith("image/");
-      setPendingAttachment({
-        kind: isImage ? "image" : "file", fileName: file.name,
-        fileSize: formatFileSize(file.size), url: URL.createObjectURL(file),
-      });
-      setAttachmentMenuOpen(false);
-      e.target.value = "";
-    };
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  const isImage = file.type.startsWith("image/");
+  const isVideo = file.type.startsWith("video/");
+
+  setPendingAttachment({
+    kind: isImage ? "image" : isVideo ? "video" : "file",
+    fileName: file.name,
+    fileSize: formatFileSize(file.size),
+    url: URL.createObjectURL(file),
+  });
+
+  setAttachmentMenuOpen(false);
+  e.target.value = "";
+};
 
     const handleAttachmentAction = (type) => {
-      if (type === "photos")   { imageInputRef.current?.click(); return; }
+
+      if (type === "photos") {
+  fileInputRef.current?.click(); // ✅ video + image dono
+}
+
       if (type === "document") { fileInputRef.current?.click();  return; }
       setAttachmentMenuOpen(false);
     };
@@ -1299,7 +1309,13 @@ const sendForward = async (targetChat) => {
 
         <div ref={pageRef} className="sticky-chat-shell p-3">
           <input ref={imageInputRef} type="file" accept="image/*" hidden onChange={handleImagePick} />
-          <input ref={fileInputRef}  type="file"                  hidden onChange={handleFilePick} />
+          <input 
+  ref={fileInputRef} 
+  type="file" 
+  accept="video/*,image/*"  // 🔥 yeh add karna hai
+  hidden 
+  onChange={handleFilePick} 
+/>
 
           <div style={{ display: "flex", width: "100%", height: "100%" }}>
             {isLoading ? (
@@ -1554,17 +1570,89 @@ const sendForward = async (targetChat) => {
                         </div>
 
                         {pendingAttachment && (
-                          <div className="p-2 border-top flex-shrink-0" style={{ background: "#f0f2f5" }}>
-                            <div className="position-relative d-flex align-items-center gap-3 p-2 bg-white border rounded" style={{ minHeight: 96 }}>
-                              <button type="button" onClick={() => setPendingAttachment(null)} className="btn btn-sm rounded-circle position-absolute border-0" style={{ top: 8, right: 8, width: 28, height: 28, background: "#f0f2f5" }}><FiX size={14} /></button>
-                              {pendingAttachment.kind === "image" ? <img src={pendingAttachment.url} alt={pendingAttachment.fileName} style={{ width: 76, height: 76, objectFit: "cover", borderRadius: 8, flexShrink: 0 }} /> : <div className="d-flex align-items-center justify-content-center rounded flex-shrink-0" style={{ width: 76, height: 76, background: "#f0f2f5" }}><FiFile size={28} color="#54656f" /></div>}
-                              <div className="overflow-hidden">
-                                <div className="fw-semibold pe-4 text-break" style={{ color: "#111b21" }}>{pendingAttachment.fileName}</div>
-                                <div className="mt-1" style={{ fontSize: "0.82rem", color: "#667781" }}>{pendingAttachment.fileSize}</div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
+  <div
+    className="p-2 border-top flex-shrink-0"
+    style={{ background: "#f0f2f5" }}
+  >
+    <div
+      className="position-relative d-flex align-items-center gap-3 p-2 bg-white border rounded"
+      style={{ minHeight: 96 }}
+    >
+      <button
+        type="button"
+        onClick={() => setPendingAttachment(null)}
+        className="btn btn-sm rounded-circle position-absolute border-0"
+        style={{
+          top: 8,
+          right: 8,
+          width: 28,
+          height: 28,
+          background: "#f0f2f5",
+        }}
+      >
+        <FiX size={14} />
+      </button>
+
+      {/* 🔥 IMAGE */}
+      {pendingAttachment.kind === "image" ? (
+        <img
+          src={pendingAttachment.url}
+          alt={pendingAttachment.fileName}
+          style={{
+            width: 76,
+            height: 76,
+            objectFit: "cover",
+            borderRadius: 8,
+            flexShrink: 0,
+          }}
+        />
+
+      ) : pendingAttachment.kind === "video" ? (
+        /* 🔥 VIDEO (NEW) */
+        <video
+          src={pendingAttachment.url}
+          controls
+          style={{
+            width: 76,
+            height: 76,
+            objectFit: "cover",
+            borderRadius: 8,
+            flexShrink: 0,
+          }}
+        />
+
+      ) : (
+        /* 🔥 FILE */
+        <div
+          className="d-flex align-items-center justify-content-center rounded flex-shrink-0"
+          style={{
+            width: 76,
+            height: 76,
+            background: "#f0f2f5",
+          }}
+        >
+          <FiFile size={28} color="#54656f" />
+        </div>
+      )}
+
+      {/* FILE INFO */}
+      <div className="overflow-hidden">
+        <div
+          className="fw-semibold pe-4 text-break"
+          style={{ color: "#111b21" }}
+        >
+          {pendingAttachment.fileName}
+        </div>
+        <div
+          className="mt-1"
+          style={{ fontSize: "0.82rem", color: "#667781" }}
+        >
+          {pendingAttachment.fileSize}
+        </div>
+      </div>
+    </div>
+  </div>
+)}
 
                         <div className="d-flex align-items-center gap-2 p-2 p-md-3 border-top position-relative flex-shrink-0" style={{ background: "#f0f2f5" }}>
                           <div ref={attachmentWrapRef} className="position-relative">
@@ -1899,6 +1987,7 @@ function MessageBubble({
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
   const menuRef = useRef(null);
   const bubbleRef = useRef(null);
+  const [previewMedia, setPreviewMedia] = useState(null);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -2395,18 +2484,43 @@ const handleQuickReplySend = (text) => {
       return (
         <>
           <img
-            src={msg.url}
-            alt={msg.fileName || "image"}
-            style={{ width: "240px", maxWidth: "100%", borderRadius: 6, display: "block" }}
-          />
-          {msg.fileName && (
-            <div style={{ fontSize: "0.78rem", color: "#667781", marginTop: 4 }}>
-              {msg.fileName}
-            </div>
-          )}
+  src={msg.url}
+  alt={msg.fileName || "image"}
+  onClick={() =>
+    setPreviewMedia({ type: "image", url: msg.url })
+  }
+  style={{
+    width: "240px",
+    maxWidth: "100%",
+    borderRadius: 6,
+    display: "block",
+    cursor: "pointer", // 👈 important
+  }}
+/>
         </>
       );
     }
+
+    // ─── VIDEO MESSAGE ──────────────────────────────────────────
+if (msg.messageType === "video") {
+  return (
+    <>
+      <video
+  src={msg.url}
+  controls
+  onClick={() =>
+    setPreviewMedia({ type: "video", url: msg.url })
+  }
+  style={{
+    width: "240px",
+    maxWidth: "100%",
+    borderRadius: 6,
+    cursor: "pointer",
+  }}
+/>
+    </>
+  );
+}
 
     // ─── FILE MESSAGE ──────────────────────────────────────────
     if (msg.messageType === "file") {
@@ -2544,6 +2658,68 @@ const handleQuickReplySend = (text) => {
 
       {/* Meta (time + ticks) — only for non-template messages */}
       {!isTemplate && <MessageMeta msg={msg} inline={msg.messageType === "text"} />}
+
+      {previewMedia &&
+  createPortal(
+    <div
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: "100vw",
+        height: "100vh",
+        background: "rgba(0,0,0,0.95)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 99999,
+      }}
+    >
+      {/* ❌ CLOSE BUTTON */}
+      <button
+        onClick={() => setPreviewMedia(null)}
+        style={{
+          position: "absolute",
+          top: 20,
+          right: 20,
+          background: "rgba(255,255,255,0.2)",
+          border: "none",
+          borderRadius: "50%",
+          width: 40,
+          height: 40,
+          color: "#fff",
+          fontSize: 20,
+          cursor: "pointer",
+        }}
+      >
+        ✕
+      </button>
+
+      {/* MEDIA */}
+      {previewMedia.type === "image" ? (
+        <img
+          src={previewMedia.url}
+          alt=""
+          style={{
+            maxWidth: "95%",
+            maxHeight: "95%",
+            objectFit: "contain",
+          }}
+        />
+      ) : (
+        <video
+          src={previewMedia.url}
+          controls
+          autoPlay
+          style={{
+            maxWidth: "95%",
+            maxHeight: "95%",
+          }}
+        />
+      )}
+    </div>,
+    document.body
+  )}
     </div>
   );
 }
