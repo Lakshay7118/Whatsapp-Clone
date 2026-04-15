@@ -1988,6 +1988,7 @@ function MessageBubble({
   const menuRef = useRef(null);
   const bubbleRef = useRef(null);
   const [previewMedia, setPreviewMedia] = useState(null);
+  const [copiedIndex, setCopiedIndex] = useState(null);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -2399,22 +2400,36 @@ const handleQuickReplySend = (text) => {
               ))}
 
               {/* Copy code buttons */}
-              {actions.copyCodeButtons?.map((btn, i) => (
-                <button
-                  key={btn.id || i}
-                  onClick={() => {
-                    const val = btnCopyValue(btn);
-                    if (val) navigator.clipboard.writeText(val);
-                  }}
-                  style={waBtnBase}
-                >
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="9" y="9" width="13" height="13" rx="2" />
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                  </svg>
-                  {btnLabel(btn)}
-                </button>
-              ))}
+{actions.copyCodeButtons?.map((btn, i) => (
+  <button
+    key={btn.id || i}
+    onClick={() => {
+      const val = btn.value || btn.code || btn.text || btn.label;
+
+      console.log("COPY VALUE:", val); // debug
+      console.log("BTN OBJECT:", btn);
+
+      if (!val) return;
+
+      navigator.clipboard.writeText(val);
+
+      // ✅ Show feedback
+      setCopiedIndex(i);
+
+      setTimeout(() => {
+        setCopiedIndex(null);
+      }, 1500);
+    }}
+    style={waBtnBase}
+  >
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="9" y="9" width="13" height="13" rx="2" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </svg>
+
+    {copiedIndex === i ? "Copied ✓" : (btn.label || btn.text || "Copy")}
+  </button>
+))}
 
               {/* CTA buttons */}
               {actions.ctaButtons?.length > 0 && (
