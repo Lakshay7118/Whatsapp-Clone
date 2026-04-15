@@ -3,9 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-const BASE =
-  process.env.NEXT_PUBLIC_BACKEND ||
-  "https://${process.env.NEXT_PUBLIC_BACKEND_URL}";
+const BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 const API_BASE = `${BASE}/api`;
 
