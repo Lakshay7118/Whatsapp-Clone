@@ -2,7 +2,7 @@
 
 import "./globals.css";
 import { useState, useEffect } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Sidebar from "./componets/sidebar";
 import Topbar from "./componets/Topbar";
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -11,32 +11,66 @@ export default function RootLayout({ children }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const pathname = usePathname();
 
-  // Function to check login status
+  const pathname = usePathname();
+  const router = useRouter();
+
+  // ✅ CHECK LOGIN
   const checkLoginStatus = () => {
     const user = localStorage.getItem("user");
-    setIsLoggedIn(!!user);
+
+    if (!user) {
+      setIsLoggedIn(false);
+
+      // prevent infinite redirect loop
+      if (pathname !== "/") {
+        router.push("/");
+      }
+    } else {
+      setIsLoggedIn(true);
+    }
   };
 
-  // Check on mount and when pathname changes
+  // ✅ Run on route change
   useEffect(() => {
     checkLoginStatus();
   }, [pathname]);
 
-  // Listen for storage events
+  // ✅ Listen for cross-tab + manual logout
   useEffect(() => {
     window.addEventListener("storage", checkLoginStatus);
     window.addEventListener("loginStatusChanged", checkLoginStatus);
+
     return () => {
       window.removeEventListener("storage", checkLoginStatus);
       window.removeEventListener("loginStatusChanged", checkLoginStatus);
     };
   }, []);
 
+  // ✅ 🔥 REAL-TIME DETECTION (IMPORTANT)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const user = localStorage.getItem("user");
+
+      if (!user) {
+        setIsLoggedIn(false);
+
+        if (pathname !== "/") {
+          router.push("/");
+        }
+      }
+    }, 1000); // check every 1 sec
+
+    return () => clearInterval(interval);
+  }, [pathname]);
+
+  // ✅ LOGOUT
   const handleLogout = () => {
     localStorage.removeItem("user");
-    checkLoginStatus();
+
+    setIsLoggedIn(false);
+    router.push("/");
+
     window.dispatchEvent(new Event("loginStatusChanged"));
   };
 
@@ -63,7 +97,7 @@ export default function RootLayout({ children }) {
             background: "#eef3f7",
             fontFamily:
               "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-            overflowY: "auto", // ✅ FIX
+            overflowY: "auto",
           }}
         >
           {children}
@@ -81,7 +115,7 @@ export default function RootLayout({ children }) {
           background: "#eef3f7",
           fontFamily:
             "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-          overflowY: "auto", // ✅ FIX
+          overflowY: "auto",
         }}
       >
         <style>{`
@@ -92,7 +126,7 @@ export default function RootLayout({ children }) {
           }
         `}</style>
 
-        {/* Overlay for mobile sidebar */}
+        {/* Overlay */}
         {isSidebarOpen && (
           <div
             onClick={() => setIsSidebarOpen(false)}
@@ -115,7 +149,7 @@ export default function RootLayout({ children }) {
             minHeight: "100vh",
             padding: "14px",
             boxSizing: "border-box",
-            overflowY: "auto", // ✅ FIX
+            overflowY: "auto",
           }}
         >
           <Topbar
@@ -127,7 +161,6 @@ export default function RootLayout({ children }) {
 
           <div
             style={{
-              minHeight: "auto", // ✅ FIX (removed calc issue)
               background: "#ffffff",
               border: "1px solid #dbe4ea",
               borderRadius: "20px",
