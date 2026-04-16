@@ -302,6 +302,8 @@ export default function LiveChatPage() {
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [templates, setTemplates] = useState([]);
   const [showContactInfo, setShowContactInfo] = useState(false);
+  
+  
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
@@ -346,18 +348,74 @@ export default function LiveChatPage() {
       .catch(console.error);
   }, []);
 
-  useEffect(() => {
-    const s = getSocket();
-    s.connect();
+ useEffect(() => {
+  const s = getSocket();
+  s.connect();
+  const user = JSON.parse(localStorage.getItem("user"));
+  if (user?.phone) {
+    s.emit("joinUserRoom", user.phone);
+  }
 
-    // 🔥 Join personal room with user's phone number
-    const user = JSON.parse(localStorage.getItem("user"));
-    if (user?.phone) {
-      s.emit("joinUserRoom", user.phone);
-    }
+  // 🔥 Global handler — updates left panel preview for ALL chats
+  const handleGlobalNewMessage = (msg) => {
+  // ❌ prevent duplicate in open chat
+  if (String(msg.chatId) === String(selectedChat?._id)) return;
+    // Update messages state so lastMessageText() reflects new msg
+    setMessages(prev => {
+      const chatId = msg.chatId;
+      const currentMsgs = prev[chatId] || [];
+      if (
+  currentMsgs.some(
+    m =>
+      m.id === msg._id ||
+      (
+        m.text === msg.text &&
+        Math.abs(new Date(m.createdAt) - new Date(msg.createdAt)) < 3000
+      )
+  )
+) return prev;
+      const isSentByMe = String(msg.sender) === String(currentUserRef.current?.phone);
+      return {
+        ...prev,
+        [chatId]: [
+          ...currentMsgs,
+          {
+            id: msg._id,
+            sender: msg.sender,
+            type: isSentByMe ? "sent" : "received",
+            messageType: msg.messageType || "text",
+            text: msg.text || "",
+            templateMeta: msg.templateMeta || null,
+            createdAt: msg.createdAt,
+            time: new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+            delivered: !isSentByMe,
+            seen: false,
+            fileName: msg.fileName,
+            url: msg.fileUrl,
+            isDeleted: false,
+          },
+        ],
+      };
+    });
 
-    return () => s.disconnect();
-  }, []);
+    // Update unread count on left panel for non-selected chats
+    setChatList(prev =>
+      prev.map(chat =>
+        String(chat._id) === String(msg.chatId) &&
+        String(msg.sender) !== String(currentUserRef.current?.phone)
+          ? { ...chat, unread: (chat.unread || 0) + 1 }
+          : chat
+      )
+    );
+  };
+
+  s.on("newMessage", handleGlobalNewMessage);
+
+  return () => {
+    s.off("newMessage", handleGlobalNewMessage);
+    s.disconnect();
+  };
+}, []);
 
   useEffect(() => {
     fetch(`${API_BASE}/templates`)
@@ -382,7 +440,6 @@ export default function LiveChatPage() {
       .then(data => {
         if (Array.isArray(data)) {
           setChatList(data);
-          if (data.length > 0) setSelectedChat(data[0]);
         } else {
           console.error("Chat list is not an array:", data);
           setChatList([]);
@@ -918,9 +975,16 @@ export default function LiveChatPage() {
         body: JSON.stringify({ groupName, participants, admin: user.phone }),
       });
       const newGroup = await res.json();
-      if (!newGroup._id) throw new Error("Group creation failed");
-      setChatList(prev => [newGroup, ...prev]);
-      setSelectedChat(newGroup);
+if (!newGroup._id) throw new Error("Group creation failed");
+
+// Ensure name field is set (backend may return groupName instead of name)
+const groupWithName = {
+  ...newGroup,
+  name: newGroup.name || newGroup.groupName || groupName,
+};
+
+setChatList(prev => [groupWithName, ...prev]);
+      setSelectedChat(groupWithName);
       setShowGroupModal(false);
       setGroupName("");
       setSelectedContactsForGroup([]);
@@ -1548,7 +1612,7 @@ export default function LiveChatPage() {
                       <div ref={messageScrollRef} className="flex-grow-1 scroll-hidden d-flex flex-column gap-2 px-3 px-md-4 py-3" style={{ minHeight: 0 }}>
                         {(messages[selectedChat?._id] || []).map((msg, index) => (
                           <div
-                            key={msg.id}
+                            key={`${msg.id}-${index}`}
                             className="msg-enter"
                             style={{
                               animationDelay: `${index * 0.02}s`,
@@ -1744,34 +1808,45 @@ export default function LiveChatPage() {
               )}
 
               {/* RIGHT PANEL (unchanged) */}
-              {!isMobile && showContactInfo && (
-                <div ref={rightPanelRef} className="d-none d-xl-flex flex-column border-start bg-white" style={{ width: "340px", minWidth: "340px", height: "100%", minHeight: 0, overflow: "hidden" }}>
-                  <div className="d-flex align-items-center justify-content-center border-bottom flex-shrink-0 fw-semibold" style={{ height: 59, background: "#f0f2f5", color: "#111b21" }}>{selectedChat?.isGroup ? "Group Info" : "Contact Info"}</div>
-                  <div className="flex-grow-1 scroll-hidden" style={{ minHeight: 0, background: "#f7f8fa" }}>
-                    {selectedChat ? (
-                      <>
-                        <div className="bg-white text-center px-3 py-4" style={{ borderBottom: "10px solid #f0f2f5" }}>
-                          <div className="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3 fw-bold" style={{ width: 92, height: 92, background: "#dfe5e7", color: "#54656f", fontSize: "1.8rem" }}>{selectedChat?.name?.charAt(0) || "U"}</div>
-                          <div style={{ fontSize: "1.08rem", fontWeight: 500, color: "#111b21" }}>{selectedChat?.name}</div>
-                          {!selectedChat?.isGroup && <div style={{ fontSize: "0.84rem", color: "#667781", marginTop: 4 }}>{selectedChat?.phone}</div>}
-                        </div>
-
-                        {selectedChat?.isGroup ? (
-                          <DetailCard icon={<FiUsers size={16} />} title="Members" customContent={<div>{selectedChat.participants?.join(", ")}</div>} />
-                        ) : (
-                          <>
-                            <DetailCard icon={<FiInfo size={16} />} title="Basic Info" items={[{ label: "Phone", value: selectedChat?.phone }, { label: "Email", value: selectedChat?.email }, { label: "City", value: selectedChat?.city }, { label: "Status", value: selectedChat?.lastSeen }]} />
-                            <DetailCard icon={<FiTag size={16} />} title="Lead Tag" items={[{ label: "Tag", value: tags.find(t => t._id === selectedChat.tag)?.name || selectedChat.tag || "No tag" }]} />
-                            <DetailCard icon={<FiMessageSquare size={16} />} title="Notes" customContent={<div style={{ fontSize: "0.9rem", color: "#3b4a54", lineHeight: 1.6 }}>{selectedChat.notes}</div>} />
-                          </>
-                        )}
-                      </>
-                    ) : (
-                      <div className="text-center p-4" style={{ color: "#667781" }}>No chat selected</div>
-                    )}
-                  </div>
-                </div>
-              )}
+              <AnimatePresence>
+  {!isMobile && showContactInfo && (
+    <motion.div
+      ref={rightPanelRef}
+      className="d-flex flex-column border-start bg-white"
+      style={{ width: "340px", minWidth: "340px", height: "100%", minHeight: 0, overflow: "hidden" }}
+      initial={{ x: 340, opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      exit={{ x: 340, opacity: 0 }}
+      transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+    >
+      <div className="d-flex align-items-center justify-content-center border-bottom flex-shrink-0 fw-semibold" style={{ height: 59, background: "#f0f2f5", color: "#111b21" }}>
+        {selectedChat?.isGroup ? "Group Info" : "Contact Info"}
+      </div>
+      <div className="flex-grow-1 scroll-hidden" style={{ minHeight: 0, background: "#f7f8fa" }}>
+        {selectedChat ? (
+          <>
+            <div className="bg-white text-center px-3 py-4" style={{ borderBottom: "10px solid #f0f2f5" }}>
+              <div className="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3 fw-bold" style={{ width: 92, height: 92, background: "#dfe5e7", color: "#54656f", fontSize: "1.8rem" }}>{selectedChat?.name?.charAt(0) || "U"}</div>
+              <div style={{ fontSize: "1.08rem", fontWeight: 500, color: "#111b21" }}>{selectedChat?.name}</div>
+              {!selectedChat?.isGroup && <div style={{ fontSize: "0.84rem", color: "#667781", marginTop: 4 }}>{selectedChat?.phone}</div>}
+            </div>
+            {selectedChat?.isGroup ? (
+              <DetailCard icon={<FiUsers size={16} />} title="Members" customContent={<div>{selectedChat.participants?.join(", ")}</div>} />
+            ) : (
+              <>
+                <DetailCard icon={<FiInfo size={16} />} title="Basic Info" items={[{ label: "Phone", value: selectedChat?.phone }, { label: "Email", value: selectedChat?.email }, { label: "City", value: selectedChat?.city }, { label: "Status", value: selectedChat?.lastSeen }]} />
+                <DetailCard icon={<FiTag size={16} />} title="Lead Tag" items={[{ label: "Tag", value: tags.find(t => t._id === selectedChat.tag)?.name || selectedChat.tag || "No tag" }]} />
+                <DetailCard icon={<FiMessageSquare size={16} />} title="Notes" customContent={<div style={{ fontSize: "0.9rem", color: "#3b4a54", lineHeight: 1.6 }}>{selectedChat.notes}</div>} />
+              </>
+            )}
+          </>
+        ) : (
+          <div className="text-center p-4" style={{ color: "#667781" }}>No chat selected</div>
+        )}
+      </div>
+    </motion.div>
+  )}
+</AnimatePresence>
             </>
           )}
         </div>
@@ -2570,6 +2645,7 @@ function MessageBubble({
             style={{
               width: "240px",
               maxWidth: "100%",
+              height:"300px",
               borderRadius: 6,
               display: "block",
               cursor: "pointer", // 👈 important

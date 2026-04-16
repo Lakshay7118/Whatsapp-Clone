@@ -479,39 +479,71 @@ function EditTemplateModal({ templateId, onClose, onUpdate }) {
   const [videoFile, setVideoFile] = useState(null);
   const [existingMediaUrl, setExistingMediaUrl] = useState("");
 
+  const [carouselItems, setCarouselItems] = useState([]);
+const [ctaButtons, setCtaButtons] = useState([]);
+const [quickReplies, setQuickReplies] = useState([]);
+const [copyCodeButtons, setCopyCodeButtons] = useState([]);
+const [dropdownButtons, setDropdownButtons] = useState([]);
+const [inputFields, setInputFields] = useState([]);
+const [variableValues, setVariableValues] = useState({});
+
   // Fetch template data
-  useEffect(() => {
-    if (!templateId) return;
-    fetch(`${API_BASE}/templates/${templateId}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.success && data.template) {
-          const t = data.template;
-          setForm({
-            name: t.name || "",
-            category: t.category || "",
-            language: t.language || "English",
-            type: t.type || "Text",
-            format: t.format || "",
-            footer: t.footer || "",
-            mediaType: t.mediaType || "None",
-            actionType: t.actionType || "all",
+useEffect(() => {
+  if (!templateId) return;
+
+  fetch(`${API_BASE}/templates/${templateId}`)
+    .then(res => res.json())
+    .then(data => {
+      if (data.success && data.template) {
+        const t = data.template;
+
+        // ✅ BASIC
+        setForm({
+          name: t.name || "",
+          category: t.category || "",
+          language: t.language || "English",
+          type: t.type || "Text",
+          format: t.format || "",
+          footer: t.footer || "",
+          mediaType: t.mediaType || "None",
+          actionType: t.actionType || "all",
+        });
+
+        // ✅ MEDIA
+        if (t.imageFile?.url) {
+          setImageFile({
+            url: resolveUrl(t.imageFile.url),
+            file: null,
           });
-          if (t.imageFile?.url) {
-            setExistingMediaUrl(resolveUrl(t.imageFile.url));
-            setImageFile({ url: resolveUrl(t.imageFile.url), file: null });
-          }
-          if (t.videoFile?.url) {
-            setExistingMediaUrl(resolveUrl(t.videoFile.url));
-            setVideoFile({ url: resolveUrl(t.videoFile.url), file: null });
-          }
-        } else {
-          setError("Failed to load template data");
         }
-      })
-      .catch(err => setError("Error loading template"))
-      .finally(() => setLoading(false));
-  }, [templateId]);
+
+        if (t.videoFile?.url) {
+          setVideoFile({
+            url: resolveUrl(t.videoFile.url),
+            file: null,
+          });
+        }
+
+        // 🔥🔥 IMPORTANT PART (YOU MISSED THIS)
+
+        setCarouselItems(t.carouselItems || []);
+        setCtaButtons(t.ctaButtons || []);
+        setQuickReplies(t.quickReplies || []);
+        setCopyCodeButtons(t.copyCodeButtons || []);
+        setDropdownButtons(t.dropdownButtons || []);
+        setInputFields(t.inputFields || []);
+        setVariableValues(t.variables || {});
+
+      } else {
+        setError("Failed to load template data");
+      }
+    })
+    .catch(err => {
+  console.error("FETCH ERROR:", err);
+  setError(err.message || "Error loading template");
+})
+    .finally(() => setLoading(false));
+}, [templateId]);
 
   const handleChange = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 
@@ -538,45 +570,106 @@ function EditTemplateModal({ templateId, onClose, onUpdate }) {
   };
 
   const handleSubmit = async () => {
-    setSaving(true);
-    setError("");
-    try {
-      const formData = new FormData();
-      formData.append("name", form.name);
-      formData.append("category", form.category);
-      formData.append("language", form.language);
-      formData.append("type", form.type);
-      formData.append("format", form.format);
-      formData.append("footer", form.footer);
-      formData.append("mediaType", form.mediaType);
-      formData.append("actionType", form.actionType);
-      formData.append("createdBy", JSON.parse(localStorage.getItem("user"))?.phone || "anonymous");
+  setSaving(true);
+  setError("");
 
-      if (form.mediaType === "Image" && imageFile?.file) {
-        formData.append("mediaFile", imageFile.file);
-      } else if (form.mediaType === "Video" && videoFile?.file) {
-        formData.append("mediaFile", videoFile.file);
-      }
+  try {
+    const formData = new FormData();
 
-      const res = await fetch(`${API_BASE}/templates/${templateId}`, {
-        method: "PUT",
-        body: formData,
-      });
-      if (!res.ok) throw new Error("Update failed");
-      const result = await res.json();
-      if (result.success) {
-        onUpdate(result.template);
-        onClose();
-      } else {
-        throw new Error(result.error || "Update failed");
-      }
-    } catch (err) {
-      console.error(err);
-      setError(err.message || "Failed to update template");
-    } finally {
-      setSaving(false);
+    // ✅ BASIC FIELDS
+    formData.append("name", form.name);
+    formData.append("category", form.category);
+    formData.append("language", form.language);
+    formData.append("type", form.type);
+    formData.append("format", form.format);
+    formData.append("footer", form.footer);
+    formData.append("mediaType", form.mediaType);
+    formData.append("actionType", form.actionType);
+    formData.append(
+      "createdBy",
+      JSON.parse(localStorage.getItem("user"))?.phone || "anonymous"
+    );
+
+    // ✅ MEDIA
+    if (form.mediaType === "Image" && imageFile?.file) {
+      formData.append("mediaFile", imageFile.file);
+    } else if (form.mediaType === "Video" && videoFile?.file) {
+      formData.append("mediaFile", videoFile.file);
     }
-  };
+
+    // 🔥🔥 IMPORTANT (YOU WERE MISSING THIS)
+
+    formData.append(
+      "carouselItems",
+      JSON.stringify(carouselItems || [])
+    );
+
+    formData.append(
+      "ctaButtons",
+      JSON.stringify(ctaButtons || [])
+    );
+
+    formData.append(
+      "quickReplies",
+      JSON.stringify(quickReplies || [])
+    );
+
+    formData.append(
+      "copyCodeButtons",
+      JSON.stringify(copyCodeButtons || [])
+    );
+
+    formData.append(
+      "dropdownButtons",
+      JSON.stringify(dropdownButtons || [])
+    );
+
+    formData.append(
+      "inputFields",
+      JSON.stringify(inputFields || [])
+    );
+
+    formData.append(
+      "variables",
+      JSON.stringify(variableValues || {})
+    );
+
+    // ✅ DEBUG (optional but useful)
+    console.log("SUBMIT DATA:", {
+      form,
+      carouselItems,
+      ctaButtons,
+      quickReplies,
+      copyCodeButtons,
+      dropdownButtons,
+      inputFields,
+      variableValues,
+    });
+
+    // ✅ API CALL
+    const res = await fetch(`${API_BASE}/templates/${templateId}`, {
+      method: "PUT",
+      body: formData,
+    });
+
+    if (!res.ok) throw new Error("Update failed");
+
+    const result = await res.json();
+
+    if (result.success) {
+      onUpdate(result.template);
+      onClose();
+    } else {
+      throw new Error(result.error || "Update failed");
+    }
+
+  } catch (err) {
+    console.error(err);
+    setError(err.message || "Failed to update template");
+  } finally {
+    setSaving(false);
+  }
+};
 
   if (loading) return (
     <div className="modal-overlay" onClick={onClose}>
@@ -652,10 +745,14 @@ function EditTemplateModal({ templateId, onClose, onUpdate }) {
             </div>
           )}
 
+          
+
           <div>
             <label style={{ fontSize:12, fontWeight:700, color:"#0f172a", marginBottom:6, display:"block" }}>Message Format *</label>
             <textarea rows={4} className="form-control" style={{ borderRadius:12, border:"1px solid #dbe5ee", padding:"10px" }} value={form.format} onChange={e => handleChange("format", e.target.value)} />
           </div>
+
+          
           <div>
             <label style={{ fontSize:12, fontWeight:700, color:"#0f172a", marginBottom:6, display:"block" }}>Footer (optional)</label>
             <input type="text" className="form-control" style={{ height:42, borderRadius:12 }} value={form.footer} onChange={e => handleChange("footer", e.target.value)} />
