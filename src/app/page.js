@@ -20,34 +20,46 @@ const API_BASE = `${BASE}`;
     }
   }, []);
 
-  const handleLogin = async () => {
-    if (!name || !phone) return alert("Please enter both name and phone number");
+const handleLogin = async () => {
+  if (!name || !phone) {
+    alert("Please enter both name and phone number");
+    return;
+  }
 
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_BASE}/api/users/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, phone }),
-      });
+  setLoading(true);
 
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Login failed");
-      }
+  try {
+    const res = await fetch(`${API_BASE}/api/users/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, phone }),
+    });
 
-      const userData = await res.json();
-      localStorage.setItem("user", JSON.stringify(userData));
-      // Dispatch a custom event to notify layout that login status changed
-      window.dispatchEvent(new Event("loginStatusChanged"));
-      setUser(userData);
-    } catch (err) {
-      console.error(err);
-      alert(err.message || "Could not log in. Please try again.");
-    } finally {
-      setLoading(false);
+    const data = await res.json(); // ✅ read once
+
+    if (!res.ok) {
+      throw new Error(data.error || "Login failed");
     }
-  };
+
+    console.log("LOGIN RESPONSE:", data); // 🔥 DEBUG
+
+    // 🔐 FIX STARTS HERE
+    localStorage.setItem("token", data.token); // ✅ store token
+    localStorage.setItem("user", JSON.stringify(data.user)); // ✅ store only user
+
+    setUser(data.user);
+
+    // notify layout
+    window.dispatchEvent(new Event("loginStatusChanged"));
+
+  } catch (err) {
+    console.error(err);
+    alert(err.message || "Could not log in. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   if (user) {
     return <DashboardPage />;

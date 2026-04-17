@@ -2,10 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-
-const BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
-
-const API_BASE = `${BASE}/api`;
+import API from "../utils/api";   // ✅ using your axios instance
 
 // ── Helper: get tag name safely ──────────────────────────────────────────────
 const getTagName = (tag) => tag?.name || tag?.tagName || "";
@@ -132,13 +129,13 @@ export default function TagsPage() {
   // Fetch tags from backend
   const fetchTags = async () => {
     try {
-      const res = await fetch(`${API_BASE}/tags`);
-      if (!res.ok) throw new Error("Failed to fetch tags");
-      const data = await res.json();
-      setTags(data.tags || []);
+      const res = await API.get("/tags");
+      const data = res.data;
+      // Backend may return { tags: [...] } or direct array
+      setTags(data.tags || (Array.isArray(data) ? data : []));
     } catch (err) {
       console.error(err);
-      alert("Could not load tags");
+      alert(err.response?.data?.error || "Could not load tags");
     } finally {
       setLoading(false);
     }
@@ -153,16 +150,11 @@ export default function TagsPage() {
     const userId = localStorage.getItem("userId") || "test_user";
     const payload = { name: newTag.name, createdBy: userId };
     try {
-      const res = await fetch(`${API_BASE}/tags`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) throw new Error("Failed to create tag");
-      const data = await res.json();
-      setTags((prev) => [data.tag, ...prev]);
+      const res = await API.post("/tags", payload);
+      const data = res.data;
+      setTags((prev) => [data.tag || data, ...prev]);
     } catch (err) {
-      alert(err.message);
+      alert(err.response?.data?.error || "Failed to create tag");
     }
   };
 
@@ -170,16 +162,11 @@ export default function TagsPage() {
   const toggleStatus = async (id, currentStatus) => {
     const newStatus = currentStatus === "Active" ? "Inactive" : "Active";
     try {
-      const res = await fetch(`${API_BASE}/tags/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
-      });
-      if (!res.ok) throw new Error("Update failed");
-      const data = await res.json();
-      setTags((prev) => prev.map((t) => (t._id === id ? data.tag : t)));
+      const res = await API.put(`/tags/${id}`, { status: newStatus });
+      const data = res.data;
+      setTags((prev) => prev.map((t) => (t._id === id ? (data.tag || data) : t)));
     } catch (err) {
-      alert(err.message);
+      alert(err.response?.data?.error || "Update failed");
     }
   };
 
@@ -187,27 +174,21 @@ export default function TagsPage() {
   const deleteTag = async (id) => {
     if (!confirm("Delete this tag? It will be removed from all contacts.")) return;
     try {
-      const res = await fetch(`${API_BASE}/tags/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Delete failed");
+      await API.delete(`/tags/${id}`);
       setTags((prev) => prev.filter((t) => t._id !== id));
     } catch (err) {
-      alert(err.message);
+      alert(err.response?.data?.error || "Delete failed");
     }
   };
 
   // Save first message (PUT)
   const saveMessage = async (id, message) => {
     try {
-      const res = await fetch(`${API_BASE}/tags/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ firstMessage: message }),
-      });
-      if (!res.ok) throw new Error("Update failed");
-      const data = await res.json();
-      setTags((prev) => prev.map((t) => (t._id === id ? data.tag : t)));
+      const res = await API.put(`/tags/${id}`, { firstMessage: message });
+      const data = res.data;
+      setTags((prev) => prev.map((t) => (t._id === id ? (data.tag || data) : t)));
     } catch (err) {
-      alert(err.message);
+      alert(err.response?.data?.error || "Update failed");
     }
   };
 

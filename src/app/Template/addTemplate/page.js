@@ -25,10 +25,7 @@ import {
   Layers3,
   Hash,
 } from "lucide-react";
-
-const BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
-
-const API_BASE = `${BASE}/api`;
+import API from "../../utils/api";   // ✅ using your axios instance
 
 const categoryOptions = ["Marketing", "Utility", "Authentication"];
 const languageOptions = ["English", "Hindi", "Spanish", "Arabic"];
@@ -198,44 +195,41 @@ export default function NewTemplatePage() {
   }, [form.category]);
 
   // Extract placeholders from format and initialize variable values
-
-
-// In the format useEffect:
-useEffect(() => {
-  const regex = /\{\{(\d+)\}\}/g;
-  const matches = [...form.format.matchAll(regex)];
-  const placeholders = [...new Set(matches.map(m => m[1]))];
-  setVariableValues(prev => {
-    const newValues = { ...prev };
-    placeholders.forEach(ph => {
-      if (!(ph in newValues)) {
-        newValues[ph] = { type: "manual", value: "" };
-      }
+  useEffect(() => {
+    const regex = /\{\{(\d+)\}\}/g;
+    const matches = [...form.format.matchAll(regex)];
+    const placeholders = [...new Set(matches.map(m => m[1]))];
+    setVariableValues(prev => {
+      const newValues = { ...prev };
+      placeholders.forEach(ph => {
+        if (!(ph in newValues)) {
+          newValues[ph] = { type: "manual", value: "" };
+        }
+      });
+      Object.keys(newValues).forEach(key => {
+        if (!placeholders.includes(key)) delete newValues[key];
+      });
+      return newValues;
     });
-    Object.keys(newValues).forEach(key => {
-      if (!placeholders.includes(key)) delete newValues[key];
-    });
-    return newValues;
-  });
-}, [form.format]);
+  }, [form.format]);
 
   const formattedPreview = useMemo(() => {
-  let text = form.format || "Your template message will appear here...";
-  Object.entries(variableValues).forEach(([key, config]) => {
-    const regex = new RegExp(`\\{\\{${key}\\}\\}`, "g");
-    let displayVal;
-    if (config.type === "name")   displayVal = `[Contact Name]`;
-    else if (config.type === "number") displayVal = `[Phone Number]`;
-    else displayVal = config.value || `{{${key}}}`;
-    text = text.replace(regex, displayVal);
-  });
-  text = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  text = text.replace(/\*([^*]+)\*/g, "<b>$1</b>");
-  text = text.replace(/_([^_]+)_/g, "<i>$1</i>");
-  text = text.replace(/~([^~]+)~/g, "<s>$1</s>");
-  text = text.replace(/\n/g, "<br/>");
-  return text;
-}, [form.format, variableValues]);
+    let text = form.format || "Your template message will appear here...";
+    Object.entries(variableValues).forEach(([key, config]) => {
+      const regex = new RegExp(`\\{\\{${key}\\}\\}`, "g");
+      let displayVal;
+      if (config.type === "name")   displayVal = `[Contact Name]`;
+      else if (config.type === "number") displayVal = `[Phone Number]`;
+      else displayVal = config.value || `{{${key}}}`;
+      text = text.replace(regex, displayVal);
+    });
+    text = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    text = text.replace(/\*([^*]+)\*/g, "<b>$1</b>");
+    text = text.replace(/_([^_]+)_/g, "<i>$1</i>");
+    text = text.replace(/~([^~]+)~/g, "<s>$1</s>");
+    text = text.replace(/\n/g, "<br/>");
+    return text;
+  }, [form.format, variableValues]);
 
   const parsedDropdowns = useMemo(() => {
     return dropdownButtons.map((item) => ({
@@ -555,10 +549,10 @@ useEffect(() => {
       formData.append("mediaType", form.mediaType);
       formData.append("createdBy", JSON.parse(localStorage.getItem("user"))?.phone || "anonymous");
       formData.append("variables", JSON.stringify(
-  Object.fromEntries(
-    Object.entries(variableValues).map(([k, v]) => [k, { type: v.type, value: v.value }])
-  )
-));
+        Object.fromEntries(
+          Object.entries(variableValues).map(([k, v]) => [k, { type: v.type, value: v.value }])
+        )
+      ));
 
       if (form.mediaType === "Image" && imageFile?.file) {
         formData.append("mediaFile", imageFile.file);
@@ -576,14 +570,12 @@ useEffect(() => {
       formData.append("dropdownButtons", JSON.stringify(dropdownButtons));
       formData.append("inputFields", JSON.stringify(inputFields));
 
-      const res = await fetch(`${API_BASE}/templates`, {
-        method: "POST",
-        body: formData,
+      // ✅ API call with multipart form data (axios will set correct headers)
+      const res = await API.post("/templates", formData, {
+        headers: { "Content-Type": "multipart/form-data" }
       });
 
-      if (!res.ok) throw new Error(await res.text());
-
-      const result = await res.json();
+      const result = res.data;
       setSubmittedData(result.template);
       setSubmitError("");
       setSubmitMessage("Template submitted successfully.");
@@ -593,7 +585,7 @@ useEffect(() => {
       }, 700);
     } catch (err) {
       console.error(err);
-      setSubmitError(err.message || "Something went wrong while saving the template.");
+      setSubmitError(err.response?.data?.error || err.message || "Something went wrong while saving the template.");
       setSubmitMessage("");
       setSubmittedData(null);
     } finally {
@@ -632,11 +624,11 @@ useEffect(() => {
 
   // Helper to update variable value
   const updateVariable = (key, field, val) => {
-  setVariableValues(prev => ({
-    ...prev,
-    [key]: { ...prev[key], [field]: val }
-  }));
-};
+    setVariableValues(prev => ({
+      ...prev,
+      [key]: { ...prev[key], [field]: val }
+    }));
+  };
 
   return (
     <div
@@ -777,131 +769,128 @@ useEffect(() => {
                 </div>
               </div>
 
-              {/* NEW: Variable Values Section */}
+              {/* Variable Values Section */}
               {Object.keys(variableValues).length > 0 && (
-  <div style={sectionStyle}>
-    <Label icon={<Hash size={14} />} title="Variable Values (for preview)" />
-    <div style={infoBoxStyle}>
-      Choose how each variable is resolved — use the contact's registered <b>Name</b>, their <b>Phone Number</b>, or enter a <b>Manual</b> value for preview.
-    </div>
+                <div style={sectionStyle}>
+                  <Label icon={<Hash size={14} />} title="Variable Values (for preview)" />
+                  <div style={infoBoxStyle}>
+                    Choose how each variable is resolved — use the contact's registered <b>Name</b>, their <b>Phone Number</b>, or enter a <b>Manual</b> value for preview.
+                  </div>
 
-    <div className="d-flex flex-column gap-3 mt-3">
-      {Object.entries(variableValues).map(([key, config]) => (
-        <div
-          key={key}
-          style={{
-            background: "#fbfdff",
-            border: "1px solid #e3eaf2",
-            borderRadius: "14px",
-            padding: "14px",
-          }}
-        >
-          {/* Variable header */}
-          <div style={{
-            fontSize: "12px", fontWeight: 800, color: colors.text,
-            marginBottom: "12px", display: "flex", alignItems: "center", gap: "8px"
-          }}>
-            <span style={{
-              background: "rgba(15,118,110,0.1)", color: colors.primary,
-              borderRadius: "8px", padding: "3px 9px", fontSize: "11px", fontFamily: "monospace"
-            }}>
-              {`{{${key}}}`}
-            </span>
-            <span style={{ color: colors.textSoft, fontWeight: 600 }}>Variable {key}</span>
-          </div>
+                  <div className="d-flex flex-column gap-3 mt-3">
+                    {Object.entries(variableValues).map(([key, config]) => (
+                      <div
+                        key={key}
+                        style={{
+                          background: "#fbfdff",
+                          border: "1px solid #e3eaf2",
+                          borderRadius: "14px",
+                          padding: "14px",
+                        }}
+                      >
+                        <div style={{
+                          fontSize: "12px", fontWeight: 800, color: colors.text,
+                          marginBottom: "12px", display: "flex", alignItems: "center", gap: "8px"
+                        }}>
+                          <span style={{
+                            background: "rgba(15,118,110,0.1)", color: colors.primary,
+                            borderRadius: "8px", padding: "3px 9px", fontSize: "11px", fontFamily: "monospace"
+                          }}>
+                            {`{{${key}}}`}
+                          </span>
+                          <span style={{ color: colors.textSoft, fontWeight: 600 }}>Variable {key}</span>
+                        </div>
 
-          {/* Type selector */}
-          <div style={{ marginBottom: "10px" }}>
-            <div style={{ fontSize: "11px", fontWeight: 700, color: colors.textSoft, marginBottom: "8px" }}>
-              Resolve as
-            </div>
-            <div className="d-flex gap-2 flex-wrap">
-              {[
-                { value: "name",   label: "Contact Name",   icon: "👤" },
-                { value: "number", label: "Phone Number",    icon: "📞" },
-                { value: "manual", label: "Manual Value",    icon: "✏️" },
-              ].map(opt => (
-                <label
-                  key={opt.value}
-                  style={{
-                    minHeight: "38px",
-                    padding: "0 13px",
-                    borderRadius: "10px",
-                    border: config.type === opt.value
-                      ? `1px solid ${colors.primary}`
-                      : "1px solid #dbe3ea",
-                    background: config.type === opt.value
-                      ? "rgba(15,118,110,0.08)"
-                      : "#ffffff",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "7px",
-                    cursor: "pointer",
-                    fontSize: "11px",
-                    fontWeight: 700,
-                    color: config.type === opt.value ? colors.primary : "#334155",
-                    transition: "all 0.18s ease",
-                  }}
-                >
-                  <input
-                    type="radio"
-                    name={`var_type_${key}`}
-                    checked={config.type === opt.value}
-                    onChange={() => updateVariable(key, "type", opt.value)}
-                    style={{ accentColor: colors.primary, cursor: "pointer" }}
-                  />
-                  <span>{opt.icon}</span>
-                  <span>{opt.label}</span>
-                </label>
-              ))}
-            </div>
-          </div>
+                        <div style={{ marginBottom: "10px" }}>
+                          <div style={{ fontSize: "11px", fontWeight: 700, color: colors.textSoft, marginBottom: "8px" }}>
+                            Resolve as
+                          </div>
+                          <div className="d-flex gap-2 flex-wrap">
+                            {[
+                              { value: "name",   label: "Contact Name",   icon: "👤" },
+                              { value: "number", label: "Phone Number",    icon: "📞" },
+                              { value: "manual", label: "Manual Value",    icon: "✏️" },
+                            ].map(opt => (
+                              <label
+                                key={opt.value}
+                                style={{
+                                  minHeight: "38px",
+                                  padding: "0 13px",
+                                  borderRadius: "10px",
+                                  border: config.type === opt.value
+                                    ? `1px solid ${colors.primary}`
+                                    : "1px solid #dbe3ea",
+                                  background: config.type === opt.value
+                                    ? "rgba(15,118,110,0.08)"
+                                    : "#ffffff",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "7px",
+                                  cursor: "pointer",
+                                  fontSize: "11px",
+                                  fontWeight: 700,
+                                  color: config.type === opt.value ? colors.primary : "#334155",
+                                  transition: "all 0.18s ease",
+                                }}
+                              >
+                                <input
+                                  type="radio"
+                                  name={`var_type_${key}`}
+                                  checked={config.type === opt.value}
+                                  onChange={() => updateVariable(key, "type", opt.value)}
+                                  style={{ accentColor: colors.primary, cursor: "pointer" }}
+                                />
+                                <span>{opt.icon}</span>
+                                <span>{opt.label}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
 
-          {/* Resolved value display */}
-          {config.type === "name" && (
-            <div style={{
-              height: "42px", borderRadius: "12px",
-              border: "1px dashed #b9c7d6", background: "#f0fdf4",
-              display: "flex", alignItems: "center", paddingLeft: "12px",
-              fontSize: "12px", fontWeight: 700, color: "#15803d", gap: "8px"
-            }}>
-              <span>👤</span>
-              <span>Will be replaced with contact's registered name</span>
-            </div>
-          )}
-          {config.type === "number" && (
-            <div style={{
-              height: "42px", borderRadius: "12px",
-              border: "1px dashed #b9c7d6", background: "#eff6ff",
-              display: "flex", alignItems: "center", paddingLeft: "12px",
-              fontSize: "12px", fontWeight: 700, color: "#1d4ed8", gap: "8px"
-            }}>
-              <span>📞</span>
-              <span>Will be replaced with contact's phone number</span>
-            </div>
-          )}
-          {config.type === "manual" && (
-            <div>
-              <div style={{ fontSize: "11px", fontWeight: 700, color: colors.textSoft, marginBottom: "6px" }}>
-                Preview value
-              </div>
-              <input
-                type="text"
-                className="form-control"
-                style={fieldStyle}
-                placeholder={`Enter a value to preview {{${key}}}`}
-                value={config.value}
-                onChange={(e) => updateVariable(key, "value", e.target.value)}
-                onFocus={inputFocus}
-                onBlur={inputBlur}
-              />
-            </div>
-          )}
-        </div>
-      ))}
-    </div>
-  </div>
-)}
+                        {config.type === "name" && (
+                          <div style={{
+                            height: "42px", borderRadius: "12px",
+                            border: "1px dashed #b9c7d6", background: "#f0fdf4",
+                            display: "flex", alignItems: "center", paddingLeft: "12px",
+                            fontSize: "12px", fontWeight: 700, color: "#15803d", gap: "8px"
+                          }}>
+                            <span>👤</span>
+                            <span>Will be replaced with contact's registered name</span>
+                          </div>
+                        )}
+                        {config.type === "number" && (
+                          <div style={{
+                            height: "42px", borderRadius: "12px",
+                            border: "1px dashed #b9c7d6", background: "#eff6ff",
+                            display: "flex", alignItems: "center", paddingLeft: "12px",
+                            fontSize: "12px", fontWeight: 700, color: "#1d4ed8", gap: "8px"
+                          }}>
+                            <span>📞</span>
+                            <span>Will be replaced with contact's phone number</span>
+                          </div>
+                        )}
+                        {config.type === "manual" && (
+                          <div>
+                            <div style={{ fontSize: "11px", fontWeight: 700, color: colors.textSoft, marginBottom: "6px" }}>
+                              Preview value
+                            </div>
+                            <input
+                              type="text"
+                              className="form-control"
+                              style={fieldStyle}
+                              placeholder={`Enter a value to preview {{${key}}}`}
+                              value={config.value}
+                              onChange={(e) => updateVariable(key, "value", e.target.value)}
+                              onFocus={inputFocus}
+                              onBlur={inputBlur}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Interactive Actions */}
               <div style={sectionStyle}>

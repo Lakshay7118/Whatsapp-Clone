@@ -28,10 +28,9 @@ import {
   Upload,
   Save,
 } from "lucide-react";
-const BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
+import API from "../utils/api";   // ✅ using your axios instance
 
-const API_BASE = `${BASE}/api`;
-const BACKEND_URL = API_BASE.replace("/api", "");
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
 
 const tabs = [
   { id: "Explore",        label: "Explore",        icon: Compass      },
@@ -60,18 +59,9 @@ const safeArray = (value) => (Array.isArray(value) ? value : []);
 
 const resolveUrl = (raw) => {
   if (!raw || typeof raw !== "string") return "";
-
-  // ✅ base64 support (MOST IMPORTANT FIX)
-  if (raw.startsWith("data:image") || raw.startsWith("data:video")) {
-    return raw;
-  }
-
-  // ✅ cloudinary / external url
-  if (raw.startsWith("http")) {
-    return raw;
-  }
-
-  // ✅ local file
+  // base64 support
+  if (raw.startsWith("data:image") || raw.startsWith("data:video")) return raw;
+  if (raw.startsWith("http")) return raw;
   return `${BACKEND_URL}${raw}`;
 };
 
@@ -210,7 +200,7 @@ function CompactTemplatePreview({ item }) {
   );
 }
 
-// ── View Details Modal (unchanged) ──
+// ── TemplateDetailModal (unchanged except resolveUrl) ──
 function TemplateDetailModal({ item, onClose }) {
   if (!item) return null;
   const preview = getPreviewData(item);
@@ -244,7 +234,7 @@ function TemplateDetailModal({ item, onClose }) {
           boxShadow: "0 24px 60px rgba(15,23,42,0.18)",
         }}
       >
-        {/* ── Header ── */}
+        {/* Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
           <div>
             <div style={{ fontSize: 18, fontWeight: 800, color: "#0f172a", marginBottom: 4 }}>
@@ -262,7 +252,7 @@ function TemplateDetailModal({ item, onClose }) {
           </button>
         </div>
 
-        {/* ── Status badges ── */}
+        {/* Status badges */}
         <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
           <span className={`status-${preview.status.toLowerCase()}`}>{preview.status}</span>
           <span style={{ display: "inline-flex", alignItems: "center", minHeight: 26, padding: "0 12px", borderRadius: 999, background: "#f0fdfa", color: "#0f766e", border: "1px solid #a5f3fc", fontSize: 11, fontWeight: 800 }}>
@@ -278,7 +268,7 @@ function TemplateDetailModal({ item, onClose }) {
           )}
         </div>
 
-        {/* ── Image ── */}
+        {/* Image */}
         {preview.previewType === "IMAGE" && preview.mediaUrl && (
           <div style={{ marginBottom: 20 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#64748b", marginBottom: 8 }}>IMAGE</div>
@@ -287,7 +277,7 @@ function TemplateDetailModal({ item, onClose }) {
           </div>
         )}
 
-        {/* ── Video ── */}
+        {/* Video */}
         {preview.previewType === "VIDEO" && preview.mediaUrl && (
           <div style={{ marginBottom: 20 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#64748b", marginBottom: 8 }}>VIDEO</div>
@@ -296,7 +286,7 @@ function TemplateDetailModal({ item, onClose }) {
           </div>
         )}
 
-        {/* ── Carousel ── */}
+        {/* Carousel */}
         {carouselItems.length > 0 && (
           <div style={{ marginBottom: 20 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#64748b", marginBottom: 8 }}>CAROUSEL CARDS</div>
@@ -322,7 +312,7 @@ function TemplateDetailModal({ item, onClose }) {
           </div>
         )}
 
-        {/* ── Body ── */}
+        {/* Body */}
         {preview.body && (
           <div style={{ marginBottom: 20 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#64748b", marginBottom: 8 }}>MESSAGE BODY</div>
@@ -332,7 +322,7 @@ function TemplateDetailModal({ item, onClose }) {
           </div>
         )}
 
-        {/* ── Footer ── */}
+        {/* Footer */}
         {preview.footer && (
           <div style={{ marginBottom: 20 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#64748b", marginBottom: 8 }}>FOOTER</div>
@@ -342,12 +332,11 @@ function TemplateDetailModal({ item, onClose }) {
           </div>
         )}
 
-        {/* ── Interactive Actions ── */}
+        {/* Interactive Actions */}
         {hasActions && (
           <div style={{ marginBottom: 20 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#64748b", marginBottom: 12 }}>INTERACTIVE ELEMENTS</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-
               {/* CTA Buttons */}
               {ctaButtons.length > 0 && (
                 <div>
@@ -451,12 +440,11 @@ function TemplateDetailModal({ item, onClose }) {
                   </div>
                 </div>
               )}
-
             </div>
           </div>
         )}
 
-        {/* ── Footer date ── */}
+        {/* Footer date */}
         <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#94a3b8", fontSize: 12, fontWeight: 600, borderTop: "1px solid #f1f5f9", paddingTop: 16 }}>
           <CalendarDays size={14} />
           Created: {item.createdAt ? new Date(item.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" }) : "--"}
@@ -466,7 +454,7 @@ function TemplateDetailModal({ item, onClose }) {
   );
 }
 
-// ── NEW: Edit Template Modal ──
+// ── EditTemplateModal (UPDATED to use API) ──
 function EditTemplateModal({ templateId, onClose, onUpdate }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -480,70 +468,67 @@ function EditTemplateModal({ templateId, onClose, onUpdate }) {
   const [existingMediaUrl, setExistingMediaUrl] = useState("");
 
   const [carouselItems, setCarouselItems] = useState([]);
-const [ctaButtons, setCtaButtons] = useState([]);
-const [quickReplies, setQuickReplies] = useState([]);
-const [copyCodeButtons, setCopyCodeButtons] = useState([]);
-const [dropdownButtons, setDropdownButtons] = useState([]);
-const [inputFields, setInputFields] = useState([]);
-const [variableValues, setVariableValues] = useState({});
+  const [ctaButtons, setCtaButtons] = useState([]);
+  const [quickReplies, setQuickReplies] = useState([]);
+  const [copyCodeButtons, setCopyCodeButtons] = useState([]);
+  const [dropdownButtons, setDropdownButtons] = useState([]);
+  const [inputFields, setInputFields] = useState([]);
+  const [variableValues, setVariableValues] = useState({});
 
-  // Fetch template data
-useEffect(() => {
-  if (!templateId) return;
+  // Fetch template data using API
+  useEffect(() => {
+    if (!templateId) return;
 
-  fetch(`${API_BASE}/templates/${templateId}`)
-    .then(res => res.json())
-    .then(data => {
-      if (data.success && data.template) {
-        const t = data.template;
+    API.get(`/templates/${templateId}`)
+      .then(res => {
+        const data = res.data;
+        if (data.success && data.template) {
+          const t = data.template;
 
-        // ✅ BASIC
-        setForm({
-          name: t.name || "",
-          category: t.category || "",
-          language: t.language || "English",
-          type: t.type || "Text",
-          format: t.format || "",
-          footer: t.footer || "",
-          mediaType: t.mediaType || "None",
-          actionType: t.actionType || "all",
-        });
-
-        // ✅ MEDIA
-        if (t.imageFile?.url) {
-          setImageFile({
-            url: resolveUrl(t.imageFile.url),
-            file: null,
+          // Basic
+          setForm({
+            name: t.name || "",
+            category: t.category || "",
+            language: t.language || "English",
+            type: t.type || "Text",
+            format: t.format || "",
+            footer: t.footer || "",
+            mediaType: t.mediaType || "None",
+            actionType: t.actionType || "all",
           });
+
+          // Media
+          if (t.imageFile?.url) {
+            setImageFile({
+              url: resolveUrl(t.imageFile.url),
+              file: null,
+            });
+          }
+          if (t.videoFile?.url) {
+            setVideoFile({
+              url: resolveUrl(t.videoFile.url),
+              file: null,
+            });
+          }
+
+          // Arrays
+          setCarouselItems(t.carouselItems || []);
+          setCtaButtons(t.ctaButtons || []);
+          setQuickReplies(t.quickReplies || []);
+          setCopyCodeButtons(t.copyCodeButtons || []);
+          setDropdownButtons(t.dropdownButtons || []);
+          setInputFields(t.inputFields || []);
+          setVariableValues(t.variables || {});
+        } else {
+          setError("Failed to load template data");
         }
-
-        if (t.videoFile?.url) {
-          setVideoFile({
-            url: resolveUrl(t.videoFile.url),
-            file: null,
-          });
-        }
-
-        // 🔥🔥 IMPORTANT PART (YOU MISSED THIS)
-
-        setCarouselItems(t.carouselItems || []);
-        setCtaButtons(t.ctaButtons || []);
-        setQuickReplies(t.quickReplies || []);
-        setCopyCodeButtons(t.copyCodeButtons || []);
-        setDropdownButtons(t.dropdownButtons || []);
-        setInputFields(t.inputFields || []);
-        setVariableValues(t.variables || {});
-
-      } else {
-        setError("Failed to load template data");
-      }
-    })
-    .catch(err => {
-  console.error("FETCH ERROR:", err);
-  setError(err.message || "Error loading template");
-})
-    .finally(() => setLoading(false));
-}, [templateId]);
+      })
+      .catch(err => {
+        console.error("FETCH ERROR:", err);
+        setError(err.response?.data?.error || err.message || "Error loading template");
+      })
+      .finally(() => setLoading(false));
+  }, [templateId]);
 
   const handleChange = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 
@@ -570,106 +555,63 @@ useEffect(() => {
   };
 
   const handleSubmit = async () => {
-  setSaving(true);
-  setError("");
+    setSaving(true);
+    setError("");
 
-  try {
-    const formData = new FormData();
+    try {
+      const formData = new FormData();
 
-    // ✅ BASIC FIELDS
-    formData.append("name", form.name);
-    formData.append("category", form.category);
-    formData.append("language", form.language);
-    formData.append("type", form.type);
-    formData.append("format", form.format);
-    formData.append("footer", form.footer);
-    formData.append("mediaType", form.mediaType);
-    formData.append("actionType", form.actionType);
-    formData.append(
-      "createdBy",
-      JSON.parse(localStorage.getItem("user"))?.phone || "anonymous"
-    );
+      // Basic fields
+      formData.append("name", form.name);
+      formData.append("category", form.category);
+      formData.append("language", form.language);
+      formData.append("type", form.type);
+      formData.append("format", form.format);
+      formData.append("footer", form.footer);
+      formData.append("mediaType", form.mediaType);
+      formData.append("actionType", form.actionType);
+      formData.append(
+        "createdBy",
+        JSON.parse(localStorage.getItem("user"))?.phone || "anonymous"
+      );
 
-    // ✅ MEDIA
-    if (form.mediaType === "Image" && imageFile?.file) {
-      formData.append("mediaFile", imageFile.file);
-    } else if (form.mediaType === "Video" && videoFile?.file) {
-      formData.append("mediaFile", videoFile.file);
+      // Media files
+      if (form.mediaType === "Image" && imageFile?.file) {
+        formData.append("mediaFile", imageFile.file);
+      } else if (form.mediaType === "Video" && videoFile?.file) {
+        formData.append("mediaFile", videoFile.file);
+      }
+
+      // JSON arrays
+      formData.append("carouselItems", JSON.stringify(carouselItems || []));
+      formData.append("ctaButtons", JSON.stringify(ctaButtons || []));
+      formData.append("quickReplies", JSON.stringify(quickReplies || []));
+      formData.append("copyCodeButtons", JSON.stringify(copyCodeButtons || []));
+      formData.append("dropdownButtons", JSON.stringify(dropdownButtons || []));
+      formData.append("inputFields", JSON.stringify(inputFields || []));
+      formData.append("variables", JSON.stringify(variableValues || {}));
+
+      // Debug log
+      console.log("SUBMIT DATA:", { form, carouselItems, ctaButtons, quickReplies, copyCodeButtons, dropdownButtons, inputFields, variableValues });
+
+      // API call with multipart form data
+      const res = await API.put(`/templates/${templateId}`, formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+
+      if (res.data.success) {
+        onUpdate(res.data.template);
+        onClose();
+      } else {
+        throw new Error(res.data.error || "Update failed");
+      }
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data?.error || err.message || "Failed to update template");
+    } finally {
+      setSaving(false);
     }
-
-    // 🔥🔥 IMPORTANT (YOU WERE MISSING THIS)
-
-    formData.append(
-      "carouselItems",
-      JSON.stringify(carouselItems || [])
-    );
-
-    formData.append(
-      "ctaButtons",
-      JSON.stringify(ctaButtons || [])
-    );
-
-    formData.append(
-      "quickReplies",
-      JSON.stringify(quickReplies || [])
-    );
-
-    formData.append(
-      "copyCodeButtons",
-      JSON.stringify(copyCodeButtons || [])
-    );
-
-    formData.append(
-      "dropdownButtons",
-      JSON.stringify(dropdownButtons || [])
-    );
-
-    formData.append(
-      "inputFields",
-      JSON.stringify(inputFields || [])
-    );
-
-    formData.append(
-      "variables",
-      JSON.stringify(variableValues || {})
-    );
-
-    // ✅ DEBUG (optional but useful)
-    console.log("SUBMIT DATA:", {
-      form,
-      carouselItems,
-      ctaButtons,
-      quickReplies,
-      copyCodeButtons,
-      dropdownButtons,
-      inputFields,
-      variableValues,
-    });
-
-    // ✅ API CALL
-    const res = await fetch(`${API_BASE}/templates/${templateId}`, {
-      method: "PUT",
-      body: formData,
-    });
-
-    if (!res.ok) throw new Error("Update failed");
-
-    const result = await res.json();
-
-    if (result.success) {
-      onUpdate(result.template);
-      onClose();
-    } else {
-      throw new Error(result.error || "Update failed");
-    }
-
-  } catch (err) {
-    console.error(err);
-    setError(err.message || "Failed to update template");
-  } finally {
-    setSaving(false);
-  }
-};
+  };
 
   if (loading) return (
     <div className="modal-overlay" onClick={onClose}>
@@ -745,14 +687,11 @@ useEffect(() => {
             </div>
           )}
 
-          
-
           <div>
             <label style={{ fontSize:12, fontWeight:700, color:"#0f172a", marginBottom:6, display:"block" }}>Message Format *</label>
             <textarea rows={4} className="form-control" style={{ borderRadius:12, border:"1px solid #dbe5ee", padding:"10px" }} value={form.format} onChange={e => handleChange("format", e.target.value)} />
           </div>
 
-          
           <div>
             <label style={{ fontSize:12, fontWeight:700, color:"#0f172a", marginBottom:6, display:"block" }}>Footer (optional)</label>
             <input type="text" className="form-control" style={{ height:42, borderRadius:12 }} value={form.footer} onChange={e => handleChange("footer", e.target.value)} />
@@ -790,9 +729,8 @@ export default function TemplatesPage() {
 
   const fetchTemplates = async () => {
     try {
-      const res = await fetch(`${API_BASE}/templates`);
-      if (!res.ok) throw new Error("Failed to fetch templates");
-      const data = await res.json();
+      const res = await API.get("/templates");
+      const data = res.data;
       setTemplates(data.templates || []);
     } catch (err) {
       console.error("Error fetching templates:", err);
@@ -838,21 +776,25 @@ export default function TemplatesPage() {
   const handleDelete = async (id) => {
     if (!confirm("Delete this template permanently?")) return;
     try {
-      const res = await fetch(`${API_BASE}/templates/${id}`, { method:"DELETE" });
-      if (!res.ok) throw new Error("Delete failed");
+      await API.delete(`/templates/${id}`);
       setTemplates(prev => prev.filter(i => i._id !== id));
-    } catch (err) { console.error(err); alert("Failed to delete template"); }
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.error || "Failed to delete template");
+    }
   };
   const handleCopy = async (item) => {
     try {
       const { _id, createdAt, updatedAt, __v, ...copyData } = item;
       copyData.name = `${copyData.name}_copy`;
       copyData.status = "DRAFT";
-      const res = await fetch(`${API_BASE}/templates`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(copyData) });
-      if (!res.ok) throw new Error("Copy failed");
-      const newTemplate = await res.json();
+      const res = await API.post("/templates", copyData);
+      const newTemplate = res.data;
       setTemplates(prev => [newTemplate.template, ...prev]);
-    } catch (err) { console.error(err); alert("Failed to copy template"); }
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.error || "Failed to copy template");
+    }
   };
   const handleEdit = (id) => {
     setEditingTemplateId(id);

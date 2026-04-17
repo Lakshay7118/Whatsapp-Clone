@@ -3,10 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { FiTrash2, FiEdit2 } from "react-icons/fi";
-
-const BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
-
-const API_BASE = `${BASE}/api`;
+import API from "../utils/api";   // ✅ using your axios instance
 
 // ── TagBadge ──────────────────────────────────────────────────────────────
 function TagBadge({ label }) {
@@ -27,7 +24,7 @@ function TagBadge({ label }) {
   );
 }
 
-// ── AddContactModal (unchanged) ─────────────────────────────────────────────
+// ── AddContactModal (unchanged but uses API inside parent) ─────────────────
 function AddContactModal({ onClose, onAdd, availableTags }) {
   const [form, setForm] = useState({
     name: "",
@@ -116,7 +113,7 @@ function AddContactModal({ onClose, onAdd, availableTags }) {
   );
 }
 
-// ── NEW: EditContactModal ───────────────────────────────────────────────────
+// ── EditContactModal ──────────────────────────────────────────────────────
 function EditContactModal({ contact, onClose, onUpdate, availableTags }) {
   const [form, setForm] = useState({
     name: contact.name || "",
@@ -205,7 +202,7 @@ function EditContactModal({ contact, onClose, onUpdate, availableTags }) {
   );
 }
 
-// ── Main ContactsPage ─────────────────────────────────────────────────────
+// ── Main ContactsPage (using API instead of fetch) ────────────────────────
 export default function ContactsPage() {
   const router = useRouter();
 
@@ -213,7 +210,7 @@ export default function ContactsPage() {
   const [tags, setTags] = useState([]);
   const [search, setSearch] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
-  const [editingContact, setEditingContact] = useState(null); // for edit modal
+  const [editingContact, setEditingContact] = useState(null);
   const [selected, setSelected] = useState(new Set());
   const [page, setPage] = useState(1);
   const [filterTagId, setFilterTagId] = useState("");
@@ -224,13 +221,11 @@ export default function ContactsPage() {
   // Fetch contacts (with optional tag filter)
   const fetchContacts = async () => {
     try {
-      const url = filterTagId ? `${API_BASE}/contacts?tag=${filterTagId}` : `${API_BASE}/contacts`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("Failed to fetch contacts");
-      const data = await res.json();
-      setContacts(data);
+      const url = filterTagId ? `/contacts?tag=${filterTagId}` : "/contacts";
+      const res = await API.get(url);
+      setContacts(res.data);
     } catch (err) {
-      console.error(err);
+      console.error("Failed to fetch contacts:", err);
     } finally {
       setLoading(false);
     }
@@ -238,17 +233,15 @@ export default function ContactsPage() {
 
   // Fetch all tags
   const fetchTags = async () => {
-  try {
-    const res = await fetch(`${API_BASE}/tags`);
-    const data = await res.json();
-
-    console.log("TAGS RESPONSE:", data);
-
-    setTags(Array.isArray(data.tags) ? data.tags : []);
-  } catch (err) {
-    console.error(err);
-  }
-};
+    try {
+      const res = await API.get("/tags");
+      const data = res.data;
+      // Backend may return { tags: [...] } or direct array
+      setTags(Array.isArray(data.tags) ? data.tags : Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Failed to fetch tags:", err);
+    }
+  };
 
   useEffect(() => {
     fetchTags();
@@ -263,37 +256,24 @@ export default function ContactsPage() {
     try {
       const userId = localStorage.getItem("userId") || "test_user";
       const payload = { ...contact, createdBy: userId };
-      const res = await fetch(`${API_BASE}/contacts`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) throw new Error("Failed to create contact");
-      const newContact = await res.json();
+      const res = await API.post("/contacts", payload);
+      const newContact = res.data;
       setContacts((prev) => [newContact, ...prev]);
     } catch (err) {
-      alert(err.message);
+      alert(err.response?.data?.error || "Failed to create contact");
     }
   };
 
-  // 🔥 NEW: Update contact
+  // Update contact
   const updateContact = async (id, updatedData) => {
     try {
-      const res = await fetch(`${API_BASE}/contacts/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedData),
-      });
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || "Failed to update contact");
-      }
-      const updatedContact = await res.json();
+      const res = await API.put(`/contacts/${id}`, updatedData);
+      const updatedContact = res.data;
       setContacts((prev) =>
         prev.map((c) => (c._id === id ? updatedContact : c))
       );
     } catch (err) {
-      alert(err.message);
+      alert(err.response?.data?.error || "Failed to update contact");
     }
   };
 
@@ -301,17 +281,14 @@ export default function ContactsPage() {
   const deleteSingleContact = async (contactId, contactName) => {
     if (!confirm(`Delete "${contactName}" permanently?`)) return;
     try {
-      const res = await fetch(`${API_BASE}/contacts/${contactId}`, { method: "DELETE" });
-      if (res.ok) {
-        setContacts((prev) => prev.filter((c) => c._id !== contactId));
-        const newSelected = new Set(selected);
-        newSelected.delete(contactId);
-        setSelected(newSelected);
-      } else {
-        alert("Failed to delete contact");
-      }
+      await API.delete(`/contacts/${contactId}`);
+      setContacts((prev) => prev.filter((c) => c._id !== contactId));
+      const newSelected = new Set(selected);
+      newSelected.delete(contactId);
+      setSelected(newSelected);
     } catch (err) {
       console.error(err);
+      alert("Failed to delete contact");
     }
   };
 
@@ -321,7 +298,7 @@ export default function ContactsPage() {
     if (idsToDelete.length === 0) return;
     if (!confirm(`Delete ${idsToDelete.length} contact(s)?`)) return;
     try {
-      await Promise.all(idsToDelete.map((id) => fetch(`${API_BASE}/contacts/${id}`, { method: "DELETE" })));
+      await Promise.all(idsToDelete.map((id) => API.delete(`/contacts/${id}`)));
       setContacts((prev) => prev.filter((c) => !selected.has(c._id)));
       setSelected(new Set());
     } catch (err) {
@@ -359,7 +336,6 @@ export default function ContactsPage() {
     setSelected(next);
   };
 
-  // Helper to get tag name from tag object
   const getTagName = (tag) => {
     if (typeof tag === "string") return tag;
     return tag?.name || tag?.tagName || "";
@@ -518,7 +494,7 @@ export default function ContactsPage() {
   );
 }
 
-// ── Styles (same as before) ────────────────────────────────────────────────
+// ── Styles (unchanged) ────────────────────────────────────────────────────
 const pageWrap = {
   width: "100%",
   height: "100%",

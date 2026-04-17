@@ -10,6 +10,7 @@ import {
   ChevronRight,
   Repeat,
 } from "lucide-react";
+import API from "../../utils/api";   // ✅ using your axios instance
 
 const steps = [
   "Campaign Name",
@@ -17,10 +18,6 @@ const steps = [
   "Schedule Campaign",
   "Preview & Send",
 ];
-
-const BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
-
-const API_BASE = `${BASE}/api`;
 
 const extractVariables = (body = "") => {
   const regex = /{{(\d+)}}/g;
@@ -97,9 +94,8 @@ export default function LaunchCampaignPage() {
   useEffect(() => {
     const fetchTemplates = async () => {
       try {
-        const res = await fetch(`${API_BASE}/templates`);
-        if (!res.ok) throw new Error("Failed to fetch templates");
-        const data = await res.json();
+        const res = await API.get("/templates");
+        const data = res.data;
         const templateList = data.templates || [];
         setTemplates(templateList);
         if (templateList.length > 0) {
@@ -118,29 +114,27 @@ export default function LaunchCampaignPage() {
   }, []);
 
   useEffect(() => {
-  const fetchFullTemplate = async () => {
-    if (!form.selectedTemplateId) return;
+    const fetchFullTemplate = async () => {
+      if (!form.selectedTemplateId) return;
 
-    try {
-      const res = await fetch(`${API_BASE}/templates/${form.selectedTemplateId}`);
-      const data = await res.json();
+      try {
+        const res = await API.get(`/templates/${form.selectedTemplateId}`);
+        const data = res.data;
+        console.log("FULL TEMPLATE FROM API:", data.template); // 🔥 DEBUG
+        setFullTemplate(data.template);
+      } catch (err) {
+        console.error("Error fetching full template:", err);
+      }
+    };
 
-      console.log("FULL TEMPLATE FROM API:", data.template); // 🔥 DEBUG
-
-      setFullTemplate(data.template);
-    } catch (err) {
-      console.error("Error fetching full template:", err);
-    }
-  };
-
-  fetchFullTemplate();
-}, [form.selectedTemplateId]);
+    fetchFullTemplate();
+  }, [form.selectedTemplateId]);
 
   useEffect(() => {
     const fetchTags = async () => {
       try {
-        const res = await fetch(`${API_BASE}/tags`);
-        const data = await res.json();
+        const res = await API.get("/tags");
+        const data = res.data;
         setTags(data.tags || []);
       } catch (error) {
         console.error(error);
@@ -152,8 +146,8 @@ export default function LaunchCampaignPage() {
   useEffect(() => {
     const fetchContacts = async () => {
       try {
-        const res = await fetch(`${API_BASE}/contacts`);
-        const data = await res.json();
+        const res = await API.get("/contacts");
+        const data = res.data;
         setContacts(Array.isArray(data) ? data : data.contacts || []);
       } catch (err) {
         console.error(err);
@@ -165,8 +159,8 @@ export default function LaunchCampaignPage() {
   useEffect(() => {
     const fetchGroups = async () => {
       try {
-        const res = await fetch(`${API_BASE}/groups`);
-        const data = await res.json();
+        const res = await API.get("/groups");
+        const data = res.data;
         setGroups(Array.isArray(data) ? data : data.groups || []);
       } catch (err) {
         console.error(err);
@@ -306,7 +300,6 @@ export default function LaunchCampaignPage() {
   };
 
   const handleNext = async () => {
-
     if (processing) return;
 
     if (step < steps.length) {
@@ -326,68 +319,47 @@ export default function LaunchCampaignPage() {
     setProcessing(true);
 
     const payload = {
-  campaignName: form.campaignName,
-  messageType: form.messageType,
-
-  // ✅ FIXED
- audienceType: form.audienceType,
-
-  tagIds: form.audienceType === "tags" ? selectedTagIds : [],
-
-  contactIds:
-  form.audienceType === "contact" ? selectedContactIds : [],
-
-  groupIds:
-    form.audienceType === "group" ? selectedGroupIds : [],
-
-  manualNumbers:
-    form.audienceType === "manual"
-      ? form.manualNumbers.split(",").map((n) => n.trim()).filter(Boolean)
-      : [],
-
-  templateId: form.selectedTemplateId,
-
-  recurrence: form.recurrence,
-
-  scheduledDateTime:
-    form.recurrence.type === "one-time"
-      ? new Date(`${form.scheduledDate}T${form.scheduledTime}`).toISOString()
-      : null,
-
-  // ✅ FIXED NAME
-  variableValues: Object.fromEntries(
-    Object.entries(variableMappings).map(([key, mapping]) => [
-      key,
-      {
-        type: mapping.type,
-        value: mapping.customValue || "",
-      },
-    ])
-  ),
-
-  messagePreview: getPreviewMessage(),
-
-  createdBy: currentUser?.phone || "anonymous",
-};
+      campaignName: form.campaignName,
+      messageType: form.messageType,
+      audienceType: form.audienceType,
+      tagIds: form.audienceType === "tags" ? selectedTagIds : [],
+      contactIds: form.audienceType === "contact" ? selectedContactIds : [],
+      groupIds: form.audienceType === "group" ? selectedGroupIds : [],
+      manualNumbers:
+        form.audienceType === "manual"
+          ? form.manualNumbers.split(",").map((n) => n.trim()).filter(Boolean)
+          : [],
+      templateId: form.selectedTemplateId,
+      recurrence: form.recurrence,
+      scheduledDateTime:
+        form.recurrence.type === "one-time"
+          ? new Date(`${form.scheduledDate}T${form.scheduledTime}`).toISOString()
+          : null,
+      variableValues: Object.fromEntries(
+        Object.entries(variableMappings).map(([key, mapping]) => [
+          key,
+          {
+            type: mapping.type,
+            value: mapping.customValue || "",
+          },
+        ])
+      ),
+      messagePreview: getPreviewMessage(),
+      createdBy: currentUser?.phone || "anonymous",
+    };
     console.log("FINAL PAYLOAD:", payload);
 
     try {
-      const res = await fetch(`${API_BASE}/campaigns`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-
-if (!res.ok) {
-  console.error("BACKEND ERROR:", data);
-  throw new Error(data.message || "Failed to schedule campaign");
-}
+      const res = await API.post("/campaigns", payload);
+      const data = res.data;
+      if (!res.status === 201 && !data.success) {
+        throw new Error(data.message || "Failed to schedule campaign");
+      }
       alert("Campaign scheduled successfully!");
       router.push("/Campaigns");
     } catch (error) {
       console.error(error);
-      alert("Error scheduling campaign: " + error.message);
+      alert("Error scheduling campaign: " + (error.response?.data?.message || error.message));
     } finally {
       setProcessing(false);
     }
@@ -964,7 +936,7 @@ if (!res.ok) {
                         </p>
 
                         <div className="row g-3">
-                          {extractVariables(selectedTemplate.body).map((varNum) => {
+                          {extractVariables(selectedTemplate.format).map((varNum) => {
                             const currentMapping = variableMappings[varNum] || {
                               type: "custom",
                               customValue: "",

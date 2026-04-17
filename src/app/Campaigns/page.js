@@ -15,10 +15,7 @@ import {
   Play,
   Trash2,
 } from "lucide-react";
-
-const BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
-
-const API_BASE = `${BASE}`;
+import API from "../utils/api";   // ✅ using your axios instance
 
 // ------------------------------------------------------------
 // Styles
@@ -411,12 +408,12 @@ export default function CampaignsPage() {
 
   const topTabs = ["All", "Broadcast", "API", "Scheduled"];
 
-  // Fetch campaigns from backend
+  // Fetch campaigns from backend using API
   const fetchCampaigns = () => {
     setIsLoading(true);
-    fetch(`${API_BASE}/api/campaigns`)
-      .then((res) => res.json())
-      .then((data) => {
+    API.get("/campaigns")
+      .then((res) => {
+        const data = res.data;
         if (data.success && Array.isArray(data.campaigns)) {
           setCampaigns(data.campaigns);
         } else {
@@ -439,18 +436,11 @@ export default function CampaignsPage() {
   const handleDelete = async (campaignId, campaignName) => {
     if (!confirm(`Delete campaign "${campaignName}" permanently?`)) return;
     try {
-      const res = await fetch(`${API_BASE}/api/campaigns/${campaignId}`, {
-        method: "DELETE",
-      });
-      if (res.ok) {
-        setCampaigns((prev) => prev.filter((c) => c._id !== campaignId));
-      } else {
-        const data = await res.json();
-        alert(data.error || "Failed to delete campaign");
-      }
+      await API.delete(`/campaigns/${campaignId}`);
+      setCampaigns((prev) => prev.filter((c) => c._id !== campaignId));
     } catch (err) {
       console.error(err);
-      alert("Error deleting campaign");
+      alert(err.response?.data?.error || "Failed to delete campaign");
     }
   };
 
@@ -459,23 +449,20 @@ export default function CampaignsPage() {
     const newStatus = campaign.status === "paused" ? "scheduled" : "paused";
     setUpdatingId(campaign._id);
     try {
-      const res = await fetch(`${API_BASE}/api/campaigns/${campaign._id}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
+      const res = await API.patch(`/campaigns/${campaign._id}/status`, {
+        status: newStatus,
       });
-      if (res.ok) {
-        const data = await res.json();
+      const data = res.data;
+      if (data.success && data.campaign) {
         setCampaigns((prev) =>
           prev.map((c) => (c._id === campaign._id ? data.campaign : c))
         );
       } else {
-        const data = await res.json();
         alert(data.error || "Failed to update status");
       }
     } catch (err) {
       console.error(err);
-      alert("Error updating campaign status");
+      alert(err.response?.data?.error || "Error updating campaign status");
     } finally {
       setUpdatingId(null);
     }
