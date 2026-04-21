@@ -437,25 +437,24 @@ useEffect(() => {
 }, []);
 
 
+// ✅ Fix — only approved templates
 useEffect(() => {
   const loadTemplates = async () => {
     try {
       const res = await API.get("/templates");
+      const all = Array.isArray(res.data)
+        ? res.data
+        : res.data.templates || res.data.data || [];
 
-      console.log("TEMPLATES API:", res.data); // 🔥 DEBUG
-
-      setTemplates(
-        Array.isArray(res.data)
-          ? res.data
-          : res.data.templates || res.data.data || []
-      );
+      // ✅ Only show approved templates in chat
+      const approved = all.filter(t => t.approvalStatus === "approved");
+      setTemplates(approved);
     } catch (err) {
       console.error("Templates error:", err);
     }
   };
-
   loadTemplates();
-}, []);
+}, []); 
 
 useEffect(() => {
   const loadChats = async () => {
@@ -480,6 +479,7 @@ useEffect(() => {
 
 
 useEffect(() => {
+  
   if (!selectedChat) return;
 
   const chatId = selectedChat._id;

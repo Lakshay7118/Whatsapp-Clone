@@ -4,49 +4,30 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { gsap } from "gsap";
 import {
-  Search,
-  RefreshCcw,
-  Compass,
-  CircleDashed,
-  Package,
-  Clock3,
-  BadgeCheck,
-  AlertCircle,
-  Star,
-  Copy,
-  Trash2,
-  Plus,
-  CalendarDays,
-  Image as ImageIcon,
-  Video,
-  Layout,
-  FileText,
-  ChevronLeft,
-  ChevronRight,
-  Edit,
-  X,
-  Upload,
-  Save,
+  Search, RefreshCcw, Compass, CircleDashed, Package, Clock3,
+  BadgeCheck, AlertCircle, Star, Copy, Trash2, Plus, CalendarDays,
+  Image as ImageIcon, Video, Layout, FileText, ChevronLeft, ChevronRight,
+  Edit, X, Upload, Save, CheckCircle, XCircle, Bell,
 } from "lucide-react";
-import API from "../utils/api";   // ✅ using your axios instance
+import API from "../utils/api";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
 
 const tabs = [
-  { id: "Explore",        label: "Explore",        icon: Compass      },
-  { id: "All",            label: "All",            icon: CircleDashed },
-  { id: "Draft",          label: "Draft",          icon: Package      },
-  { id: "Pending",        label: "Pending",        icon: Clock3       },
-  { id: "Approved",       label: "Approved",       icon: BadgeCheck   },
-  { id: "Action Required",label: "Action Required",icon: AlertCircle  },
+  { id: "Explore",         label: "Explore",          icon: Compass      },
+  { id: "All",             label: "All",              icon: CircleDashed },
+  { id: "Draft",           label: "Draft",            icon: Package      },
+  { id: "Pending",         label: "Pending",          icon: Clock3       },
+  { id: "Approved",        label: "Approved",         icon: BadgeCheck   },
+  { id: "Action Required", label: "Action Required",  icon: AlertCircle  },
 ];
 
 const categoryOptions = ["Marketing", "Utility", "Authentication"];
-const languageOptions = ["English", "Hindi", "Spanish", "Arabic"];
-const typeOptions = ["Text", "Media", "Interactive"];
+const languageOptions  = ["English", "Hindi", "Spanish", "Arabic"];
+const typeOptions      = ["Text", "Media", "Interactive"];
 const mediaTypeOptions = ["None", "Image", "Video"];
 
-// ── helpers (same as before) ──
+// ── helpers ──────────────────────────────────────────────────────────────
 const firstFilled = (...values) => {
   for (const value of values) {
     if (value === 0 || value === false) return value;
@@ -54,53 +35,31 @@ const firstFilled = (...values) => {
   }
   return "";
 };
-
-const safeArray = (value) => (Array.isArray(value) ? value : []);
-
+const safeArray  = (v) => (Array.isArray(v) ? v : []);
 const resolveUrl = (raw) => {
   if (!raw || typeof raw !== "string") return "";
-  // base64 support
   if (raw.startsWith("data:image") || raw.startsWith("data:video")) return raw;
   if (raw.startsWith("http")) return raw;
   return `${BACKEND_URL}${raw}`;
 };
-
 const normalizeButtons = (item) => {
-  const all = [
-    ...safeArray(item.buttons),
-    ...safeArray(item.interactiveActions),
-    ...safeArray(item.ctaButtons),
-    ...safeArray(item.quickReplies),
-  ];
-  return all
-    .map((btn) => {
-      if (typeof btn === "string") return btn;
-      return btn?.text || btn?.title || btn?.label || btn?.buttonText || btn?.name || "";
-    })
-    .filter(Boolean)
-    .slice(0, 2);
+  const all = [...safeArray(item.buttons), ...safeArray(item.interactiveActions), ...safeArray(item.ctaButtons), ...safeArray(item.quickReplies)];
+  return all.map((btn) => (typeof btn === "string" ? btn : btn?.text || btn?.title || btn?.label || btn?.buttonText || btn?.name || "")).filter(Boolean).slice(0, 2);
 };
-
 const normalizeCarouselCards = (item) => {
-  const rawCards = safeArray(
-    firstFilled(item.carouselItems, item.carousel, item.cards, item.carouselCards, item.items)
-  );
+  const rawCards = safeArray(firstFilled(item.carouselItems, item.carousel, item.cards, item.carouselCards, item.items));
   return rawCards.map((card, index) => ({
-    id:          card?.id || index + 1,
-    title:       firstFilled(card?.title, card?.header, card?.name, `Card ${index + 1}`),
+    id: card?.id || index + 1,
+    title: firstFilled(card?.title, card?.header, card?.name, `Card ${index + 1}`),
     description: firstFilled(card?.description, card?.body, card?.text, card?.message, ""),
     image: resolveUrl(firstFilled(card?.image, card?.imageUrl, card?.mediaUrl, card?.url, card?.headerMediaUrl)),
     video: resolveUrl(firstFilled(card?.video, card?.videoUrl)),
-    buttons: safeArray(card?.buttons)
-      .map((btn) => (typeof btn === "string" ? btn : btn?.text || btn?.title || btn?.label || ""))
-      .filter(Boolean)
-      .slice(0, 2),
+    buttons: safeArray(card?.buttons).map((btn) => (typeof btn === "string" ? btn : btn?.text || btn?.title || btn?.label || "")).filter(Boolean).slice(0, 2),
   }));
 };
-
 const detectPreviewType = (item) => {
-  if (item.mediaType === "Image")    return "IMAGE";
-  if (item.mediaType === "Video")    return "VIDEO";
+  if (item.mediaType === "Image") return "IMAGE";
+  if (item.mediaType === "Video") return "VIDEO";
   if (item.mediaType === "Carousel") return "CAROUSEL";
   const cards = normalizeCarouselCards(item);
   if (cards.length > 0) return "CAROUSEL";
@@ -108,10 +67,7 @@ const detectPreviewType = (item) => {
   if (explicitType.includes("CAROUSEL")) return "CAROUSEL";
   if (explicitType.includes("VIDEO"))    return "VIDEO";
   if (explicitType.includes("IMAGE"))    return "IMAGE";
-  const rawUrl = firstFilled(
-    item.imageFile?.url, item.videoFile?.url, item.mediaUrl, item.image, item.imageUrl,
-    item.video, item.videoUrl, item.headerMediaUrl, item.previewMedia
-  );
+  const rawUrl = firstFilled(item.imageFile?.url, item.videoFile?.url, item.mediaUrl, item.image, item.imageUrl, item.video, item.videoUrl, item.headerMediaUrl, item.previewMedia);
   if (typeof rawUrl === "string" && rawUrl) {
     const lower = rawUrl.toLowerCase();
     if (lower.match(/\.(mp4|webm|ogg|mov)(\?|$)/)) return "VIDEO";
@@ -119,14 +75,10 @@ const detectPreviewType = (item) => {
   }
   return "TEXT";
 };
-
 const getPreviewData = (item) => {
   const previewType = detectPreviewType(item);
   const cards       = normalizeCarouselCards(item);
-  const rawMediaUrl = firstFilled(
-    item.imageFile?.url, item.videoFile?.url, item.mediaUrl, item.image, item.imageUrl,
-    item.video, item.videoUrl, item.headerMediaUrl, item.previewMedia
-  );
+  const rawMediaUrl = firstFilled(item.imageFile?.url, item.videoFile?.url, item.mediaUrl, item.image, item.imageUrl, item.video, item.videoUrl, item.headerMediaUrl, item.previewMedia);
   return {
     previewType,
     title:    firstFilled(item.name, item.templateName, "Untitled Template"),
@@ -142,30 +94,25 @@ const getPreviewData = (item) => {
   };
 };
 
-// ── CompactTemplatePreview (unchanged) ──
+// ── CompactTemplatePreview ────────────────────────────────────────────────
 function CompactTemplatePreview({ item }) {
   const [activeCard, setActiveCard] = useState(0);
   const preview = getPreviewData(item);
   const nextCard = () => setActiveCard((p) => (p + 1) % preview.cards.length);
   const prevCard = () => setActiveCard((p) => (p - 1 + preview.cards.length) % preview.cards.length);
 
-  if (preview.previewType === "IMAGE" && preview.mediaUrl) {
-    return (
-      <div className="mini-preview-wrap">
-        <div className="mini-preview-badge"><ImageIcon size={11} /> Image</div>
-        <img src={preview.mediaUrl} alt={preview.title} className="mini-preview-media"
-          onError={(e) => { e.target.style.display = "none"; }} />
-      </div>
-    );
-  }
-  if (preview.previewType === "VIDEO" && preview.mediaUrl) {
-    return (
-      <div className="mini-preview-wrap">
-        <div className="mini-preview-badge"><Video size={11} /> Video</div>
-        <video src={preview.mediaUrl} className="mini-preview-media" controls preload="metadata" />
-      </div>
-    );
-  }
+  if (preview.previewType === "IMAGE" && preview.mediaUrl) return (
+    <div className="mini-preview-wrap">
+      <div className="mini-preview-badge"><ImageIcon size={11} /> Image</div>
+      <img src={preview.mediaUrl} alt={preview.title} className="mini-preview-media" onError={(e) => { e.target.style.display = "none"; }} />
+    </div>
+  );
+  if (preview.previewType === "VIDEO" && preview.mediaUrl) return (
+    <div className="mini-preview-wrap">
+      <div className="mini-preview-badge"><Video size={11} /> Video</div>
+      <video src={preview.mediaUrl} className="mini-preview-media" controls preload="metadata" />
+    </div>
+  );
   if (preview.previewType === "CAROUSEL" && preview.cards.length > 0) {
     const currentCard = preview.cards[activeCard];
     return (
@@ -185,9 +132,7 @@ function CompactTemplatePreview({ item }) {
           <button className="mini-nav-btn" onClick={nextCard}><ChevronRight size={14} /></button>
         </div>
         <div className="mini-dots">
-          {preview.cards.map((_, i) => (
-            <button key={i} className={`mini-dot ${i === activeCard ? "active" : ""}`} onClick={() => setActiveCard(i)} />
-          ))}
+          {preview.cards.map((_, i) => <button key={i} className={`mini-dot ${i === activeCard ? "active" : ""}`} onClick={() => setActiveCard(i)} />)}
         </div>
       </div>
     );
@@ -200,318 +145,31 @@ function CompactTemplatePreview({ item }) {
   );
 }
 
-// ── TemplateDetailModal (unchanged except resolveUrl) ──
-function TemplateDetailModal({ item, onClose }) {
-  if (!item) return null;
-  const preview = getPreviewData(item);
-
-  const ctaButtons      = item.ctaButtons      || [];
-  const quickReplies    = item.quickReplies     || [];
-  const copyCodeButtons = item.copyCodeButtons  || [];
-  const dropdownButtons = item.dropdownButtons  || [];
-  const inputFields     = item.inputFields      || [];
-  const carouselItems   = item.carouselItems    || [];
-
-  const hasActions =
-    ctaButtons.length > 0 || quickReplies.length > 0 ||
-    copyCodeButtons.length > 0 || dropdownButtons.length > 0 ||
-    inputFields.length > 0;
-
-  return (
-    <div
-      onClick={onClose}
-      style={{
-        position: "fixed", inset: 0, zIndex: 1000,
-        background: "rgba(15,23,42,0.55)", backdropFilter: "blur(4px)",
-        display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
-      }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          background: "#fff", borderRadius: 24, width: "100%", maxWidth: 680,
-          maxHeight: "90vh", overflowY: "auto", padding: 28,
-          boxShadow: "0 24px 60px rgba(15,23,42,0.18)",
-        }}
-      >
-        {/* Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
-          <div>
-            <div style={{ fontSize: 18, fontWeight: 800, color: "#0f172a", marginBottom: 4 }}>
-              {preview.title}
-            </div>
-            <div style={{ fontSize: 12, color: "#64748b", fontWeight: 600 }}>
-              {preview.language} • {preview.category}
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            style={{ border: "1px solid #e2e8f0", borderRadius: 10, width: 36, height: 36, background: "#f8fafc", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
-          >
-            ×
-          </button>
-        </div>
-
-        {/* Status badges */}
-        <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
-          <span className={`status-${preview.status.toLowerCase()}`}>{preview.status}</span>
-          <span style={{ display: "inline-flex", alignItems: "center", minHeight: 26, padding: "0 12px", borderRadius: 999, background: "#f0fdfa", color: "#0f766e", border: "1px solid #a5f3fc", fontSize: 11, fontWeight: 800 }}>
-            {preview.type}
-          </span>
-          <span style={{ display: "inline-flex", alignItems: "center", minHeight: 26, padding: "0 12px", borderRadius: 999, background: "#f8fafc", color: "#475569", border: "1px solid #e2e8f0", fontSize: 11, fontWeight: 800 }}>
-            {preview.previewType}
-          </span>
-          {item.mediaType && item.mediaType !== "None" && (
-            <span style={{ display: "inline-flex", alignItems: "center", minHeight: 26, padding: "0 12px", borderRadius: 999, background: "#fdf4ff", color: "#7e22ce", border: "1px solid #e9d5ff", fontSize: 11, fontWeight: 800 }}>
-              {item.mediaType}
-            </span>
-          )}
-        </div>
-
-        {/* Image */}
-        {preview.previewType === "IMAGE" && preview.mediaUrl && (
-          <div style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#64748b", marginBottom: 8 }}>IMAGE</div>
-            <img src={preview.mediaUrl} alt={preview.title}
-              style={{ width: "100%", maxHeight: 280, objectFit: "cover", borderRadius: 16 }} />
-          </div>
-        )}
-
-        {/* Video */}
-        {preview.previewType === "VIDEO" && preview.mediaUrl && (
-          <div style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#64748b", marginBottom: 8 }}>VIDEO</div>
-            <video src={preview.mediaUrl} controls
-              style={{ width: "100%", maxHeight: 280, borderRadius: 16 }} />
-          </div>
-        )}
-
-        {/* Carousel */}
-        {carouselItems.length > 0 && (
-          <div style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#64748b", marginBottom: 8 }}>CAROUSEL CARDS</div>
-            <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 8 }}>
-              {carouselItems.map((card, idx) => (
-                <div key={idx} style={{ minWidth: 200, border: "1px solid #e2e8f0", borderRadius: 14, overflow: "hidden", flexShrink: 0, background: "#f8fafc" }}>
-                  {card.mediaUrl && (
-                    <img src={resolveUrl(card.mediaUrl)} alt={card.title}
-                      style={{ width: "100%", height: 120, objectFit: "cover" }} />
-                  )}
-                  <div style={{ padding: 10 }}>
-                    {card.title && <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 4 }}>{card.title}</div>}
-                    {card.description && <div style={{ fontSize: 12, color: "#64748b" }}>{card.description}</div>}
-                    {card.button && (
-                      <button style={{ marginTop: 8, width: "100%", padding: "5px", borderRadius: 8, border: "1px solid #0d5b63", background: "#f0fdfa", color: "#0d5b63", fontSize: 12, fontWeight: 700 }}>
-                        {card.button}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Body */}
-        {preview.body && (
-          <div style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#64748b", marginBottom: 8 }}>MESSAGE BODY</div>
-            <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 14, padding: "14px 16px", fontSize: 13, color: "#334155", whiteSpace: "pre-wrap", lineHeight: 1.6 }}>
-              {preview.body}
-            </div>
-          </div>
-        )}
-
-        {/* Footer */}
-        {preview.footer && (
-          <div style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#64748b", marginBottom: 8 }}>FOOTER</div>
-            <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 14, padding: "10px 16px", fontSize: 12, color: "#64748b", fontStyle: "italic" }}>
-              {preview.footer}
-            </div>
-          </div>
-        )}
-
-        {/* Interactive Actions */}
-        {hasActions && (
-          <div style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#64748b", marginBottom: 12 }}>INTERACTIVE ELEMENTS</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {/* CTA Buttons */}
-              {ctaButtons.length > 0 && (
-                <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "#0d5b63", marginBottom: 6 }}>CTA BUTTONS</div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    {ctaButtons.map((btn, i) => (
-                      <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", border: "1px solid #a5f3fc", borderRadius: 12, background: "#f0fdfa" }}>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: 700, fontSize: 13, color: "#0f172a" }}>{btn.title || btn.label}</div>
-                          <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>
-                            {btn.btnType} → {btn.value || btn.url}
-                          </div>
-                        </div>
-                        <button style={{ padding: "5px 14px", borderRadius: 8, border: "none", background: "#128C7E", color: "#fff", fontSize: 12, fontWeight: 700 }}>
-                          {btn.title || btn.label}
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Quick Replies */}
-              {quickReplies.length > 0 && (
-                <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "#0d5b63", marginBottom: 6 }}>QUICK REPLIES</div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                    {quickReplies.map((r, i) => (
-                      <button key={i} style={{ padding: "6px 16px", borderRadius: 999, border: "1px solid #128C7E", background: "#fff", color: "#128C7E", fontSize: 13, fontWeight: 600 }}>
-                        {r.title || r.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Copy Code Buttons */}
-              {copyCodeButtons.length > 0 && (
-                <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "#0d5b63", marginBottom: 6 }}>COPY CODE BUTTONS</div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    {copyCodeButtons.map((btn, i) => (
-                      <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", border: "1px solid #e2e8f0", borderRadius: 12, background: "#f8fafc" }}>
-                        <div style={{ fontWeight: 700, fontSize: 13 }}>{btn.title || btn.label}</div>
-                        <button
-                          onClick={() => btn.value && navigator.clipboard.writeText(btn.value)}
-                          style={{ padding: "5px 14px", borderRadius: 8, border: "1px solid #128C7E", background: "#fff", color: "#128C7E", fontSize: 12, fontWeight: 700 }}
-                        >
-                          Copy: {btn.value}
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Dropdown Buttons */}
-              {dropdownButtons.length > 0 && (
-                <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "#0d5b63", marginBottom: 6 }}>DROPDOWNS</div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                    {dropdownButtons.map((dd, i) => {
-                      const opts = typeof dd.options === "string"
-                        ? dd.options.split(",").map(o => o.trim()).filter(Boolean)
-                        : (dd.parsedOptions || []);
-                      return (
-                        <div key={i}>
-                          {dd.title && <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4 }}>{dd.title}</div>}
-                          <select
-                            defaultValue=""
-                            style={{ width: "100%", padding: "8px 12px", borderRadius: 10, border: "1px solid #dbe5ee", fontSize: 13, background: "#fff" }}
-                          >
-                            <option value="">{dd.placeholder || "Select an option"}</option>
-                            {opts.map((opt, j) => (
-                              <option key={j} value={opt}>{opt}</option>
-                            ))}
-                          </select>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Input Fields */}
-              {inputFields.length > 0 && (
-                <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "#0d5b63", marginBottom: 6 }}>INPUT FIELDS</div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                    {inputFields.map((field, i) => (
-                      <div key={i}>
-                        {field.label && <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4 }}>{field.label}</div>}
-                        <input
-                          type="text"
-                          placeholder={field.placeholder || ""}
-                          defaultValue={field.value || ""}
-                          style={{ width: "100%", padding: "8px 12px", borderRadius: 10, border: "1px solid #dbe5ee", fontSize: 13, background: "#fff" }}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Footer date */}
-        <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#94a3b8", fontSize: 12, fontWeight: 600, borderTop: "1px solid #f1f5f9", paddingTop: 16 }}>
-          <CalendarDays size={14} />
-          Created: {item.createdAt ? new Date(item.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" }) : "--"}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── EditTemplateModal (UPDATED to use API) ──
-function EditTemplateModal({ templateId, onClose, onUpdate }) {
+// ── EditTemplateModal ─────────────────────────────────────────────────────
+function EditTemplateModal({ templateId, onClose, onUpdate, isSuperAdmin }) {
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [form, setForm] = useState({
-    name: "", category: "", language: "", type: "", format: "", footer: "",
-    mediaType: "None", actionType: "all",
-  });
+  const [saving, setSaving]   = useState(false);
+  const [error, setError]     = useState("");
+  const [form, setForm] = useState({ name: "", category: "", language: "", type: "", format: "", footer: "", mediaType: "None", actionType: "all" });
   const [imageFile, setImageFile] = useState(null);
   const [videoFile, setVideoFile] = useState(null);
-  const [existingMediaUrl, setExistingMediaUrl] = useState("");
+  const [carouselItems, setCarouselItems]       = useState([]);
+  const [ctaButtons, setCtaButtons]             = useState([]);
+  const [quickReplies, setQuickReplies]         = useState([]);
+  const [copyCodeButtons, setCopyCodeButtons]   = useState([]);
+  const [dropdownButtons, setDropdownButtons]   = useState([]);
+  const [inputFields, setInputFields]           = useState([]);
+  const [variableValues, setVariableValues]     = useState({});
 
-  const [carouselItems, setCarouselItems] = useState([]);
-  const [ctaButtons, setCtaButtons] = useState([]);
-  const [quickReplies, setQuickReplies] = useState([]);
-  const [copyCodeButtons, setCopyCodeButtons] = useState([]);
-  const [dropdownButtons, setDropdownButtons] = useState([]);
-  const [inputFields, setInputFields] = useState([]);
-  const [variableValues, setVariableValues] = useState({});
-
-  // Fetch template data using API
   useEffect(() => {
     if (!templateId) return;
-
     API.get(`/templates/${templateId}`)
       .then(res => {
-        const data = res.data;
-        if (data.success && data.template) {
-          const t = data.template;
-
-          // Basic
-          setForm({
-            name: t.name || "",
-            category: t.category || "",
-            language: t.language || "English",
-            type: t.type || "Text",
-            format: t.format || "",
-            footer: t.footer || "",
-            mediaType: t.mediaType || "None",
-            actionType: t.actionType || "all",
-          });
-
-          // Media
-          if (t.imageFile?.url) {
-            setImageFile({
-              url: resolveUrl(t.imageFile.url),
-              file: null,
-            });
-          }
-          if (t.videoFile?.url) {
-            setVideoFile({
-              url: resolveUrl(t.videoFile.url),
-              file: null,
-            });
-          }
-
-          // Arrays
+        if (res.data.success && res.data.template) {
+          const t = res.data.template;
+          setForm({ name: t.name || "", category: t.category || "", language: t.language || "English", type: t.type || "Text", format: t.format || "", footer: t.footer || "", mediaType: t.mediaType || "None", actionType: t.actionType || "all" });
+          if (t.imageFile?.url) setImageFile({ url: resolveUrl(t.imageFile.url), file: null });
+          if (t.videoFile?.url) setVideoFile({ url: resolveUrl(t.videoFile.url), file: null });
           setCarouselItems(t.carouselItems || []);
           setCtaButtons(t.ctaButtons || []);
           setQuickReplies(t.quickReplies || []);
@@ -519,49 +177,32 @@ function EditTemplateModal({ templateId, onClose, onUpdate }) {
           setDropdownButtons(t.dropdownButtons || []);
           setInputFields(t.inputFields || []);
           setVariableValues(t.variables || {});
-        } else {
-          setError("Failed to load template data");
-        }
+        } else setError("Failed to load template data");
       })
-      .catch(err => {
-        console.error("FETCH ERROR:", err);
-        setError(err.response?.data?.error || err.message || "Error loading template");
-      })
+      .catch(err => setError(err.response?.data?.error || err.message || "Error loading template"))
       .finally(() => setLoading(false));
   }, [templateId]);
 
   const handleChange = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 
   const handleImageUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const file = e.target.files?.[0]; if (!file) return;
     const reader = new FileReader();
-    reader.onloadend = () => {
-      setImageFile({ url: reader.result, file });
-      setVideoFile(null);
-    };
+    reader.onloadend = () => { setImageFile({ url: reader.result, file }); setVideoFile(null); };
     reader.readAsDataURL(file);
   };
 
   const handleVideoUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const file = e.target.files?.[0]; if (!file) return;
     const reader = new FileReader();
-    reader.onloadend = () => {
-      setVideoFile({ url: reader.result, file });
-      setImageFile(null);
-    };
+    reader.onloadend = () => { setVideoFile({ url: reader.result, file }); setImageFile(null); };
     reader.readAsDataURL(file);
   };
 
   const handleSubmit = async () => {
-    setSaving(true);
-    setError("");
-
+    setSaving(true); setError("");
     try {
       const formData = new FormData();
-
-      // Basic fields
       formData.append("name", form.name);
       formData.append("category", form.category);
       formData.append("language", form.language);
@@ -570,19 +211,8 @@ function EditTemplateModal({ templateId, onClose, onUpdate }) {
       formData.append("footer", form.footer);
       formData.append("mediaType", form.mediaType);
       formData.append("actionType", form.actionType);
-      formData.append(
-        "createdBy",
-        JSON.parse(localStorage.getItem("user"))?.phone || "anonymous"
-      );
-
-      // Media files
-      if (form.mediaType === "Image" && imageFile?.file) {
-        formData.append("mediaFile", imageFile.file);
-      } else if (form.mediaType === "Video" && videoFile?.file) {
-        formData.append("mediaFile", videoFile.file);
-      }
-
-      // JSON arrays
+      if (form.mediaType === "Image" && imageFile?.file) formData.append("mediaFile", imageFile.file);
+      else if (form.mediaType === "Video" && videoFile?.file) formData.append("mediaFile", videoFile.file);
       formData.append("carouselItems", JSON.stringify(carouselItems || []));
       formData.append("ctaButtons", JSON.stringify(ctaButtons || []));
       formData.append("quickReplies", JSON.stringify(quickReplies || []));
@@ -591,22 +221,17 @@ function EditTemplateModal({ templateId, onClose, onUpdate }) {
       formData.append("inputFields", JSON.stringify(inputFields || []));
       formData.append("variables", JSON.stringify(variableValues || {}));
 
-      // Debug log
-      console.log("SUBMIT DATA:", { form, carouselItems, ctaButtons, quickReplies, copyCodeButtons, dropdownButtons, inputFields, variableValues });
-
-      // API call with multipart form data
-      const res = await API.put(`/templates/${templateId}`, formData, {
-        headers: { "Content-Type": "multipart/form-data" }
-      });
+      const res = await API.put(`/templates/${templateId}`, formData, { headers: { "Content-Type": "multipart/form-data" } });
 
       if (res.data.success) {
+        // ✅ Show approval message if manager
+        if (res.data.pendingApproval) {
+          alert("✅ Template updated! Sent to admin for approval.");
+        }
         onUpdate(res.data.template);
         onClose();
-      } else {
-        throw new Error(res.data.error || "Update failed");
-      }
+      } else throw new Error(res.data.error || "Update failed");
     } catch (err) {
-      console.error(err);
       setError(err.response?.data?.error || err.message || "Failed to update template");
     } finally {
       setSaving(false);
@@ -614,63 +239,67 @@ function EditTemplateModal({ templateId, onClose, onUpdate }) {
   };
 
   if (loading) return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={e => e.stopPropagation()} style={{ background:"#fff", borderRadius:24, padding:24, width:500, maxWidth:"90vw" }}>
-        <div style={{ textAlign:"center", padding:20 }}>Loading template...</div>
-      </div>
+    <div style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(15,23,42,0.55)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ background: "#fff", borderRadius: 24, padding: 24, width: 500, maxWidth: "90vw", textAlign: "center" }}>Loading template...</div>
     </div>
   );
 
   return (
-    <div className="modal-overlay" onClick={onClose} style={{ position:"fixed", inset:0, zIndex:1000, background:"rgba(15,23,42,0.55)", backdropFilter:"blur(4px)", display:"flex", alignItems:"center", justifyContent:"center", padding:16 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background:"#fff", borderRadius:24, width:600, maxHeight:"90vh", overflowY:"auto", padding:24, boxShadow:"0 24px 60px rgba(15,23,42,0.18)" }}>
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
-          <h3 style={{ fontSize:20, fontWeight:800, color:"#0f172a", margin:0 }}>Edit Template</h3>
-          <button onClick={onClose} style={{ border:"1px solid #e2e8f0", borderRadius:10, width:36, height:36, background:"#f8fafc", cursor:"pointer" }}><X size={18} /></button>
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(15,23,42,0.55)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 24, width: 600, maxHeight: "90vh", overflowY: "auto", padding: 24, boxShadow: "0 24px 60px rgba(15,23,42,0.18)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+          <h3 style={{ fontSize: 20, fontWeight: 800, color: "#0f172a", margin: 0 }}>Edit Template</h3>
+          <button onClick={onClose} style={{ border: "1px solid #e2e8f0", borderRadius: 10, width: 36, height: 36, background: "#f8fafc", cursor: "pointer" }}><X size={18} /></button>
         </div>
 
-        {error && <div style={{ background:"#fef2f2", border:"1px solid #fecaca", borderRadius:12, padding:12, marginBottom:20, fontSize:13, color:"#dc2626" }}>{error}</div>}
+        {/* ✅ Warning for manager */}
+        {!isSuperAdmin && (
+          <div style={{ background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 8, padding: "10px 14px", marginBottom: 16, fontSize: 13, color: "#92400e" }}>
+            ⏳ Your edits will be sent to <strong>admin for approval</strong> before going live.
+          </div>
+        )}
 
-        <div style={{ display:"grid", gap:16 }}>
+        {error && <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 12, padding: 12, marginBottom: 20, fontSize: 13, color: "#dc2626" }}>{error}</div>}
+
+        <div style={{ display: "grid", gap: 16 }}>
           <div>
-            <label style={{ fontSize:12, fontWeight:700, color:"#0f172a", marginBottom:6, display:"block" }}>Template Name *</label>
-            <input type="text" className="form-control" style={{ height:42, borderRadius:12, border:"1px solid #dbe5ee", padding:"0 12px" }} value={form.name} onChange={e => handleChange("name", e.target.value.toLowerCase().replace(/\s+/g, "_"))} />
+            <label style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6, display: "block" }}>Template Name *</label>
+            <input type="text" className="form-control" style={{ height: 42, borderRadius: 12, border: "1px solid #dbe5ee", padding: "0 12px" }} value={form.name} onChange={e => handleChange("name", e.target.value.toLowerCase().replace(/\s+/g, "_"))} />
           </div>
           <div className="row g-3">
             <div className="col-6">
-              <label style={{ fontSize:12, fontWeight:700, color:"#0f172a", marginBottom:6, display:"block" }}>Category</label>
-              <select className="form-select" style={{ height:42, borderRadius:12 }} value={form.category} onChange={e => handleChange("category", e.target.value)}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6, display: "block" }}>Category</label>
+              <select className="form-select" style={{ height: 42, borderRadius: 12 }} value={form.category} onChange={e => handleChange("category", e.target.value)}>
                 <option value="">Select</option>
                 {categoryOptions.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <div className="col-6">
-              <label style={{ fontSize:12, fontWeight:700, color:"#0f172a", marginBottom:6, display:"block" }}>Language</label>
-              <select className="form-select" style={{ height:42, borderRadius:12 }} value={form.language} onChange={e => handleChange("language", e.target.value)}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6, display: "block" }}>Language</label>
+              <select className="form-select" style={{ height: 42, borderRadius: 12 }} value={form.language} onChange={e => handleChange("language", e.target.value)}>
                 {languageOptions.map(l => <option key={l} value={l}>{l}</option>)}
               </select>
             </div>
           </div>
           <div className="row g-3">
             <div className="col-6">
-              <label style={{ fontSize:12, fontWeight:700, color:"#0f172a", marginBottom:6, display:"block" }}>Type</label>
-              <select className="form-select" style={{ height:42, borderRadius:12 }} value={form.type} onChange={e => handleChange("type", e.target.value)}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6, display: "block" }}>Type</label>
+              <select className="form-select" style={{ height: 42, borderRadius: 12 }} value={form.type} onChange={e => handleChange("type", e.target.value)}>
                 {typeOptions.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
             <div className="col-6">
-              <label style={{ fontSize:12, fontWeight:700, color:"#0f172a", marginBottom:6, display:"block" }}>Media Type</label>
-              <select className="form-select" style={{ height:42, borderRadius:12 }} value={form.mediaType} onChange={e => handleChange("mediaType", e.target.value)} disabled={form.category !== "Marketing"}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6, display: "block" }}>Media Type</label>
+              <select className="form-select" style={{ height: 42, borderRadius: 12 }} value={form.mediaType} onChange={e => handleChange("mediaType", e.target.value)} disabled={form.category !== "Marketing"}>
                 {mediaTypeOptions.map(m => <option key={m} value={m}>{m}</option>)}
               </select>
             </div>
           </div>
-
           {form.category === "Marketing" && form.mediaType === "Image" && (
             <div>
-              <label style={{ fontSize:12, fontWeight:700, color:"#0f172a", marginBottom:6, display:"block" }}>Image</label>
-              {imageFile?.url && <img src={imageFile.url} alt="preview" style={{ width:"100%", maxHeight:150, objectFit:"cover", borderRadius:12, marginBottom:8 }} />}
-              <label className="uploadBox" style={{ display:"flex", alignItems:"center", gap:10, justifyContent:"center", border:"1px dashed #b9c7d6", borderRadius:12, padding:"10px", cursor:"pointer", background:"#f8fafc" }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6, display: "block" }}>Image</label>
+              {imageFile?.url && <img src={imageFile.url} alt="preview" style={{ width: "100%", maxHeight: 150, objectFit: "cover", borderRadius: 12, marginBottom: 8 }} />}
+              <label style={{ display: "flex", alignItems: "center", gap: 10, justifyContent: "center", border: "1px dashed #b9c7d6", borderRadius: 12, padding: "10px", cursor: "pointer", background: "#f8fafc" }}>
                 <Upload size={16} /> Change Image
                 <input type="file" accept="image/*" hidden onChange={handleImageUpload} />
               </label>
@@ -678,29 +307,27 @@ function EditTemplateModal({ templateId, onClose, onUpdate }) {
           )}
           {form.category === "Marketing" && form.mediaType === "Video" && (
             <div>
-              <label style={{ fontSize:12, fontWeight:700, color:"#0f172a", marginBottom:6, display:"block" }}>Video</label>
-              {videoFile?.url && <video src={videoFile.url} controls style={{ width:"100%", maxHeight:150, borderRadius:12, marginBottom:8 }} />}
-              <label className="uploadBox" style={{ display:"flex", alignItems:"center", gap:10, justifyContent:"center", border:"1px dashed #b9c7d6", borderRadius:12, padding:"10px", cursor:"pointer", background:"#f8fafc" }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6, display: "block" }}>Video</label>
+              {videoFile?.url && <video src={videoFile.url} controls style={{ width: "100%", maxHeight: 150, borderRadius: 12, marginBottom: 8 }} />}
+              <label style={{ display: "flex", alignItems: "center", gap: 10, justifyContent: "center", border: "1px dashed #b9c7d6", borderRadius: 12, padding: "10px", cursor: "pointer", background: "#f8fafc" }}>
                 <Upload size={16} /> Change Video
                 <input type="file" accept="video/*" hidden onChange={handleVideoUpload} />
               </label>
             </div>
           )}
-
           <div>
-            <label style={{ fontSize:12, fontWeight:700, color:"#0f172a", marginBottom:6, display:"block" }}>Message Format *</label>
-            <textarea rows={4} className="form-control" style={{ borderRadius:12, border:"1px solid #dbe5ee", padding:"10px" }} value={form.format} onChange={e => handleChange("format", e.target.value)} />
+            <label style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6, display: "block" }}>Message Format *</label>
+            <textarea rows={4} className="form-control" style={{ borderRadius: 12, border: "1px solid #dbe5ee", padding: "10px" }} value={form.format} onChange={e => handleChange("format", e.target.value)} />
           </div>
-
           <div>
-            <label style={{ fontSize:12, fontWeight:700, color:"#0f172a", marginBottom:6, display:"block" }}>Footer (optional)</label>
-            <input type="text" className="form-control" style={{ height:42, borderRadius:12 }} value={form.footer} onChange={e => handleChange("footer", e.target.value)} />
+            <label style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", marginBottom: 6, display: "block" }}>Footer (optional)</label>
+            <input type="text" className="form-control" style={{ height: 42, borderRadius: 12 }} value={form.footer} onChange={e => handleChange("footer", e.target.value)} />
           </div>
         </div>
 
-        <div style={{ display:"flex", justifyContent:"flex-end", gap:12, marginTop:24 }}>
-          <button onClick={onClose} style={{ border:"1px solid #dbe5ee", borderRadius:12, padding:"8px 20px", background:"#fff", fontWeight:700 }}>Cancel</button>
-          <button onClick={handleSubmit} disabled={saving} style={{ background:"linear-gradient(135deg,#1f7a85 0%,#0d5b63 100%)", border:"none", borderRadius:12, padding:"8px 24px", color:"#fff", fontWeight:700, display:"flex", alignItems:"center", gap:8 }}>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 24 }}>
+          <button onClick={onClose} style={{ border: "1px solid #dbe5ee", borderRadius: 12, padding: "8px 20px", background: "#fff", fontWeight: 700 }}>Cancel</button>
+          <button onClick={handleSubmit} disabled={saving} style={{ background: "linear-gradient(135deg,#1f7a85 0%,#0d5b63 100%)", border: "none", borderRadius: 12, padding: "8px 24px", color: "#fff", fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}>
             <Save size={16} /> {saving ? "Saving..." : "Save Changes"}
           </button>
         </div>
@@ -709,29 +336,128 @@ function EditTemplateModal({ templateId, onClose, onUpdate }) {
   );
 }
 
-/* ── Main Page ── */
+// ── Pending Approvals Panel (admin only) ──────────────────────────────────
+function PendingApprovalsPanel({ onApprove, onReject }) {
+  const [pending, setPending] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    API.get("/templates/pending")
+      .then(res => setPending(res.data.templates || []))
+      .catch(err => console.error(err))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleApprove = async (id) => {
+    try {
+      await API.put(`/templates/${id}/approve`);
+      setPending(prev => prev.filter(t => t._id !== id));
+      onApprove(id);
+      alert("✅ Template approved!");
+    } catch (err) { alert("Failed to approve"); }
+  };
+
+  const handleReject = async (id) => {
+    try {
+      await API.put(`/templates/${id}/reject`);
+      setPending(prev => prev.filter(t => t._id !== id));
+      onReject(id);
+      alert("❌ Template rejected.");
+    } catch (err) { alert("Failed to reject"); }
+  };
+
+  if (loading) return <div style={{ textAlign: "center", padding: 40 }}>Loading pending approvals...</div>;
+
+  return (
+    <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 1px 4px rgba(0,0,0,0.06)", overflow: "hidden" }}>
+      <div style={{ padding: "16px 20px", borderBottom: "1px solid #f1f5f9", fontWeight: 800, fontSize: 15, color: "#0f172a", display: "flex", alignItems: "center", gap: 10 }}>
+        <Bell size={18} color="#f59e0b" />
+        Pending Template Approvals
+        <span style={{ background: "#fee2e2", color: "#991b1b", borderRadius: 999, padding: "2px 8px", fontSize: 12, fontWeight: 700 }}>{pending.length}</span>
+      </div>
+
+      {pending.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "48px 20px", color: "#9ca3af", fontSize: 14 }}>🎉 No pending approvals</div>
+      ) : (
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+          <thead>
+            <tr style={{ background: "#f9fafb" }}>
+              <th style={thStyle}>Template Name</th>
+              <th style={thStyle}>Category</th>
+              <th style={thStyle}>Submitted By</th>
+              <th style={thStyle}>Role</th>
+              <th style={thStyle}>Date</th>
+              <th style={thStyle}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pending.map((t) => (
+              <tr key={t._id} style={{ borderBottom: "1px solid #f3f4f6" }}>
+                <td style={tdStyle}>{t.name}</td>
+                <td style={tdStyle}>{t.category}</td>
+                <td style={tdStyle}>{t.createdBy?.name || "—"}</td>
+                <td style={tdStyle}>
+                  <span style={{ background: "#e0f2fe", color: "#0369a1", borderRadius: 6, padding: "2px 8px", fontSize: 12, fontWeight: 700 }}>
+                    {t.createdBy?.role}
+                  </span>
+                </td>
+                <td style={tdStyle}>{t.createdAt ? new Date(t.createdAt).toLocaleDateString() : "—"}</td>
+                <td style={tdStyle}>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button onClick={() => handleApprove(t._id)} style={{ background: "#d1fae5", color: "#065f46", border: "none", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontWeight: 700, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
+                      <CheckCircle size={14} /> Approve
+                    </button>
+                    <button onClick={() => handleReject(t._id)} style={{ background: "#fee2e2", color: "#991b1b", border: "none", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontWeight: 700, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
+                      <XCircle size={14} /> Reject
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
+
+const thStyle = { padding: "12px 16px", fontWeight: 700, fontSize: 12, color: "#0d9488", textAlign: "left", whiteSpace: "nowrap" };
+const tdStyle = { padding: "12px 16px", color: "#374151", fontSize: 14 };
+
+// ── Main TemplatesPage ────────────────────────────────────────────────────
 export default function TemplatesPage() {
   const router = useRouter();
   const pageRef = useRef(null);
   const listRef = useRef(null);
   const rowRefs = useRef([]);
 
-  const [search, setSearch] = useState("");
-  const [activeTab, setActiveTab] = useState("Explore");
-  const [templates, setTemplates] = useState([]);
+  const [search, setSearch]         = useState("");
+  const [activeTab, setActiveTab]   = useState("Explore");
+  const [templates, setTemplates]   = useState([]);
   const [pageLoading, setPageLoading] = useState(true);
   const [listLoading, setListLoading] = useState(true);
-  const [modalItem, setModalItem] = useState(null);
+  const [modalItem, setModalItem]   = useState(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingTemplateId, setEditingTemplateId] = useState(null);
 
+  // ✅ role state
+  const [userRole, setUserRole] = useState("");
+
+  useEffect(() => {
+    const role = localStorage.getItem("role");
+    setUserRole(role || "");
+  }, []);
+
+  const isSuperAdmin     = userRole === "super_admin";
+  const isManagerOrAbove = userRole === "super_admin" || userRole === "manager";
+
   const isExploreTab = activeTab === "Explore";
+  const isPendingTab = activeTab === "PendingApprovals";
 
   const fetchTemplates = async () => {
     try {
       const res = await API.get("/templates");
-      const data = res.data;
-      setTemplates(data.templates || []);
+      setTemplates(res.data.templates || []);
     } catch (err) {
       console.error("Error fetching templates:", err);
       setTemplates([]);
@@ -742,28 +468,21 @@ export default function TemplatesPage() {
   };
 
   useEffect(() => {
-    fetchTemplates();
-    const ctx = gsap.context(() => {
-      gsap.fromTo(pageRef.current, { opacity:0, y:16 }, { opacity:1, y:0, duration:0.55, ease:"power3.out" });
-    }, pageRef);
-    return () => ctx.revert();
-  }, []);
+    if (userRole) fetchTemplates();
+  }, [userRole]);
 
   useEffect(() => {
     if (!listLoading && rowRefs.current.length) {
-      gsap.fromTo(rowRefs.current.filter(Boolean),
-        { opacity:0, y:14 },
-        { opacity:1, y:0, duration:0.35, stagger:0.05, ease:"power2.out" }
-      );
+      gsap.fromTo(rowRefs.current.filter(Boolean), { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.35, stagger: 0.05, ease: "power2.out" });
     }
   }, [listLoading, activeTab, templates]);
 
   const filteredTemplates = useMemo(() => {
     const q = search.toLowerCase().trim();
     let filtered = [...templates];
-    if (activeTab === "Draft")          filtered = filtered.filter(i => String(i.status).toUpperCase() === "DRAFT");
-    else if (activeTab === "Pending")   filtered = filtered.filter(i => String(i.status).toUpperCase() === "PENDING");
-    else if (activeTab === "Approved")  filtered = filtered.filter(i => String(i.status).toUpperCase() === "APPROVED");
+    if (activeTab === "Draft")           filtered = filtered.filter(i => String(i.status).toUpperCase() === "DRAFT");
+    else if (activeTab === "Pending")    filtered = filtered.filter(i => String(i.status).toUpperCase() === "PENDING");
+    else if (activeTab === "Approved")   filtered = filtered.filter(i => String(i.status).toUpperCase() === "APPROVED");
     else if (activeTab === "Action Required") filtered = filtered.filter(i => String(i.status).toUpperCase() === "REJECTED");
     return filtered.filter(item => {
       const p = getPreviewData(item);
@@ -772,14 +491,13 @@ export default function TemplatesPage() {
     }).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
   }, [templates, search, activeTab]);
 
-  const handleRefresh = () => { setListLoading(true); fetchTemplates(); };
-  const handleDelete = async (id) => {
+  const handleRefresh  = () => { setListLoading(true); fetchTemplates(); };
+  const handleDelete   = async (id) => {
     if (!confirm("Delete this template permanently?")) return;
     try {
       await API.delete(`/templates/${id}`);
       setTemplates(prev => prev.filter(i => i._id !== id));
     } catch (err) {
-      console.error(err);
       alert(err.response?.data?.error || "Failed to delete template");
     }
   };
@@ -789,23 +507,16 @@ export default function TemplatesPage() {
       copyData.name = `${copyData.name}_copy`;
       copyData.status = "DRAFT";
       const res = await API.post("/templates", copyData);
-      const newTemplate = res.data;
-      setTemplates(prev => [newTemplate.template, ...prev]);
+      if (res.data.pendingApproval) alert("✅ Copy submitted for admin approval.");
+      setTemplates(prev => [res.data.template, ...prev]);
     } catch (err) {
-      console.error(err);
       alert(err.response?.data?.error || "Failed to copy template");
     }
   };
-  const handleEdit = (id) => {
-    setEditingTemplateId(id);
-    setEditModalOpen(true);
-  };
-  const handleUpdate = (updatedTemplate) => {
-    setTemplates(prev => prev.map(t => t._id === updatedTemplate._id ? updatedTemplate : t));
-  };
-  const toggleFavorite = (id) => {
-    setTemplates(prev => prev.map(i => i._id === id ? { ...i, favorite: !i.favorite } : i));
-  };
+  const handleEdit   = (id) => { setEditingTemplateId(id); setEditModalOpen(true); };
+  const handleUpdate = (updatedTemplate) => { setTemplates(prev => prev.map(t => t._id === updatedTemplate._id ? updatedTemplate : t)); };
+  const toggleFavorite = (id) => { setTemplates(prev => prev.map(i => i._id === id ? { ...i, favorite: !i.favorite } : i)); };
+
   const getStatusBadgeClass = (status) => {
     const s = String(status).toUpperCase();
     if (s === "APPROVED") return "status-approved";
@@ -814,7 +525,30 @@ export default function TemplatesPage() {
     return "status-draft";
   };
 
+  // ✅ Get approval badge for manager templates
+  const getApprovalBadge = (item) => {
+    if (!item.approvalStatus || item.approvalStatus === "approved") return null;
+    if (item.approvalStatus === "pending_approval") return (
+      <span style={{ background: "#fef3c7", color: "#92400e", borderRadius: 6, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>⏳ Awaiting Approval</span>
+    );
+    if (item.approvalStatus === "rejected") return (
+      <span style={{ background: "#fee2e2", color: "#991b1b", borderRadius: 6, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>❌ Rejected</span>
+    );
+    return null;
+  };
+
   rowRefs.current = [];
+
+  // ✅ Block non-managers/admins
+  if (userRole && !isManagerOrAbove) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "60vh", gap: 12 }}>
+        <div style={{ fontSize: 48 }}>🚫</div>
+        <div style={{ fontSize: 20, fontWeight: 800, color: "#0f172a" }}>Access Restricted</div>
+        <div style={{ fontSize: 14, color: "#64748b" }}>Templates are only accessible to managers and admins.</div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -876,42 +610,34 @@ export default function TemplatesPage() {
         .view-detail-btn { width:100%; margin-top:10px; padding:8px; border-radius:12px; border:1px solid #e2e8f0; background:#f8fafc; color:#0d5b63; font-size:12px; font-weight:700; cursor:pointer; transition:all 0.2s; }
         .view-detail-btn:hover { background:#e0f7f5; border-color:#0d5b63; }
         @media (max-width:1399px) { .explore-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } }
-        @media (max-width:1199px) { .explore-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .list-grid,.list-head { grid-template-columns:1fr 1fr; } }
-        @media (max-width:767px)  { .campaigns-search-wrap { max-width:100%; } .explore-grid { grid-template-columns:1fr; } .mini-preview-media,.mini-text-preview,.mini-preview-placeholder { height:190px; min-height:190px; } .mini-carousel-shell { grid-template-columns:1fr; } .mini-nav-btn { display:none; } .list-grid,.list-head { grid-template-columns:1fr; } .card-footer-row { flex-direction:column; align-items:flex-start; } }
+        @media (max-width:1199px) { .explore-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+        @media (max-width:767px)  { .explore-grid { grid-template-columns:1fr; } }
       `}</style>
 
-      {/* Detail Modal */}
-      {modalItem && <TemplateDetailModal item={modalItem} onClose={() => setModalItem(null)} />}
-
-      {/* Edit Modal */}
       {editModalOpen && (
         <EditTemplateModal
           templateId={editingTemplateId}
           onClose={() => setEditModalOpen(false)}
           onUpdate={handleUpdate}
+          isSuperAdmin={isSuperAdmin}
         />
       )}
 
       <div ref={pageRef} className="container-fluid py-3 campaigns-page-shell">
-        <div className="d-flex flex-column" style={{ gap:"14px" }}>
+        <div className="d-flex flex-column" style={{ gap: "14px" }}>
+
           {/* Topbar */}
           <div className="campaigns-topbar-box">
             <div className="d-flex justify-content-between align-items-center flex-wrap gap-3">
               <div className="position-relative w-100 campaigns-search-wrap">
-                <input type="text" className="form-control campaigns-search-input"
-                  placeholder="Search templates..." value={search}
-                  onChange={(e) => setSearch(e.target.value)} />
-                <button className="btn d-flex align-items-center justify-content-center position-absolute campaigns-search-btn">
-                  <Search size={15} />
-                </button>
+                <input type="text" className="form-control campaigns-search-input" placeholder="Search templates..." value={search} onChange={(e) => setSearch(e.target.value)} />
+                <button className="btn d-flex align-items-center justify-content-center position-absolute campaigns-search-btn"><Search size={15} /></button>
               </div>
               <div className="d-flex align-items-center gap-2 flex-wrap">
-                <button className="btn campaigns-primary-btn d-flex align-items-center gap-2"
-                  onClick={() => router.push("/Template/addTemplate")} disabled={pageLoading || listLoading}>
+                <button className="btn campaigns-primary-btn d-flex align-items-center gap-2" onClick={() => router.push("/Template/addTemplate")} disabled={pageLoading || listLoading}>
                   <Plus size={16} /> Add Template
                 </button>
-                <button className="btn campaigns-secondary-btn d-flex align-items-center gap-2"
-                  onClick={handleRefresh} disabled={pageLoading || listLoading}>
+                <button className="btn campaigns-secondary-btn d-flex align-items-center gap-2" onClick={handleRefresh} disabled={pageLoading || listLoading}>
                   <RefreshCcw size={15} /> Refresh
                 </button>
               </div>
@@ -923,27 +649,35 @@ export default function TemplatesPage() {
             {tabs.map((tab) => {
               const Icon = tab.icon;
               return (
-                <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                  className={`btn d-flex align-items-center gap-2 campaigns-tab-btn ${activeTab === tab.id ? "active" : ""}`}>
+                <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`btn d-flex align-items-center gap-2 campaigns-tab-btn ${activeTab === tab.id ? "active" : ""}`}>
                   <Icon size={15} /><span>{tab.label}</span>
                 </button>
               );
             })}
+
+            {/* ✅ Pending Approvals tab — admin only */}
+            {isSuperAdmin && (
+              <button onClick={() => setActiveTab("PendingApprovals")} className={`btn d-flex align-items-center gap-2 campaigns-tab-btn ${activeTab === "PendingApprovals" ? "active" : ""}`} style={{ position: "relative" }}>
+                <Bell size={15} /><span>Pending Approvals</span>
+              </button>
+            )}
           </div>
 
-          {/* Content */}
-          {pageLoading || listLoading ? (
+          {/* ✅ Pending Approvals Panel */}
+          {isPendingTab && isSuperAdmin ? (
+            <PendingApprovalsPanel
+              onApprove={(id) => setTemplates(prev => prev.map(t => t._id === id ? { ...t, approvalStatus: "approved", status: "APPROVED" } : t))}
+              onReject={(id) => setTemplates(prev => prev.map(t => t._id === id ? { ...t, approvalStatus: "rejected", status: "REJECTED" } : t))}
+            />
+          ) : pageLoading || listLoading ? (
             <div className="loading-box">Loading templates...</div>
           ) : filteredTemplates.length === 0 ? (
             <div className="empty-state">
               <div className="empty-state-title">No templates found</div>
               <div className="empty-state-text">Create your first WhatsApp template to get started.</div>
-              <button className="btn campaigns-primary-btn" onClick={() => router.push("/Template/addTemplate")}>
-                Create First Template
-              </button>
+              <button className="btn campaigns-primary-btn" onClick={() => router.push("/Template/addTemplate")}>Create First Template</button>
             </div>
           ) : isExploreTab ? (
-            /* Explore grid */
             <div ref={listRef} className="explore-grid">
               {filteredTemplates.map((item, index) => {
                 const preview = getPreviewData(item);
@@ -951,29 +685,34 @@ export default function TemplatesPage() {
                   <div key={item._id} ref={(el) => { rowRefs.current[index] = el; }} className="explore-card">
                     <div className="card-top-row">
                       <span className="card-category-badge">{preview.category}</span>
-                      <button className="fav-btn" onClick={(e) => { e.stopPropagation(); toggleFavorite(item._id); }} title="Favorite">
+                      <button className="fav-btn" onClick={(e) => { e.stopPropagation(); toggleFavorite(item._id); }}>
                         <Star size={16} color="#8b8b8b" fill={item.favorite ? "#8b8b8b" : "none"} />
                       </button>
                     </div>
                     <div className="template-name">{preview.title}</div>
                     <div className="template-subline">{preview.language}</div>
+
+                    {/* ✅ Approval status badge for managers */}
+                    {getApprovalBadge(item) && <div style={{ marginBottom: 8 }}>{getApprovalBadge(item)}</div>}
+
                     <CompactTemplatePreview item={item} />
                     <div className="card-meta-row">
                       <span className={getStatusBadgeClass(preview.status)}>{preview.status}</span>
                       <span className="template-type-chip">{preview.previewType}</span>
                     </div>
-                    <button className="view-detail-btn" onClick={() => setModalItem(item)}>View Full Details</button>
                     <div className="card-footer-row">
                       <div className="created-date">
                         <CalendarDays size={13} />
-                        <span>{item.createdAt ? new Date(item.createdAt).toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"}) : "--"}</span>
+                        <span>{item.createdAt ? new Date(item.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "--"}</span>
                       </div>
                       <div className="card-action-icons">
-                        <button className="icon-btn" onClick={(e) => { e.stopPropagation(); handleEdit(item._id); }} title="Edit">
-                          <Edit size={15} />
-                        </button>
+                        <button className="icon-btn" onClick={(e) => { e.stopPropagation(); handleEdit(item._id); }} title="Edit"><Edit size={15} /></button>
+                        <button className="icon-btn" onClick={(e) => { e.stopPropagation(); toggleFavorite(item._id); }} title="Favorite"><Star size={15} color="#8b8b8b" fill={item.favorite ? "#8b8b8b" : "none"} /></button>
                         <button className="icon-btn" onClick={(e) => { e.stopPropagation(); handleCopy(item); }} title="Copy"><Copy size={15} /></button>
-                        <button className="icon-btn" onClick={(e) => { e.stopPropagation(); handleDelete(item._id); }} title="Delete"><Trash2 size={15} /></button>
+                        {/* ✅ Delete only for super_admin */}
+                        {isSuperAdmin && (
+                          <button className="icon-btn" onClick={(e) => { e.stopPropagation(); handleDelete(item._id); }} title="Delete"><Trash2 size={15} /></button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -981,17 +720,15 @@ export default function TemplatesPage() {
               })}
             </div>
           ) : (
-            /* List view */
             <>
               <div className="d-none d-lg-grid list-head list-grid">
-                <div>Name</div><div>Category</div><div>Status</div><div>Type</div><div>Created</div><div>Actions</div>
+                <div>Name</div><div>Category</div><div>Status</div><div>Approval</div><div>Created</div><div>Actions</div>
               </div>
               <div ref={listRef} className="list-wrap">
                 {filteredTemplates.map((item, index) => {
                   const preview = getPreviewData(item);
                   return (
-                    <div key={item._id} ref={(el) => { rowRefs.current[index] = el; }} className="list-card"
-                      style={{ cursor:"pointer" }} onClick={() => setModalItem(item)}>
+                    <div key={item._id} ref={(el) => { rowRefs.current[index] = el; }} className="list-card" style={{ cursor: "pointer" }}>
                       <div className="list-grid">
                         <div>
                           <div className="template-name mb-1">{preview.title}</div>
@@ -999,15 +736,15 @@ export default function TemplatesPage() {
                         </div>
                         <div className="template-subline mb-0">{preview.category}</div>
                         <div><span className={getStatusBadgeClass(preview.status)}>{preview.status}</span></div>
-                        <div className="template-subline mb-0">{preview.previewType}</div>
-                        <div className="template-subline mb-0">
-                          {item.createdAt ? new Date(item.createdAt).toLocaleDateString("en-GB") : "--"}
-                        </div>
-                        <div className="d-flex align-items-center gap-2 flex-wrap" onClick={(e) => e.stopPropagation()}>
+                        <div>{getApprovalBadge(item) || <span style={{ color: "#9ca3af", fontSize: 12 }}>—</span>}</div>
+                        <div className="template-subline mb-0">{item.createdAt ? new Date(item.createdAt).toLocaleDateString("en-GB") : "--"}</div>
+                        <div className="d-flex align-items-center gap-2 flex-wrap">
                           <button className="icon-btn" onClick={() => handleEdit(item._id)} title="Edit"><Edit size={15} /></button>
                           <button className="icon-btn" onClick={() => toggleFavorite(item._id)} title="Favorite"><Star size={15} color="#8b8b8b" fill={item.favorite ? "#8b8b8b" : "none"} /></button>
                           <button className="icon-btn" onClick={() => handleCopy(item)} title="Copy"><Copy size={15} /></button>
-                          <button className="icon-btn" onClick={() => handleDelete(item._id)} title="Delete"><Trash2 size={15} /></button>
+                          {isSuperAdmin && (
+                            <button className="icon-btn" onClick={() => handleDelete(item._id)} title="Delete"><Trash2 size={15} /></button>
+                          )}
                         </div>
                       </div>
                     </div>

@@ -14,13 +14,48 @@ import {
   PauseCircle,
   Play,
   Trash2,
+  Bell,
+  CheckCircle,
+  XCircle,
+  Edit,
+  Plus,
+  X,
+  Save,
+  Upload,
 } from "lucide-react";
-import API from "../utils/api";   // ✅ using your axios instance
+import API from "../utils/api";
 
 // ------------------------------------------------------------
-// Styles
+// Styles (keeping existing + additions for modal)
 // ------------------------------------------------------------
 const pageStyles = {
+
+  // Add inside pageStyles object:
+label: {
+  fontSize: 12,
+  fontWeight: 700,
+  color: "#0f172a",
+  marginBottom: 6,
+  display: "block",
+},
+textarea: {
+  width: "100%",
+  padding: "10px 14px",
+  borderRadius: 12,
+  border: "1px solid #dbe5ee",
+  fontSize: 14,
+  resize: "vertical",
+},
+checkboxGroup: {
+  maxHeight: 150,
+  overflowY: "auto",
+  border: "1px solid #dbe5ee",
+  borderRadius: 12,
+  padding: "10px 14px",
+  display: "flex",
+  flexDirection: "column",
+  gap: 8,
+},
   shell: {
     background:
       "radial-gradient(circle at top left, rgba(15, 95, 100, 0.06), transparent 22%), radial-gradient(circle at top right, rgba(34, 197, 94, 0.05), transparent 20%), linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)",
@@ -194,6 +229,83 @@ const pageStyles = {
     cursor: "pointer",
     color: "#64748b",
     transition: "all 0.2s",
+  },
+  approvalBadge: {
+    background: "#fef3c7",
+    color: "#92400e",
+    borderRadius: "6px",
+    padding: "2px 8px",
+    fontSize: "11px",
+    fontWeight: 700,
+  },
+  rejectedBadge: {
+    background: "#fee2e2",
+    color: "#991b1b",
+    borderRadius: "6px",
+    padding: "2px 8px",
+    fontSize: "11px",
+    fontWeight: 700,
+  },
+  // Modal styles
+  modalOverlay: {
+    position: "fixed",
+    inset: 0,
+    zIndex: 1000,
+    background: "rgba(15,23,42,0.55)",
+    backdropFilter: "blur(4px)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 16,
+  },
+  modalContent: {
+    background: "#fff",
+    borderRadius: 24,
+    width: 700,
+    maxWidth: "90vw",
+    maxHeight: "90vh",
+    overflowY: "auto",
+    padding: 24,
+    boxShadow: "0 24px 60px rgba(15,23,42,0.18)",
+  },
+  modalHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 800,
+    color: "#0f172a",
+    margin: 0,
+  },
+  closeBtn: {
+    border: "1px solid #e2e8f0",
+    borderRadius: 10,
+    width: 36,
+    height: 36,
+    background: "#f8fafc",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  formControl: {
+    width: "100%",
+    padding: "10px 14px",
+    borderRadius: 12,
+    border: "1px solid #dbe5ee",
+    fontSize: 14,
+  },
+  warningBox: {
+    background: "#fef3c7",
+    border: "1px solid #fcd34d",
+    borderRadius: 8,
+    padding: "10px 14px",
+    marginBottom: 16,
+    fontSize: 13,
+    color: "#92400e",
   },
 };
 
@@ -392,6 +504,471 @@ function StatCard({ icon: Icon, label, value, subtext }) {
 }
 
 // ------------------------------------------------------------
+// Pending Approvals Panel (super_admin only)
+// ------------------------------------------------------------
+function PendingApprovalsPanel({ onApprove, onReject }) {
+  const [pending, setPending] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    API.get("/campaigns/pending")
+      .then((res) => setPending(res.data.campaigns || []))
+      .catch((err) => console.error(err))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleApprove = async (id) => {
+    try {
+      await API.put(`/campaigns/${id}/approve`);
+      setPending((prev) => prev.filter((c) => c._id !== id));
+      onApprove(id);
+      alert("✅ Campaign approved!");
+    } catch (err) {
+      alert("Failed to approve");
+    }
+  };
+
+  const handleReject = async (id) => {
+    try {
+      await API.put(`/campaigns/${id}/reject`);
+      setPending((prev) => prev.filter((c) => c._id !== id));
+      onReject(id);
+      alert("❌ Campaign rejected.");
+    } catch (err) {
+      alert("Failed to reject");
+    }
+  };
+
+  if (loading) return <div style={{ textAlign: "center", padding: 40 }}>Loading pending approvals...</div>;
+
+  return (
+    <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 1px 4px rgba(0,0,0,0.06)", overflow: "hidden" }}>
+      <div style={{ padding: "16px 20px", borderBottom: "1px solid #f1f5f9", fontWeight: 800, fontSize: 15, color: "#0f172a", display: "flex", alignItems: "center", gap: 10 }}>
+        <Bell size={18} color="#f59e0b" />
+        Pending Campaign Approvals
+        <span style={{ background: "#fee2e2", color: "#991b1b", borderRadius: 999, padding: "2px 8px", fontSize: 12, fontWeight: 700 }}>{pending.length}</span>
+      </div>
+
+      {pending.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "48px 20px", color: "#9ca3af", fontSize: 14 }}>🎉 No pending approvals</div>
+      ) : (
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+          <thead>
+            <tr style={{ background: "#f9fafb" }}>
+              <th style={{ padding: "12px 16px", fontWeight: 700, fontSize: 12, color: "#0d9488", textAlign: "left", whiteSpace: "nowrap" }}>Campaign Name</th>
+              <th style={{ padding: "12px 16px", fontWeight: 700, fontSize: 12, color: "#0d9488", textAlign: "left", whiteSpace: "nowrap" }}>Type</th>
+              <th style={{ padding: "12px 16px", fontWeight: 700, fontSize: 12, color: "#0d9488", textAlign: "left", whiteSpace: "nowrap" }}>Submitted By</th>
+              <th style={{ padding: "12px 16px", fontWeight: 700, fontSize: 12, color: "#0d9488", textAlign: "left", whiteSpace: "nowrap" }}>Role</th>
+              <th style={{ padding: "12px 16px", fontWeight: 700, fontSize: 12, color: "#0d9488", textAlign: "left", whiteSpace: "nowrap" }}>Date</th>
+              <th style={{ padding: "12px 16px", fontWeight: 700, fontSize: 12, color: "#0d9488", textAlign: "left", whiteSpace: "nowrap" }}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pending.map((c) => (
+              <tr key={c._id} style={{ borderBottom: "1px solid #f3f4f6" }}>
+                <td style={{ padding: "12px 16px", color: "#374151", fontSize: 14 }}>{c.campaignName}</td>
+                <td style={{ padding: "12px 16px", color: "#374151", fontSize: 14 }}>{c.messageType}</td>
+                <td style={{ padding: "12px 16px", color: "#374151", fontSize: 14 }}>{c.createdBy?.name || "—"}</td>
+                <td style={{ padding: "12px 16px", color: "#374151", fontSize: 14 }}>
+                  <span style={{ background: "#e0f2fe", color: "#0369a1", borderRadius: 6, padding: "2px 8px", fontSize: 12, fontWeight: 700 }}>
+                    {c.createdBy?.role}
+                  </span>
+                </td>
+                <td style={{ padding: "12px 16px", color: "#374151", fontSize: 14 }}>{c.createdAt ? new Date(c.createdAt).toLocaleDateString() : "—"}</td>
+                <td style={{ padding: "12px 16px", color: "#374151", fontSize: 14 }}>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button onClick={() => handleApprove(c._id)} style={{ background: "#d1fae5", color: "#065f46", border: "none", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontWeight: 700, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
+                      <CheckCircle size={14} /> Approve
+                    </button>
+                    <button onClick={() => handleReject(c._id)} style={{ background: "#fee2e2", color: "#991b1b", border: "none", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontWeight: 700, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
+                      <XCircle size={14} /> Reject
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
+
+// ------------------------------------------------------------
+// Edit Campaign Modal Component
+// ------------------------------------------------------------
+function EditCampaignModal({ campaignId, onClose, onUpdate, isSuperAdmin }) {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [form, setForm] = useState({
+    campaignName: "",
+    messageType: "Pre-approved template message",
+    audienceType: "tags",
+    tagIds: [],
+    contactIds: [],
+    groupIds: [],
+    manualNumbers: "",
+    templateId: "",
+    scheduledDateTime: "",
+    recurrence: { type: "one-time" },
+    messagePreview: "",
+  });
+
+  // Options
+  const [templates, setTemplates] = useState([]);
+  const [tags, setTags] = useState([]);
+  const [contacts, setContacts] = useState([]);
+  const [groups, setGroups] = useState([]);
+
+  useEffect(() => {
+    if (!campaignId) return;
+
+    const fetchData = async () => {
+      try {
+        const [campaignRes, templatesRes, tagsRes, contactsRes, groupsRes] = await Promise.all([
+          API.get(`/campaigns/${campaignId}`),
+          API.get("/templates"),
+          API.get("/tags"),
+          API.get("/contacts"),
+          API.get("/groups"),
+        ]);
+
+        if (campaignRes.data.success) {
+          const c = campaignRes.data.campaign;
+          setForm({
+            campaignName: c.campaignName || "",
+            messageType: c.messageType || "Pre-approved template message",
+            audienceType: c.audienceType || "tags",
+            tagIds: c.tagIds || [],
+            contactIds: c.contactIds || [],
+            groupIds: c.groupIds || [],
+            manualNumbers: (c.manualNumbers || []).join("\n"),
+            templateId: c.templateId || "",
+            scheduledDateTime: c.scheduledDateTime
+              ? new Date(c.scheduledDateTime).toISOString().slice(0, 16)
+              : "",
+            recurrence: c.recurrence || { type: "one-time" },
+            messagePreview: c.messagePreview || "",
+          });
+        }
+
+        setTemplates(templatesRes.data.templates || []);
+        setTags(tagsRes.data.tags || []);
+        setContacts(contactsRes.data.contacts || []);
+        setGroups(groupsRes.data.groups || []);
+      } catch (err) {
+        setError(err.response?.data?.error || "Failed to load campaign");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [campaignId]);
+
+  const handleChange = (field, value) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleArrayToggle = (field, id, checked) => {
+    setForm((prev) => {
+      const arr = prev[field] || [];
+      if (checked) {
+        return { ...prev, [field]: [...arr, id] };
+      } else {
+        return { ...prev, [field]: arr.filter((v) => v !== id) };
+      }
+    });
+  };
+
+  const handleSubmit = async () => {
+    setSaving(true);
+    setError("");
+
+    try {
+      const payload = {
+        ...form,
+        manualNumbers: form.manualNumbers
+          ? form.manualNumbers.split("\n").filter((n) => n.trim() !== "")
+          : [],
+        scheduledDateTime: form.scheduledDateTime
+          ? new Date(form.scheduledDateTime).toISOString()
+          : null,
+      };
+
+      const res = await API.put(`/campaigns/${campaignId}`, payload);
+
+      if (res.data.success) {
+        if (res.data.pendingApproval) {
+          alert("✅ Campaign updated! Sent to admin for approval.");
+        }
+        onUpdate(res.data.campaign);
+        onClose();
+      } else {
+        throw new Error(res.data.error || "Update failed");
+      }
+    } catch (err) {
+      setError(err.response?.data?.error || err.message || "Failed to update campaign");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div style={pageStyles.modalOverlay}>
+        <div style={{ ...pageStyles.modalContent, textAlign: "center" }}>
+          Loading campaign data...
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={pageStyles.modalOverlay} onClick={onClose}>
+      <div style={pageStyles.modalContent} onClick={(e) => e.stopPropagation()}>
+        <div style={pageStyles.modalHeader}>
+          <h3 style={pageStyles.modalTitle}>Edit Campaign</h3>
+          <button style={pageStyles.closeBtn} onClick={onClose}>
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Manager warning */}
+        {!isSuperAdmin && (
+          <div style={pageStyles.warningBox}>
+            ⏳ Your edits will be sent to <strong>admin for approval</strong> before going live.
+          </div>
+        )}
+
+        {error && (
+          <div className="alert alert-danger" style={{ fontSize: 13, padding: "10px 14px" }}>
+            {error}
+          </div>
+        )}
+
+        <div style={{ display: "grid", gap: 16 }}>
+          {/* Campaign Name */}
+          <div>
+            <label style={pageStyles.label}>Campaign Name *</label>
+            <input
+              type="text"
+              style={pageStyles.formControl}
+              value={form.campaignName}
+              onChange={(e) => handleChange("campaignName", e.target.value)}
+            />
+          </div>
+
+          {/* Message Type */}
+          <div>
+            <label style={pageStyles.label}>Message Type</label>
+            <select
+              style={pageStyles.formControl}
+              value={form.messageType}
+              onChange={(e) => handleChange("messageType", e.target.value)}
+            >
+              <option value="Pre-approved template message">Pre-approved template message</option>
+              <option value="Custom message">Custom message</option>
+            </select>
+          </div>
+
+          {/* Template (if template message) */}
+          {form.messageType === "Pre-approved template message" && (
+            <div>
+              <label style={pageStyles.label}>Template</label>
+              <select
+                style={pageStyles.formControl}
+                value={form.templateId}
+                onChange={(e) => handleChange("templateId", e.target.value)}
+              >
+                <option value="">-- Select template --</option>
+                {templates.map((t) => (
+                  <option key={t._id} value={t._id}>
+                    {t.name} ({t.category})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Audience Type */}
+          <div>
+            <label style={pageStyles.label}>Audience Type *</label>
+            <select
+              style={pageStyles.formControl}
+              value={form.audienceType}
+              onChange={(e) => handleChange("audienceType", e.target.value)}
+            >
+              <option value="tags">Tags</option>
+              <option value="contact">Contacts</option>
+              <option value="group">Groups</option>
+              <option value="manual">Manual Numbers</option>
+            </select>
+          </div>
+
+          {/* Tags */}
+          {form.audienceType === "tags" && (
+            <div>
+              <label style={pageStyles.label}>Select Tags</label>
+              <div style={pageStyles.checkboxGroup}>
+                {tags.map((tag) => (
+                  <div key={tag._id} className="form-check">
+                    <input
+                      type="checkbox"
+                      className="form-check-input"
+                      id={`tag-${tag._id}`}
+                      checked={form.tagIds.includes(tag._id)}
+                      onChange={(e) => handleArrayToggle("tagIds", tag._id, e.target.checked)}
+                    />
+                    <label className="form-check-label" htmlFor={`tag-${tag._id}`}>
+                      {tag.name}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Contacts */}
+          {form.audienceType === "contact" && (
+            <div>
+              <label style={pageStyles.label}>Select Contacts</label>
+              <div style={pageStyles.checkboxGroup}>
+                {contacts.map((contact) => (
+                  <div key={contact._id} className="form-check">
+                    <input
+                      type="checkbox"
+                      className="form-check-input"
+                      id={`contact-${contact._id}`}
+                      checked={form.contactIds.includes(contact._id)}
+                      onChange={(e) => handleArrayToggle("contactIds", contact._id, e.target.checked)}
+                    />
+                    <label className="form-check-label" htmlFor={`contact-${contact._id}`}>
+                      {contact.name} ({contact.mobile})
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Groups */}
+          {form.audienceType === "group" && (
+            <div>
+              <label style={pageStyles.label}>Select Groups</label>
+              <div style={pageStyles.checkboxGroup}>
+                {groups.map((group) => (
+                  <div key={group._id} className="form-check">
+                    <input
+                      type="checkbox"
+                      className="form-check-input"
+                      id={`group-${group._id}`}
+                      checked={form.groupIds.includes(group._id)}
+                      onChange={(e) => handleArrayToggle("groupIds", group._id, e.target.checked)}
+                    />
+                    <label className="form-check-label" htmlFor={`group-${group._id}`}>
+                      {group.name}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Manual Numbers */}
+          {form.audienceType === "manual" && (
+            <div>
+              <label style={pageStyles.label}>Manual Numbers (one per line)</label>
+              <textarea
+                style={pageStyles.textarea}
+                rows={4}
+                value={form.manualNumbers}
+                onChange={(e) => handleChange("manualNumbers", e.target.value)}
+                placeholder="+911234567890&#10;+919876543210"
+              />
+            </div>
+          )}
+
+          {/* Scheduled Date/Time */}
+          <div>
+            <label style={pageStyles.label}>Scheduled Date & Time</label>
+            <input
+              type="datetime-local"
+              style={pageStyles.formControl}
+              value={form.scheduledDateTime}
+              onChange={(e) => handleChange("scheduledDateTime", e.target.value)}
+            />
+          </div>
+
+          {/* Recurrence */}
+          <div>
+            <label style={pageStyles.label}>Recurrence</label>
+            <select
+              style={pageStyles.formControl}
+              value={form.recurrence.type}
+              onChange={(e) =>
+                handleChange("recurrence", { ...form.recurrence, type: e.target.value })
+              }
+            >
+              <option value="one-time">One-time</option>
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+            </select>
+          </div>
+
+          {/* Message Preview */}
+          <div>
+            <label style={pageStyles.label}>Message Preview</label>
+            <textarea
+              style={pageStyles.textarea}
+              rows={3}
+              value={form.messagePreview}
+              onChange={(e) => handleChange("messagePreview", e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 24 }}>
+          <button
+            onClick={onClose}
+            style={{
+              border: "1px solid #dbe5ee",
+              borderRadius: 12,
+              padding: "8px 20px",
+              background: "#fff",
+              fontWeight: 700,
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={saving}
+            style={{
+              background: "linear-gradient(135deg,#1f7a85 0%,#0d5b63 100%)",
+              border: "none",
+              borderRadius: 12,
+              padding: "8px 24px",
+              color: "#fff",
+              fontWeight: 700,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              cursor: "pointer",
+            }}
+          >
+            <Save size={16} /> {saving ? "Saving..." : "Save Changes"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ------------------------------------------------------------
 // Main Component
 // ------------------------------------------------------------
 export default function CampaignsPage() {
@@ -402,13 +979,45 @@ export default function CampaignsPage() {
 
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState("All");
+  const [activeTab, setActiveTab] = useState("All");
   const [isLoading, setIsLoading] = useState(true);
   const [campaigns, setCampaigns] = useState([]);
-  const [updatingId, setUpdatingId] = useState(null); // track which campaign is being updated
+  const [updatingId, setUpdatingId] = useState(null);
+  const [editingCampaignId, setEditingCampaignId] = useState(null); // For modal
+
+  const [userRole, setUserRole] = useState("");
+  const [userId, setUserId] = useState("");
+
+ useEffect(() => {
+  if (typeof window !== "undefined") {
+    const role = localStorage.getItem("role");
+    let id = null;
+    try {
+      const userStr = localStorage.getItem("user");
+      if (userStr) {
+        const userObj = JSON.parse(userStr);
+        id = userObj._id || userObj.id;
+      }
+    } catch (e) {}
+    setUserRole(role || "");
+    setUserId(id || "");
+  }
+}, []); 
+
+  const isSuperAdmin = userRole === "super_admin";
+  const isManager = userRole === "manager";
+  const isManagerOrAbove = isSuperAdmin || isManager;
+
+  const isOwner = (campaign) => {
+    if (!userId) return false;
+    const createdBy = campaign.createdBy;
+    const ownerId = typeof createdBy === "object" ? createdBy?._id : createdBy;
+    console.log("isOwner check → userId:", userId, "ownerId:", ownerId);
+    return ownerId?.toString() === userId;
+  };
 
   const topTabs = ["All", "Broadcast", "API", "Scheduled"];
 
-  // Fetch campaigns from backend using API
   const fetchCampaigns = () => {
     setIsLoading(true);
     API.get("/campaigns")
@@ -429,10 +1038,9 @@ export default function CampaignsPage() {
   };
 
   useEffect(() => {
-    fetchCampaigns();
-  }, []);
+    if (userRole) fetchCampaigns();
+  }, [userRole]);
 
-  // Delete campaign
   const handleDelete = async (campaignId, campaignName) => {
     if (!confirm(`Delete campaign "${campaignName}" permanently?`)) return;
     try {
@@ -444,7 +1052,6 @@ export default function CampaignsPage() {
     }
   };
 
-  // Toggle pause/resume
   const handleToggleStatus = async (campaign) => {
     const newStatus = campaign.status === "paused" ? "scheduled" : "paused";
     setUpdatingId(campaign._id);
@@ -468,7 +1075,6 @@ export default function CampaignsPage() {
     }
   };
 
-  // Helper to map backend campaign to display format
   const mapCampaign = (camp) => {
     let audience = "Unknown";
     if (camp.audienceType === "tags" && camp.tagIds?.length) {
@@ -539,6 +1145,23 @@ export default function CampaignsPage() {
     fetchCampaigns();
   };
 
+  const handleUpdate = (updatedCampaign) => {
+    setCampaigns((prev) =>
+      prev.map((c) => (c._id === updatedCampaign._id ? updatedCampaign : c))
+    );
+  };
+
+  const getApprovalBadge = (campaign) => {
+    if (!campaign.approvalStatus || campaign.approvalStatus === "approved") return null;
+    if (campaign.approvalStatus === "pending_approval") {
+      return <span style={pageStyles.approvalBadge}>⏳ Awaiting Approval</span>;
+    }
+    if (campaign.approvalStatus === "rejected") {
+      return <span style={pageStyles.rejectedBadge}>❌ Rejected</span>;
+    }
+    return null;
+  };
+
   // Animations
   useEffect(() => {
     if (isLoading || !contentRef.current) return;
@@ -575,141 +1198,117 @@ export default function CampaignsPage() {
     }, pageRef);
 
     return () => ctx.revert();
-  }, [isLoading, filteredData]);
+  }, [isLoading, filteredData, activeTab]);
 
   rowsRef.current = [];
 
+  if (userRole && !isManagerOrAbove) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "60vh", gap: 12 }}>
+        <div style={{ fontSize: 48 }}>🚫</div>
+        <div style={{ fontSize: 20, fontWeight: 800, color: "#0f172a" }}>Access Restricted</div>
+        <div style={{ fontSize: 14, color: "#64748b" }}>Campaigns are only accessible to managers and admins.</div>
+      </div>
+    );
+  }
+
+  const isPendingTab = activeTab === "PendingApprovals";
+
   return (
-    <div
-      ref={pageRef}
-      className="container-fluid py-3 py-md-4"
-      style={pageStyles.shell}
-    >
-      <div className="d-flex flex-column gap-3 gap-md-4 h-100">
-        {isLoading ? (
-          <>
-            <HeaderSkeleton />
-            <StatsSkeleton />
-            <SearchFilterSkeleton />
-          </>
-        ) : (
-          <div
-            ref={contentRef}
-            className="d-flex flex-column gap-3 gap-md-4 h-100"
-          >
-            {/* Header with stats */}
-            <div style={pageStyles.premiumCard} className="p-3 p-md-4">
-              <div className="d-flex flex-column flex-lg-row justify-content-between gap-3 align-items-start align-items-lg-center">
-                <div>
-                  <div style={pageStyles.heroChip}>
-                    <Megaphone size={14} />
-                    CAMPAIGNS
+    <>
+      {/* Edit Modal */}
+      {editingCampaignId && (
+        <EditCampaignModal
+          campaignId={editingCampaignId}
+          onClose={() => setEditingCampaignId(null)}
+          onUpdate={handleUpdate}
+          isSuperAdmin={isSuperAdmin}
+        />
+      )}
+
+      <div
+        ref={pageRef}
+        className="container-fluid py-3 py-md-4"
+        style={pageStyles.shell}
+      >
+        <div className="d-flex flex-column gap-3 gap-md-4 h-100">
+          {isLoading ? (
+            <>
+              <HeaderSkeleton />
+              <StatsSkeleton />
+              <SearchFilterSkeleton />
+            </>
+          ) : (
+            <div
+              ref={contentRef}
+              className="d-flex flex-column gap-3 gap-md-4 h-100"
+            >
+              {/* Header with stats */}
+              <div style={pageStyles.premiumCard} className="p-3 p-md-4">
+                <div className="d-flex flex-column flex-lg-row justify-content-between gap-3 align-items-start align-items-lg-center">
+                  <div>
+                    <div style={pageStyles.heroChip}>
+                      <Megaphone size={14} />
+                      CAMPAIGNS
+                    </div>
+                    <div style={pageStyles.heroTitle}>
+                      Broadcast & Automation
+                    </div>
+                    <div style={pageStyles.heroSubtitle}>
+                      Manage all your WhatsApp campaigns from one dashboard.
+                    </div>
                   </div>
-                  <div style={pageStyles.heroTitle}>
-                    Broadcast & Automation
-                  </div>
-                  <div style={pageStyles.heroSubtitle}>
-                    Manage all your WhatsApp campaigns from one dashboard.
-                  </div>
-                </div>
-                <button
-                  style={pageStyles.launchBtn}
-                  className="btn d-inline-flex align-items-center justify-content-center gap-2"
-                  onClick={() => router.push("/Campaigns/launch")}
-                  type="button"
-                >
-                  <Send size={16} />
-                  Launch Campaign
-                  <ChevronRight size={16} />
-                </button>
-              </div>
-            </div>
-
-            {/* Stats row */}
-            <div className="row g-3">
-              <div className="col-12 col-sm-6 col-xl-3">
-                <StatCard
-                  icon={Megaphone}
-                  label="Total Campaigns"
-                  value={stats.total}
-                  subtext="All campaigns"
-                />
-              </div>
-              <div className="col-12 col-sm-6 col-xl-3">
-                <StatCard
-                  icon={PlayCircle}
-                  label="Running"
-                  value={stats.running}
-                  subtext="Active now"
-                />
-              </div>
-              <div className="col-12 col-sm-6 col-xl-3">
-                <StatCard
-                  icon={CalendarDays}
-                  label="Scheduled"
-                  value={stats.scheduled}
-                  subtext="Upcoming"
-                />
-              </div>
-              <div className="col-12 col-sm-6 col-xl-3">
-                <StatCard
-                  icon={Send}
-                  label="Total Sent"
-                  value={stats.totalSent}
-                  subtext="Messages delivered"
-                />
-              </div>
-            </div>
-
-            {/* Search & Filter Toolbar */}
-            <div style={pageStyles.toolbarCard}>
-              <div className="d-flex flex-column flex-xl-row gap-3 justify-content-between align-items-stretch align-items-xl-center">
-                <div style={pageStyles.searchWrap}>
-                  <Search
-                    size={18}
-                    style={{
-                      position: "absolute",
-                      top: "50%",
-                      left: 14,
-                      transform: "translateY(-50%)",
-                      color: "#64748b",
-                      zIndex: 2,
-                    }}
-                  />
-                  <input
-                    className="form-control"
-                    style={pageStyles.searchInput}
-                    placeholder="Search campaign, type, audience or status"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                  />
-                </div>
-
-                <div className="d-flex flex-column flex-sm-row gap-2">
-                  <button
-                    className="btn d-inline-flex align-items-center justify-content-center gap-2"
-                    style={pageStyles.refreshBtn}
-                    onClick={handleRefresh}
-                    type="button"
-                  >
-                    <RefreshCcw size={16} />
-                    Refresh
-                  </button>
-
                   <button
                     style={pageStyles.launchBtn}
                     className="btn d-inline-flex align-items-center justify-content-center gap-2"
                     onClick={() => router.push("/Campaigns/launch")}
                     type="button"
                   >
-                    <Send size={16} />
+                    <Plus size={16} />
                     Launch Campaign
                     <ChevronRight size={16} />
                   </button>
                 </div>
               </div>
 
-              <div className="d-flex flex-wrap gap-2 align-items-center mt-3">
+              {/* Stats row */}
+              <div className="row g-3">
+                <div className="col-12 col-sm-6 col-xl-3">
+                  <StatCard
+                    icon={Megaphone}
+                    label="Total Campaigns"
+                    value={stats.total}
+                    subtext="All campaigns"
+                  />
+                </div>
+                <div className="col-12 col-sm-6 col-xl-3">
+                  <StatCard
+                    icon={PlayCircle}
+                    label="Running"
+                    value={stats.running}
+                    subtext="Active now"
+                  />
+                </div>
+                <div className="col-12 col-sm-6 col-xl-3">
+                  <StatCard
+                    icon={CalendarDays}
+                    label="Scheduled"
+                    value={stats.scheduled}
+                    subtext="Upcoming"
+                  />
+                </div>
+                <div className="col-12 col-sm-6 col-xl-3">
+                  <StatCard
+                    icon={Send}
+                    label="Total Sent"
+                    value={stats.totalSent}
+                    subtext="Messages delivered"
+                  />
+                </div>
+              </div>
+
+              {/* Tabs */}
+              <div className="d-flex flex-wrap gap-2 align-items-center">
                 {topTabs.map((tab) => (
                   <button
                     key={tab}
@@ -719,234 +1318,298 @@ export default function CampaignsPage() {
                       ...pageStyles.filterPill,
                       ...(activeFilter === tab ? pageStyles.filterPillActive : {}),
                     }}
-                    onClick={() => setActiveFilter(tab)}
+                    onClick={() => {
+                      setActiveFilter(tab);
+                      setActiveTab("All");
+                    }}
                   >
                     {tab}
                   </button>
                 ))}
-              </div>
-            </div>
-
-            {/* Campaigns Table */}
-            <div style={pageStyles.tableWrap}>
-              <div className="d-none d-md-block px-3" style={pageStyles.tableHeader}>
-                <div className="row m-0 align-items-center">
-                  <div className="col-md-3 py-3">Campaign</div>
-                  <div className="col-md-2 py-3">Type</div>
-                  <div className="col-md-2 py-3">Date</div>
-                  <div className="col-md-2 py-3">Status</div>
-                  <div className="col-md-2 py-3">Audience</div>
-                  <div className="col-md-1 py-3">Actions</div>
-                </div>
-              </div>
-
-              <div style={{ maxHeight: "60vh", overflowY: "auto", overflowX: "hidden" }}>
-                {filteredData.length > 0 ? (
-                  filteredData.map((item, index) => {
-                    const isUpdating = updatingId === item.id;
-                    const isPaused = item.raw.status === "paused";
-
-                    return (
-                      <div
-                        key={item.id}
-                        ref={(el) => {
-                          rowsRef.current[index] = el;
-                        }}
-                        className="px-3 py-3"
-                        style={pageStyles.row}
-                      >
-                        {/* Mobile view */}
-                        <div className="d-block d-md-none">
-                          <div
-                            style={{
-                              fontSize: "14px",
-                              fontWeight: 700,
-                              color: "#0f172a",
-                              marginBottom: "4px",
-                            }}
-                          >
-                            {item.name}
-                          </div>
-                          <div
-                            style={{
-                              fontSize: "12px",
-                              color: "#94a3b8",
-                              marginBottom: "8px",
-                            }}
-                          >
-                            Sent {item.sent} • Delivered {item.delivered}
-                          </div>
-                          <div className="d-flex flex-wrap gap-2 mb-2">
-                            <span
-                              style={{
-                                ...pageStyles.badgeBase,
-                                ...getTypeStyle(item.type),
-                              }}
-                            >
-                              {item.type}
-                            </span>
-                            <span
-                              style={{
-                                ...pageStyles.badgeBase,
-                                ...getStatusStyle(item.status),
-                              }}
-                            >
-                              {item.status}
-                            </span>
-                          </div>
-                          <div className="small text-secondary mb-2">
-                            <strong>Date:</strong> {item.date}
-                          </div>
-                          <div className="small text-secondary mb-2">
-                            <strong>Audience:</strong> {item.audience}
-                          </div>
-                          <div className="d-flex flex-wrap gap-2 mt-2">
-                            <span style={pageStyles.metricChip}>
-                              Opened {item.opened}
-                            </span>
-                            <span style={pageStyles.metricChip}>
-                              Replies {item.replied}
-                            </span>
-                          </div>
-                          {/* Mobile Actions */}
-                          <div className="d-flex gap-2 mt-2">
-                            <button
-                              onClick={() => handleToggleStatus(item.raw)}
-                              disabled={isUpdating}
-                              style={{
-                                ...pageStyles.actionBtn,
-                                color: isPaused ? "#16a34a" : "#f59e0b",
-                                opacity: isUpdating ? 0.5 : 1,
-                              }}
-                              title={isPaused ? "Resume" : "Pause"}
-                            >
-                              {isPaused ? <Play size={16} /> : <PauseCircle size={16} />}
-                            </button>
-                            <button
-                              onClick={() => handleDelete(item.id, item.name)}
-                              style={{ ...pageStyles.actionBtn, color: "#dc2626" }}
-                              title="Delete"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Desktop view */}
-                        <div className="row align-items-center d-none d-md-flex">
-                          <div className="col-md-3">
-                            <div
-                              style={{
-                                fontSize: "14px",
-                                fontWeight: 700,
-                                color: "#0f172a",
-                                marginBottom: "4px",
-                              }}
-                            >
-                              {item.name}
-                            </div>
-                            <div style={{ fontSize: "12px", color: "#94a3b8" }}>
-                              Sent {item.sent} • Delivered {item.delivered} • Opened {item.opened}
-                            </div>
-                          </div>
-                          <div className="col-md-2">
-                            <span
-                              style={{
-                                ...pageStyles.badgeBase,
-                                ...getTypeStyle(item.type),
-                              }}
-                            >
-                              {item.type}
-                            </span>
-                          </div>
-                          <div className="col-md-2">
-                            <div
-                              style={{
-                                fontSize: "13px",
-                                fontWeight: 700,
-                                color: "#334155",
-                              }}
-                            >
-                              {item.date}
-                            </div>
-                          </div>
-                          <div className="col-md-2">
-                            <span
-                              style={{
-                                ...pageStyles.badgeBase,
-                                ...getStatusStyle(item.status),
-                              }}
-                            >
-                              {item.status}
-                            </span>
-                          </div>
-                          <div className="col-md-2">
-                            <div
-                              style={{
-                                fontSize: "13px",
-                                fontWeight: 700,
-                                color: "#334155",
-                              }}
-                            >
-                              {item.audience}
-                            </div>
-                          </div>
-                          <div className="col-md-1">
-                            <div className="d-flex gap-1">
-                              <button
-                                onClick={() => handleToggleStatus(item.raw)}
-                                disabled={isUpdating}
-                                style={{
-                                  ...pageStyles.actionBtn,
-                                  color: isPaused ? "#16a34a" : "#f59e0b",
-                                  opacity: isUpdating ? 0.5 : 1,
-                                }}
-                                title={isPaused ? "Resume" : "Pause"}
-                              >
-                                {isPaused ? <Play size={16} /> : <PauseCircle size={16} />}
-                              </button>
-                              <button
-                                onClick={() => handleDelete(item.id, item.name)}
-                                style={{ ...pageStyles.actionBtn, color: "#dc2626" }}
-                                title="Delete"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <div
+                {isSuperAdmin && (
+                  <button
+                    onClick={() => setActiveTab("PendingApprovals")}
+                    className="btn d-flex align-items-center gap-2"
                     style={{
-                      padding: "48px 20px",
-                      textAlign: "center",
-                      color: "#64748b",
-                      fontSize: "14px",
-                      fontWeight: 600,
+                      ...pageStyles.filterPill,
+                      ...(isPendingTab ? pageStyles.filterPillActive : {}),
                     }}
                   >
-                    No campaigns found.
-                  </div>
+                    <Bell size={15} />
+                    <span>Pending Approvals</span>
+                  </button>
                 )}
               </div>
-            </div>
 
-            <style jsx global>{`
-              @keyframes pulse {
-                0% {
-                  background-position: 200% 0;
-                }
-                100% {
-                  background-position: -200% 0;
-                }
-              }
-            `}</style>
-          </div>
-        )}
+              {/* Pending Approvals Panel or Main Content */}
+              {isPendingTab && isSuperAdmin ? (
+                <PendingApprovalsPanel
+                  onApprove={(id) => {
+                    setCampaigns((prev) =>
+                      prev.map((c) =>
+                        c._id === id
+                          ? { ...c, approvalStatus: "approved", status: "scheduled" }
+                          : c
+                      )
+                    );
+                  }}
+                  onReject={(id) => {
+                    setCampaigns((prev) =>
+                      prev.map((c) =>
+                        c._id === id
+                          ? { ...c, approvalStatus: "rejected", status: "cancelled" }
+                          : c
+                      )
+                    );
+                  }}
+                />
+              ) : (
+                <>
+                  {/* Search & Filter Toolbar */}
+                  <div style={pageStyles.toolbarCard}>
+                    <div className="d-flex flex-column flex-xl-row gap-3 justify-content-between align-items-stretch align-items-xl-center">
+                      <div style={pageStyles.searchWrap}>
+                        <Search
+                          size={18}
+                          style={{
+                            position: "absolute",
+                            top: "50%",
+                            left: 14,
+                            transform: "translateY(-50%)",
+                            color: "#64748b",
+                            zIndex: 2,
+                          }}
+                        />
+                        <input
+                          className="form-control"
+                          style={pageStyles.searchInput}
+                          placeholder="Search campaign, type, audience or status"
+                          value={search}
+                          onChange={(e) => setSearch(e.target.value)}
+                        />
+                      </div>
+
+                      <div className="d-flex flex-column flex-sm-row gap-2">
+                        <button
+                          className="btn d-inline-flex align-items-center justify-content-center gap-2"
+                          style={pageStyles.refreshBtn}
+                          onClick={handleRefresh}
+                          type="button"
+                        >
+                          <RefreshCcw size={16} />
+                          Refresh
+                        </button>
+
+                        <button
+                          style={pageStyles.launchBtn}
+                          className="btn d-inline-flex align-items-center justify-content-center gap-2"
+                          onClick={() => router.push("/Campaigns/launch")}
+                          type="button"
+                        >
+                          <Plus size={16} />
+                          Launch Campaign
+                          <ChevronRight size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Campaigns Table */}
+                  <div style={pageStyles.tableWrap}>
+                    <div className="d-none d-md-block px-3" style={pageStyles.tableHeader}>
+                      <div className="row m-0 align-items-center">
+                        <div className="col-md-3 py-3">Campaign</div>
+                        <div className="col-md-2 py-3">Type</div>
+                        <div className="col-md-1 py-3">Date</div>
+                        <div className="col-md-1 py-3">Status</div>
+                        <div className="col-md-1 py-3">Approval</div>
+                        <div className="col-md-2 py-3">Audience</div>
+                        <div className="col-md-2 py-3">Actions</div>
+                      </div>
+                    </div>
+
+                    <div style={{ maxHeight: "60vh", overflowY: "auto", overflowX: "hidden" }}>
+                      {filteredData.length > 0 ? (
+                        filteredData.map((item, index) => {
+                          const isUpdating = updatingId === item.id;
+                          const isPaused = item.raw.status === "paused";
+                          const canEdit = isSuperAdmin || (isManager && isOwner(item.raw));
+                          const canDelete = isSuperAdmin || (isManager && isOwner(item.raw));
+
+                          return (
+                            <div
+                              key={item.id}
+                              ref={(el) => {
+                                rowsRef.current[index] = el;
+                              }}
+                              className="px-3 py-3"
+                              style={pageStyles.row}
+                            >
+                              {/* Mobile view */}
+                              <div className="d-block d-md-none">
+                                <div style={{ fontSize: "14px", fontWeight: 700, color: "#0f172a", marginBottom: "4px" }}>
+                                  {item.name}
+                                </div>
+                                <div style={{ fontSize: "12px", color: "#94a3b8", marginBottom: "8px" }}>
+                                  Sent {item.sent}
+                                </div>
+                                <div className="d-flex flex-wrap gap-2 mb-2">
+                                  <span style={{ ...pageStyles.badgeBase, ...getTypeStyle(item.type) }}>
+                                    {item.type}
+                                  </span>
+                                  <span style={{ ...pageStyles.badgeBase, ...getStatusStyle(item.status) }}>
+                                    {item.status}
+                                  </span>
+                                </div>
+                                {getApprovalBadge(item.raw) && (
+                                  <div className="mb-2">{getApprovalBadge(item.raw)}</div>
+                                )}
+                                <div className="small text-secondary mb-2">
+                                  <strong>Date:</strong> {item.date}
+                                </div>
+                                <div className="small text-secondary mb-2">
+                                  <strong>Audience:</strong> {item.audience}
+                                </div>
+                                <div className="d-flex flex-wrap gap-2 mt-2">
+                                  {canEdit && (
+                                    <>
+                                      <button
+                                        onClick={() => handleToggleStatus(item.raw)}
+                                        disabled={isUpdating}
+                                        style={{
+                                          ...pageStyles.actionBtn,
+                                          color: isPaused ? "#16a34a" : "#f59e0b",
+                                          opacity: isUpdating ? 0.5 : 1,
+                                        }}
+                                        title={isPaused ? "Resume" : "Pause"}
+                                      >
+                                        {isPaused ? <Play size={16} /> : <PauseCircle size={16} />}
+                                      </button>
+                                      <button
+                                        onClick={() => setEditingCampaignId(item.id)}
+                                        style={pageStyles.actionBtn}
+                                        title="Edit"
+                                      >
+                                        <Edit size={16} />
+                                      </button>
+                                    </>
+                                  )}
+                                  {canDelete && (
+                                    <button
+                                      onClick={() => handleDelete(item.id, item.name)}
+                                      style={{ ...pageStyles.actionBtn, color: "#dc2626" }}
+                                      title="Delete"
+                                    >
+                                      <Trash2 size={16} />
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Desktop view */}
+                              <div className="row align-items-center d-none d-md-flex">
+                                <div className="col-md-3">
+                                  <div style={{ fontSize: "14px", fontWeight: 700, color: "#0f172a", marginBottom: "4px" }}>
+                                    {item.name}
+                                  </div>
+                                  <div style={{ fontSize: "12px", color: "#94a3b8" }}>
+                                    Sent {item.sent}
+                                  </div>
+                                </div>
+                                <div className="col-md-2">
+                                  <span style={{ ...pageStyles.badgeBase, ...getTypeStyle(item.type) }}>
+                                    {item.type}
+                                  </span>
+                                </div>
+                                <div className="col-md-1">
+                                  <div style={{ fontSize: "13px", fontWeight: 700, color: "#334155" }}>
+                                    {item.date}
+                                  </div>
+                                </div>
+                                <div className="col-md-1">
+                                  <span style={{ ...pageStyles.badgeBase, ...getStatusStyle(item.status) }}>
+                                    {item.status}
+                                  </span>
+                                </div>
+                                <div className="col-md-1">
+                                  {getApprovalBadge(item.raw) || <span style={{ color: "#9ca3af", fontSize: 12 }}>—</span>}
+                                </div>
+                                <div className="col-md-2">
+                                  <div style={{ fontSize: "13px", fontWeight: 700, color: "#334155" }}>
+                                    {item.audience}
+                                  </div>
+                                </div>
+                                <div className="col-md-2">
+                                  <div className="d-flex gap-1">
+                                    {canEdit && (
+                                      <>
+                                        <button
+                                          onClick={() => handleToggleStatus(item.raw)}
+                                          disabled={isUpdating}
+                                          style={{
+                                            ...pageStyles.actionBtn,
+                                            color: isPaused ? "#16a34a" : "#f59e0b",
+                                            opacity: isUpdating ? 0.5 : 1,
+                                          }}
+                                          title={isPaused ? "Resume" : "Pause"}
+                                        >
+                                          {isPaused ? <Play size={16} /> : <PauseCircle size={16} />}
+                                        </button>
+                                        <button
+                                          onClick={() => setEditingCampaignId(item.id)}
+                                          style={pageStyles.actionBtn}
+                                          title="Edit"
+                                        >
+                                          <Edit size={16} />
+                                        </button>
+                                      </>
+                                    )}
+                                    {canDelete && (
+                                      <button
+                                        onClick={() => handleDelete(item.id, item.name)}
+                                        style={{ ...pageStyles.actionBtn, color: "#dc2626" }}
+                                        title="Delete"
+                                      >
+                                        <Trash2 size={16} />
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <div
+                          style={{
+                            padding: "48px 20px",
+                            textAlign: "center",
+                            color: "#64748b",
+                            fontSize: "14px",
+                            fontWeight: 600,
+                          }}
+                        >
+                          No campaigns found.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+        <style jsx global>{`
+          @keyframes pulse {
+            0% {
+              background-position: 200% 0;
+            }
+            100% {
+              background-position: -200% 0;
+            }
+          }
+        `}</style>
       </div>
-    </div>
+    </>
   );
 }

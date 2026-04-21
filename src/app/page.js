@@ -9,9 +9,8 @@ export default function Page() {
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
 
-const BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
-
-const API_BASE = `${BASE}`;
+  const BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
+  const API_BASE = `${BASE}`;
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -20,52 +19,49 @@ const API_BASE = `${BASE}`;
     }
   }, []);
 
-const handleLogin = async () => {
-  if (!name || !phone) {
-    alert("Please enter both name and phone number");
-    return;
-  }
-
-  setLoading(true);
-
-  try {
-    const res = await fetch(`${API_BASE}/api/users/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, phone }),
-    });
-
-    const data = await res.json(); // ✅ read once
-
-    if (!res.ok) {
-      throw new Error(data.error || "Login failed");
+  const handleLogin = async () => {
+    if (!name || !phone) {
+      alert("Please enter both name and phone number");
+      return;
     }
 
-    console.log("LOGIN RESPONSE:", data); // 🔥 DEBUG
+    setLoading(true);
 
-    // 🔐 FIX STARTS HERE
-    localStorage.setItem("token", data.token); // ✅ store token
-    localStorage.setItem("user", JSON.stringify(data.user)); // ✅ store only user
+    try {
+      const res = await fetch(`${API_BASE}/api/users/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, phone }),
+      });
 
-    setUser(data.user);
+      const data = await res.json();
 
-    // notify layout
-    window.dispatchEvent(new Event("loginStatusChanged"));
+      if (!res.ok) {
+        throw new Error(data.error || "Login failed");
+      }
 
-  } catch (err) {
-    console.error(err);
-    alert(err.message || "Could not log in. Please try again.");
-  } finally {
-    setLoading(false);
-  }
-};
+      console.log("LOGIN RESPONSE:", data);
 
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      localStorage.setItem("role", data.user.role); // ✅ ADDED
+
+      setUser(data.user);
+
+      window.dispatchEvent(new Event("loginStatusChanged"));
+
+    } catch (err) {
+      console.error(err);
+      alert(err.message || "Could not log in. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (user) {
     return <DashboardPage />;
   }
 
-  // WhatsApp‑like login UI (same as before)
   return (
     <div
       style={{
@@ -88,7 +84,7 @@ const handleLogin = async () => {
           overflow: "hidden",
         }}
       >
-        {/* Header with WhatsApp green */}
+        {/* Header */}
         <div
           style={{
             background: "#00a884",
@@ -109,41 +105,15 @@ const handleLogin = async () => {
               boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
             }}
           >
-            <svg
-              width="40"
-              height="40"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M12 2C6.48 2 2 6.48 2 12c0 2.09.64 4.04 1.74 5.66L2 22l4.34-1.74C7.96 21.36 9.91 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2z"
-                fill="#00a884"
-              />
-              <path
-                d="M12 4c4.42 0 8 3.58 8 8s-3.58 8-8 8c-1.88 0-3.62-.65-5-1.74L6 18l1.74-1.74C7.35 15.62 7 14.88 7 14c0-3.31 2.69-6 6-6h-1v2h1c2.21 0 4 1.79 4 4s-1.79 4-4 4c-1.45 0-2.73-.77-3.44-1.94L8 16l1.06-1.06c.61.67 1.49 1.06 2.44 1.06 1.66 0 3-1.34 3-3s-1.34-3-3-3h-1V6h1c1.66 0 3 1.34 3 3s-1.34 3-3 3z"
-                fill="#ffffff"
-              />
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2C6.48 2 2 6.48 2 12c0 2.09.64 4.04 1.74 5.66L2 22l4.34-1.74C7.96 21.36 9.91 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2z" fill="#00a884" />
+              <path d="M12 4c4.42 0 8 3.58 8 8s-3.58 8-8 8c-1.88 0-3.62-.65-5-1.74L6 18l1.74-1.74C7.35 15.62 7 14.88 7 14c0-3.31 2.69-6 6-6h-1v2h1c2.21 0 4 1.79 4 4s-1.79 4-4 4c-1.45 0-2.73-.77-3.44-1.94L8 16l1.06-1.06c.61.67 1.49 1.06 2.44 1.06 1.66 0 3-1.34 3-3s-1.34-3-3-3h-1V6h1c1.66 0 3 1.34 3 3s-1.34 3-3 3z" fill="#ffffff" />
             </svg>
           </div>
-          <h1
-            style={{
-              margin: 0,
-              fontSize: "28px",
-              fontWeight: 600,
-              color: "#ffffff",
-              letterSpacing: "-0.3px",
-            }}
-          >
+          <h1 style={{ margin: 0, fontSize: "28px", fontWeight: 600, color: "#ffffff", letterSpacing: "-0.3px" }}>
             WhatsApp Chat
           </h1>
-          <p
-            style={{
-              margin: "8px 0 0",
-              fontSize: "14px",
-              color: "rgba(255,255,255,0.85)",
-            }}
-          >
+          <p style={{ margin: "8px 0 0", fontSize: "14px", color: "rgba(255,255,255,0.85)" }}>
             Sign in to continue
           </p>
         </div>
@@ -151,15 +121,7 @@ const handleLogin = async () => {
         {/* Form */}
         <div style={{ padding: "32px 28px 36px" }}>
           <div style={{ marginBottom: "24px" }}>
-            <label
-              style={{
-                display: "block",
-                fontSize: "14px",
-                fontWeight: 500,
-                color: "#374151",
-                marginBottom: "8px",
-              }}
-            >
+            <label style={{ display: "block", fontSize: "14px", fontWeight: 500, color: "#374151", marginBottom: "8px" }}>
               Full Name
             </label>
             <input
@@ -178,29 +140,13 @@ const handleLogin = async () => {
                 boxSizing: "border-box",
                 background: "#f9fafb",
               }}
-              onFocus={(e) => {
-                e.target.style.borderColor = "#00a884";
-                e.target.style.background = "#ffffff";
-              }}
-              onBlur={(e) => {
-                if (!e.target.value) {
-                  e.target.style.borderColor = "#e5e7eb";
-                  e.target.style.background = "#f9fafb";
-                }
-              }}
+              onFocus={(e) => { e.target.style.borderColor = "#00a884"; e.target.style.background = "#ffffff"; }}
+              onBlur={(e) => { if (!e.target.value) { e.target.style.borderColor = "#e5e7eb"; e.target.style.background = "#f9fafb"; } }}
             />
           </div>
 
           <div style={{ marginBottom: "32px" }}>
-            <label
-              style={{
-                display: "block",
-                fontSize: "14px",
-                fontWeight: 500,
-                color: "#374151",
-                marginBottom: "8px",
-              }}
-            >
+            <label style={{ display: "block", fontSize: "14px", fontWeight: 500, color: "#374151", marginBottom: "8px" }}>
               Phone Number
             </label>
             <input
@@ -219,16 +165,8 @@ const handleLogin = async () => {
                 boxSizing: "border-box",
                 background: "#f9fafb",
               }}
-              onFocus={(e) => {
-                e.target.style.borderColor = "#00a884";
-                e.target.style.background = "#ffffff";
-              }}
-              onBlur={(e) => {
-                if (!e.target.value) {
-                  e.target.style.borderColor = "#e5e7eb";
-                  e.target.style.background = "#f9fafb";
-                }
-              }}
+              onFocus={(e) => { e.target.style.borderColor = "#00a884"; e.target.style.background = "#ffffff"; }}
+              onBlur={(e) => { if (!e.target.value) { e.target.style.borderColor = "#e5e7eb"; e.target.style.background = "#f9fafb"; } }}
             />
           </div>
 
@@ -248,40 +186,17 @@ const handleLogin = async () => {
               transition: "background 0.2s, transform 0.1s",
               boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
             }}
-            onMouseEnter={(e) => {
-              if (!loading) e.target.style.background = "#008f72";
-            }}
-            onMouseLeave={(e) => {
-              if (!loading) e.target.style.background = "#00a884";
-            }}
+            onMouseEnter={(e) => { if (!loading) e.target.style.background = "#008f72"; }}
+            onMouseLeave={(e) => { if (!loading) e.target.style.background = "#00a884"; }}
           >
             {loading ? (
-              <span
-                style={{
-                  display: "inline-block",
-                  width: "20px",
-                  height: "20px",
-                  border: "2px solid white",
-                  borderTop: "2px solid transparent",
-                  borderRadius: "50%",
-                  animation: "spin 0.8s linear infinite",
-                  verticalAlign: "middle",
-                }}
-              />
+              <span style={{ display: "inline-block", width: "20px", height: "20px", border: "2px solid white", borderTop: "2px solid transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite", verticalAlign: "middle" }} />
             ) : (
               "Start Chatting →"
             )}
           </button>
 
-          <p
-            style={{
-              textAlign: "center",
-              fontSize: "12px",
-              color: "#9ca3af",
-              marginTop: "24px",
-              marginBottom: 0,
-            }}
-          >
+          <p style={{ textAlign: "center", fontSize: "12px", color: "#9ca3af", marginTop: "24px", marginBottom: 0 }}>
             By continuing, you agree to our Terms & Privacy Policy.
           </p>
         </div>

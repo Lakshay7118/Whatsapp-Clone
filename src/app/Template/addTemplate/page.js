@@ -577,8 +577,12 @@ export default function NewTemplatePage() {
 
       const result = res.data;
       setSubmittedData(result.template);
-      setSubmitError("");
-      setSubmitMessage("Template submitted successfully.");
+setSubmitError("");
+setSubmitMessage(
+  result.pendingApproval
+    ? "⏳ Template submitted for admin approval! You'll be notified once approved."
+    : "✅ Template created successfully."
+);
 
       setTimeout(() => {
         router.push("/Template");

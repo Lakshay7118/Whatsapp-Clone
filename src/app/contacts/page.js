@@ -2,62 +2,46 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { FiTrash2, FiEdit2 } from "react-icons/fi";
-import API from "../utils/api";   // ✅ using your axios instance
+import { FiTrash2, FiEdit2, FiCheck, FiX, FiUsers, FiArrowLeft } from "react-icons/fi";
+import API from "../utils/api";
+
+// ── Status Badge ──────────────────────────────────────────────────────────
+function StatusBadge({ status }) {
+  const colors = {
+    approved: { bg: "#d1fae5", color: "#065f46" },
+    pending:  { bg: "#fef3c7", color: "#92400e" },
+    rejected: { bg: "#fee2e2", color: "#991b1b" },
+  };
+  const s = colors[status] || colors.pending;
+  return (
+    <span style={{ background: s.bg, color: s.color, borderRadius: 6, padding: "2px 10px", fontSize: 11, fontWeight: 700, textTransform: "uppercase" }}>
+      {status}
+    </span>
+  );
+}
 
 // ── TagBadge ──────────────────────────────────────────────────────────────
 function TagBadge({ label }) {
   return (
-    <span
-      style={{
-        background: "#fde8e8",
-        color: "#c0392b",
-        borderRadius: 6,
-        padding: "2px 10px",
-        fontSize: 12,
-        fontWeight: 600,
-        letterSpacing: 0.2,
-      }}
-    >
+    <span style={{ background: "#fde8e8", color: "#c0392b", borderRadius: 6, padding: "2px 10px", fontSize: 12, fontWeight: 600 }}>
       {label}
     </span>
   );
 }
 
-// ── AddContactModal (unchanged but uses API inside parent) ─────────────────
-function AddContactModal({ onClose, onAdd, availableTags }) {
-  const [form, setForm] = useState({
-    name: "",
-    mobile: "",
-    tagId: "",
-    source: "MANUAL",
-  });
+// ── AddContactModal ───────────────────────────────────────────────────────
+function AddContactModal({ onClose, onAdd, availableTags, isSuperAdmin }) {
+  const [form, setForm] = useState({ name: "", mobile: "", tagId: "", source: "MANUAL", role: "user" });
   const [error, setError] = useState("");
 
-  const handle = (key) => (e) => {
-    setForm((prev) => ({ ...prev, [key]: e.target.value }));
-  };
+  const handle = (key) => (e) => setForm((prev) => ({ ...prev, [key]: e.target.value }));
 
   const submit = () => {
     const cleanMobile = form.mobile.replace(/\s/g, "").trim();
-
-    if (!cleanMobile) {
-      return setError("Mobile number is required.");
-    }
-
-    if (!/^\d{10,15}$/.test(cleanMobile)) {
-      return setError("Enter a valid mobile number (10–15 digits).");
-    }
-
+    if (!cleanMobile) return setError("Mobile number is required.");
+    if (!/^\d{10,15}$/.test(cleanMobile)) return setError("Enter a valid mobile number (10–15 digits).");
     setError("");
-
-    onAdd({
-      name: form.name.trim() || "UNKNOWN",
-      mobile: cleanMobile,
-      tags: form.tagId ? [form.tagId] : [],
-      source: form.source,
-    });
-
+    onAdd({ name: form.name.trim() || "UNKNOWN", mobile: cleanMobile, tags: form.tagId ? [form.tagId] : [], source: form.source, role: form.role });
     onClose();
   };
 
@@ -68,23 +52,22 @@ function AddContactModal({ onClose, onAdd, availableTags }) {
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#1a2233" }}>Add Contact</h2>
           <button onClick={onClose} style={closeBtn}>✕</button>
         </div>
+        {error && <p style={{ color: "#e74c3c", fontSize: 13, marginBottom: 12, background: "#fdf0f0", padding: "8px 12px", borderRadius: 6 }}>{error}</p>}
 
-        {error && (
-          <p style={{ color: "#e74c3c", fontSize: 13, marginBottom: 12, background: "#fdf0f0", padding: "8px 12px", borderRadius: 6 }}>
-            {error}
-          </p>
+        {!isSuperAdmin && (
+          <div style={{ background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 8, padding: "10px 14px", marginBottom: 14, fontSize: 13, color: "#92400e" }}>
+            ⏳ Your contact will be sent for <strong>admin approval</strong> before being visible.
+          </div>
         )}
 
         <div style={{ marginBottom: 14 }}>
           <label style={labelStyle}>Name</label>
           <input value={form.name} onChange={handle("name")} placeholder="Full name (optional)" style={inputStyle} />
         </div>
-
         <div style={{ marginBottom: 14 }}>
           <label style={labelStyle}>Mobile Number *</label>
           <input value={form.mobile} onChange={handle("mobile")} placeholder="e.g. 919876543210" style={inputStyle} />
         </div>
-
         <div style={{ marginBottom: 14 }}>
           <label style={labelStyle}>Tag</label>
           <select value={form.tagId} onChange={handle("tagId")} style={inputStyle}>
@@ -94,8 +77,7 @@ function AddContactModal({ onClose, onAdd, availableTags }) {
             ))}
           </select>
         </div>
-
-        <div style={{ marginBottom: 20 }}>
+        <div style={{ marginBottom: 14 }}>
           <label style={labelStyle}>Source</label>
           <select value={form.source} onChange={handle("source")} style={inputStyle}>
             <option value="ORGANIC">ORGANIC</option>
@@ -103,7 +85,16 @@ function AddContactModal({ onClose, onAdd, availableTags }) {
             <option value="MANUAL">MANUAL</option>
           </select>
         </div>
-
+        {isSuperAdmin && (
+          <div style={{ marginBottom: 20 }}>
+            <label style={labelStyle}>Role</label>
+            <select value={form.role} onChange={handle("role")} style={inputStyle}>
+              <option value="user">User</option>
+              <option value="manager">Manager</option>
+              <option value="super_admin">Super Admin</option>
+            </select>
+          </div>
+        )}
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
           <button onClick={onClose} style={secondaryBtn}>Cancel</button>
           <button onClick={submit} style={primaryBtn}>Add Contact</button>
@@ -114,7 +105,7 @@ function AddContactModal({ onClose, onAdd, availableTags }) {
 }
 
 // ── EditContactModal ──────────────────────────────────────────────────────
-function EditContactModal({ contact, onClose, onUpdate, availableTags }) {
+function EditContactModal({ contact, onClose, onUpdate, availableTags, isSuperAdmin }) {
   const [form, setForm] = useState({
     name: contact.name || "",
     mobile: contact.mobile || "",
@@ -122,31 +113,14 @@ function EditContactModal({ contact, onClose, onUpdate, availableTags }) {
     source: contact.source || "MANUAL",
   });
   const [error, setError] = useState("");
-
-  const handle = (key) => (e) => {
-    setForm((prev) => ({ ...prev, [key]: e.target.value }));
-  };
+  const handle = (key) => (e) => setForm((prev) => ({ ...prev, [key]: e.target.value }));
 
   const submit = () => {
     const cleanMobile = form.mobile.replace(/\s/g, "").trim();
-
-    if (!cleanMobile) {
-      return setError("Mobile number is required.");
-    }
-
-    if (!/^\d{10,15}$/.test(cleanMobile)) {
-      return setError("Enter a valid mobile number (10–15 digits).");
-    }
-
+    if (!cleanMobile) return setError("Mobile number is required.");
+    if (!/^\d{10,15}$/.test(cleanMobile)) return setError("Enter a valid mobile number (10–15 digits).");
     setError("");
-
-    onUpdate(contact._id, {
-      name: form.name.trim() || "UNKNOWN",
-      mobile: cleanMobile,
-      tags: form.tagId ? [form.tagId] : [],
-      source: form.source,
-    });
-
+    onUpdate(contact._id, { name: form.name.trim() || "UNKNOWN", mobile: cleanMobile, tags: form.tagId ? [form.tagId] : [], source: form.source });
     onClose();
   };
 
@@ -157,23 +131,22 @@ function EditContactModal({ contact, onClose, onUpdate, availableTags }) {
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#1a2233" }}>Edit Contact</h2>
           <button onClick={onClose} style={closeBtn}>✕</button>
         </div>
+        {error && <p style={{ color: "#e74c3c", fontSize: 13, marginBottom: 12, background: "#fdf0f0", padding: "8px 12px", borderRadius: 6 }}>{error}</p>}
 
-        {error && (
-          <p style={{ color: "#e74c3c", fontSize: 13, marginBottom: 12, background: "#fdf0f0", padding: "8px 12px", borderRadius: 6 }}>
-            {error}
-          </p>
+        {!isSuperAdmin && (
+          <div style={{ background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 8, padding: "10px 14px", marginBottom: 14, fontSize: 13, color: "#92400e" }}>
+            ⏳ Edits will be sent for <strong>admin approval</strong>.
+          </div>
         )}
 
         <div style={{ marginBottom: 14 }}>
           <label style={labelStyle}>Name</label>
           <input value={form.name} onChange={handle("name")} placeholder="Full name (optional)" style={inputStyle} />
         </div>
-
         <div style={{ marginBottom: 14 }}>
           <label style={labelStyle}>Mobile Number *</label>
           <input value={form.mobile} onChange={handle("mobile")} placeholder="e.g. 919876543210" style={inputStyle} />
         </div>
-
         <div style={{ marginBottom: 14 }}>
           <label style={labelStyle}>Tag</label>
           <select value={form.tagId} onChange={handle("tagId")} style={inputStyle}>
@@ -183,7 +156,6 @@ function EditContactModal({ contact, onClose, onUpdate, availableTags }) {
             ))}
           </select>
         </div>
-
         <div style={{ marginBottom: 20 }}>
           <label style={labelStyle}>Source</label>
           <select value={form.source} onChange={handle("source")} style={inputStyle}>
@@ -192,7 +164,6 @@ function EditContactModal({ contact, onClose, onUpdate, availableTags }) {
             <option value="MANUAL">MANUAL</option>
           </select>
         </div>
-
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
           <button onClick={onClose} style={secondaryBtn}>Cancel</button>
           <button onClick={submit} style={primaryBtn}>Update Contact</button>
@@ -202,11 +173,37 @@ function EditContactModal({ contact, onClose, onUpdate, availableTags }) {
   );
 }
 
-// ── Main ContactsPage (using API instead of fetch) ────────────────────────
+// ── ManagerCard ───────────────────────────────────────────────────────────
+function ManagerCard({ manager, onClick, contactCount }) {
+  return (
+    <div onClick={onClick} style={{ background: "#fff", borderRadius: 12, padding: "18px 20px", boxShadow: "0 1px 4px rgba(0,0,0,0.08)", cursor: "pointer", border: "1.5px solid #e5e7eb", transition: "border-color 0.2s" }}
+      onMouseEnter={(e) => e.currentTarget.style.borderColor = "#0d9488"}
+      onMouseLeave={(e) => e.currentTarget.style.borderColor = "#e5e7eb"}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ width: 42, height: 42, borderRadius: "50%", background: "#0d9488", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 16 }}>
+          {(manager.name || "M")[0].toUpperCase()}
+        </div>
+        <div>
+          <div style={{ fontWeight: 700, color: "#1a2233", fontSize: 15 }}>{manager.name || "Unknown"}</div>
+          <div style={{ fontSize: 12, color: "#6b7280" }}>{manager.phone}</div>
+        </div>
+        <div style={{ marginLeft: "auto", textAlign: "right" }}>
+          <div style={{ fontSize: 20, fontWeight: 700, color: "#0d9488" }}>{contactCount ?? "—"}</div>
+          <div style={{ fontSize: 11, color: "#9ca3af" }}>contacts</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main ContactsPage ─────────────────────────────────────────────────────
 export default function ContactsPage() {
   const router = useRouter();
 
   const [contacts, setContacts] = useState([]);
+  const [pendingContacts, setPendingContacts] = useState([]);
+  const [managers, setManagers] = useState([]);
   const [tags, setTags] = useState([]);
   const [search, setSearch] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
@@ -216,14 +213,36 @@ export default function ContactsPage() {
   const [filterTagId, setFilterTagId] = useState("");
   const [loading, setLoading] = useState(true);
 
+  // ✅ Admin view states
+  const [adminView, setAdminView] = useState("all"); // "managers" | "all" | "pending"
+  const [selectedManager, setSelectedManager] = useState(null); // manager object
+
+  const [userRole, setUserRole] = useState("");
   const PER_PAGE = 25;
 
-  // Fetch contacts (with optional tag filter)
+  useEffect(() => {
+    const role = localStorage.getItem("role");
+    setUserRole(role || "");
+  }, []);
+
+  const isSuperAdmin = userRole === "super_admin";
+  const isManager = userRole === "manager";
+  const isManagerOrAbove = isSuperAdmin || isManager;
+
+  // ── Fetch contacts based on role and view ──
   const fetchContacts = async () => {
     try {
-      const url = filterTagId ? `/contacts?tag=${filterTagId}` : "/contacts";
+      let url = "/contacts";
+      if (isSuperAdmin) {
+        if (adminView === "all") url = "/contacts";
+        else if (adminView === "manager" && selectedManager) url = `/contacts?managerId=${selectedManager._id}`;
+        else if (adminView === "pending") url = "/contacts/pending";
+        else return; // managers view — don't fetch contacts
+      }
+      if (filterTagId) url += (url.includes("?") ? "&" : "?") + `tag=${filterTagId}`;
       const res = await API.get(url);
-      setContacts(res.data);
+      if (adminView === "pending") setPendingContacts(res.data);
+      else setContacts(res.data);
     } catch (err) {
       console.error("Failed to fetch contacts:", err);
     } finally {
@@ -231,53 +250,75 @@ export default function ContactsPage() {
     }
   };
 
-  // Fetch all tags
+  const fetchManagers = async () => {
+    try {
+      const res = await API.get("/contacts/managers");
+      setManagers(res.data);
+    } catch (err) {
+      console.error("Failed to fetch managers:", err);
+    }
+  };
+
   const fetchTags = async () => {
     try {
       const res = await API.get("/tags");
       const data = res.data;
-      // Backend may return { tags: [...] } or direct array
       setTags(Array.isArray(data.tags) ? data.tags : Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Failed to fetch tags:", err);
     }
   };
 
-  useEffect(() => {
-    fetchTags();
-  }, []);
+  useEffect(() => { if (userRole) { fetchTags(); if (isSuperAdmin) fetchManagers(); } }, [userRole]);
+  useEffect(() => { if (userRole) { setLoading(true); fetchContacts(); } }, [filterTagId, adminView, selectedManager, userRole]);
 
-  useEffect(() => {
-    fetchContacts();
-  }, [filterTagId]);
-
-  // Add contact
   const addContact = async (contact) => {
     try {
-      const userId = localStorage.getItem("userId") || "test_user";
-      const payload = { ...contact, createdBy: userId };
-      const res = await API.post("/contacts", payload);
-      const newContact = res.data;
-      setContacts((prev) => [newContact, ...prev]);
+      const res = await API.post("/contacts", contact);
+      if (res.data.status === "pending") {
+        alert("✅ Contact submitted! Waiting for admin approval.");
+      } else {
+        setContacts((prev) => [res.data, ...prev]);
+      }
     } catch (err) {
       alert(err.response?.data?.error || "Failed to create contact");
     }
   };
 
-  // Update contact
   const updateContact = async (id, updatedData) => {
     try {
       const res = await API.put(`/contacts/${id}`, updatedData);
-      const updatedContact = res.data;
-      setContacts((prev) =>
-        prev.map((c) => (c._id === id ? updatedContact : c))
-      );
+      if (res.data.status === "pending") {
+        alert("✅ Edit submitted! Waiting for admin approval.");
+        setContacts((prev) => prev.map((c) => (c._id === id ? res.data : c)));
+      } else {
+        setContacts((prev) => prev.map((c) => (c._id === id ? res.data : c)));
+      }
     } catch (err) {
       alert(err.response?.data?.error || "Failed to update contact");
     }
   };
 
-  // Delete single contact
+  const approveContact = async (id) => {
+    try {
+      const res = await API.put(`/contacts/${id}/approve`);
+      setPendingContacts((prev) => prev.filter((c) => c._id !== id));
+      alert("✅ Contact approved!");
+    } catch (err) {
+      alert("Failed to approve");
+    }
+  };
+
+  const rejectContact = async (id) => {
+    try {
+      await API.put(`/contacts/${id}/reject`);
+      setPendingContacts((prev) => prev.filter((c) => c._id !== id));
+      alert("❌ Contact rejected.");
+    } catch (err) {
+      alert("Failed to reject");
+    }
+  };
+
   const deleteSingleContact = async (contactId, contactName) => {
     if (!confirm(`Delete "${contactName}" permanently?`)) return;
     try {
@@ -287,15 +328,13 @@ export default function ContactsPage() {
       newSelected.delete(contactId);
       setSelected(newSelected);
     } catch (err) {
-      console.error(err);
       alert("Failed to delete contact");
     }
   };
 
-  // Bulk delete
   const deleteSelected = async () => {
     const idsToDelete = Array.from(selected);
-    if (idsToDelete.length === 0) return;
+    if (!idsToDelete.length) return;
     if (!confirm(`Delete ${idsToDelete.length} contact(s)?`)) return;
     try {
       await Promise.all(idsToDelete.map((id) => API.delete(`/contacts/${id}`)));
@@ -306,9 +345,13 @@ export default function ContactsPage() {
     }
   };
 
-  // Filter contacts by search (name, mobile, tag name)
+  const getTagName = (tag) => {
+    if (typeof tag === "string") return tag;
+    return tag?.name || tag?.tagName || "";
+  };
+
   const filtered = contacts.filter((c) => {
-    const tagNames = (c.tags || []).map((tag) => tag.name || tag.tagName || "").join(" ");
+    const tagNames = (c.tags || []).map((tag) => getTagName(tag)).join(" ");
     return (
       c.name?.toLowerCase().includes(search.toLowerCase()) ||
       c.mobile?.includes(search) ||
@@ -322,11 +365,8 @@ export default function ContactsPage() {
   const paged = filtered.slice((currentPage - 1) * PER_PAGE, currentPage * PER_PAGE);
 
   const toggleAll = () => {
-    if (selected.size === paged.length && paged.length > 0) {
-      setSelected(new Set());
-    } else {
-      setSelected(new Set(paged.map((c) => c._id)));
-    }
+    if (selected.size === paged.length && paged.length > 0) setSelected(new Set());
+    else setSelected(new Set(paged.map((c) => c._id)));
   };
 
   const toggleOne = (id) => {
@@ -336,29 +376,134 @@ export default function ContactsPage() {
     setSelected(next);
   };
 
-  const getTagName = (tag) => {
-    if (typeof tag === "string") return tag;
-    return tag?.name || tag?.tagName || "";
-  };
+  if (loading) return <div style={pageWrap}>Loading...</div>;
 
-  if (loading) return <div style={pageWrap}>Loading contacts...</div>;
+  // ════════════════════════════════════════
+  // SUPER ADMIN — MANAGERS LIST VIEW
+  // ════════════════════════════════════════
+  if (isSuperAdmin && adminView === "managers") {
+    return (
+      <div style={pageWrap}>
+        <div style={contentShell}>
+          {/* Tabs */}
+          <div style={{ display: "flex", gap: 10, marginBottom: 20, flexShrink: 0 }}>
+            <button onClick={() => setAdminView("managers")} style={{ ...tabBtn, background: "#0d9488", color: "#fff" }}>👥 Managers</button>
+            <button onClick={() => { setAdminView("all"); setLoading(true); }} style={tabBtn}>🌐 All Contacts</button>
+            <button onClick={() => { setAdminView("pending"); setLoading(true); }} style={{ ...tabBtn, position: "relative" }}>
+              ⏳ Pending Approvals
+              {pendingContacts.length > 0 && (
+                <span style={{ background: "#e74c3c", color: "#fff", borderRadius: "50%", padding: "1px 6px", fontSize: 11, marginLeft: 6 }}>{pendingContacts.length}</span>
+              )}
+            </button>
+          </div>
 
+          <h2 style={{ margin: "0 0 16px", fontSize: 18, fontWeight: 700, color: "#1a2233" }}>All Managers</h2>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16, overflowY: "auto" }}>
+            {managers.length === 0 && (
+              <p style={{ color: "#9ca3af", fontSize: 14 }}>No managers found. Create one first.</p>
+            )}
+            {managers.map((mgr) => (
+              <ManagerCard
+                key={mgr._id}
+                manager={mgr}
+                onClick={() => { setSelectedManager(mgr); setAdminView("manager"); setLoading(true); }}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ════════════════════════════════════════
+  // SUPER ADMIN — PENDING APPROVALS VIEW
+  // ════════════════════════════════════════
+  if (isSuperAdmin && adminView === "pending") {
+    return (
+      <div style={pageWrap}>
+        <div style={contentShell}>
+          {/* Tabs */}
+          <div style={{ display: "flex", gap: 10, marginBottom: 20, flexShrink: 0 }}>
+            <button onClick={() => setAdminView("managers")} style={tabBtn}>👥 Managers</button>
+            <button onClick={() => { setAdminView("all"); setLoading(true); }} style={tabBtn}>🌐 All Contacts</button>
+            <button style={{ ...tabBtn, background: "#0d9488", color: "#fff" }}>⏳ Pending Approvals</button>
+          </div>
+
+          <h2 style={{ margin: "0 0 16px", fontSize: 18, fontWeight: 700, color: "#1a2233" }}>
+            Pending Approvals <span style={{ fontSize: 14, color: "#6b7280", fontWeight: 400 }}>({pendingContacts.length})</span>
+          </h2>
+
+          <div style={{ background: "#fff", borderRadius: 12, boxShadow: "0 1px 4px rgba(0,0,0,0.06)", flex: 1, minHeight: 0, overflow: "hidden" }}>
+            <div style={{ height: "100%", overflowY: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+                <thead>
+                  <tr style={{ borderBottom: "1px solid #e5e7eb" }}>
+                    <th style={stickyTh}>Name</th>
+                    <th style={stickyTh}>Mobile</th>
+                    <th style={stickyTh}>Created By</th>
+                    <th style={stickyTh}>Role</th>
+                    <th style={stickyTh}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pendingContacts.length === 0 && (
+                    <tr><td colSpan={5} style={{ textAlign: "center", padding: "48px 0", color: "#9ca3af" }}>No pending approvals 🎉</td></tr>
+                  )}
+                  {pendingContacts.map((c) => (
+                    <tr key={c._id} style={{ borderBottom: "1px solid #f3f4f6" }}>
+                      <td style={td}>{c.name}</td>
+                      <td style={td}>{c.mobile}</td>
+                      <td style={td}>
+                        <div style={{ fontSize: 13 }}>{c.createdBy?.name || "—"}</div>
+                        <div style={{ fontSize: 11, color: "#9ca3af" }}>{c.createdBy?.role}</div>
+                      </td>
+                      <td style={td}><StatusBadge status="pending" /></td>
+                      <td style={td}>
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <button onClick={() => approveContact(c._id)} style={{ background: "#d1fae5", color: "#065f46", border: "none", borderRadius: 6, padding: "6px 12px", cursor: "pointer", fontWeight: 600, fontSize: 13 }}>
+                            ✅ Approve
+                          </button>
+                          <button onClick={() => rejectContact(c._id)} style={{ background: "#fee2e2", color: "#991b1b", border: "none", borderRadius: 6, padding: "6px 12px", cursor: "pointer", fontWeight: 600, fontSize: 13 }}>
+                            ❌ Reject
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ════════════════════════════════════════
+  // CONTACTS TABLE VIEW (all roles)
+  // ════════════════════════════════════════
   return (
     <div style={pageWrap}>
       <div style={contentShell}>
-        {/* Quick Guide */}
-        <div style={guideBanner}>
-          <div>
-            <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#1a2233" }}>Quick Guide</h2>
-            <p style={{ margin: "4px 0 0", fontSize: 13, color: "#6b7280" }}>
-              Import contact, create audience & launch campaign, all from one place.
-            </p>
+
+        {/* Admin Tabs */}
+        {isSuperAdmin && (
+          <div style={{ display: "flex", gap: 10, marginBottom: 20, flexShrink: 0, alignItems: "center" }}>
+            <button onClick={() => setAdminView("managers")} style={tabBtn}>👥 Managers</button>
+            <button style={{ ...tabBtn, background: "#0d9488", color: "#fff" }}>
+              {adminView === "manager" ? `📋 ${selectedManager?.name}'s Contacts` : "🌐 All Contacts"}
+            </button>
+            <button onClick={() => { setAdminView("pending"); setLoading(true); }} style={{ ...tabBtn, position: "relative" }}>
+              ⏳ Pending
+            </button>
+            {adminView === "manager" && (
+              <button onClick={() => { setAdminView("managers"); setSelectedManager(null); }} style={{ ...secondaryBtn, marginLeft: "auto" }}>
+                ← Back to Managers
+              </button>
+            )}
           </div>
-          <div style={{ display: "flex", gap: 28, marginTop: 14, flexWrap: "wrap" }}>
-            <a href="#" style={guideLink}>📋 Import upto 2 lakh contacts in one go</a>
-            <a href="#" style={guideLink}>▶ Watch Tutorial</a>
-          </div>
-        </div>
+        )}
 
         {/* Toolbar */}
         <div style={toolbar}>
@@ -379,27 +524,20 @@ export default function ContactsPage() {
             ))}
           </select>
 
-          <button style={filterBtn}>⚙ Filter</button>
-
           <div style={{ flex: 1 }} />
 
-          {selected.size > 0 && (
+          {isSuperAdmin && selected.size > 0 && (
             <button onClick={deleteSelected} style={{ ...secondaryBtn, color: "#e74c3c", borderColor: "#e74c3c" }}>
               Delete ({selected.size})
             </button>
           )}
 
-          <button style={{ ...primaryBtn, opacity: 0.45, cursor: "default" }}>BROADCAST</button>
-          <button style={{ ...primaryBtn, background: "#fff", color: "#374151", border: "1px solid #d1d5db" }}>Run Ad</button>
-
           <button onClick={() => router.push("/Tags")} style={{ ...primaryBtn, background: "#fff", color: "#0d9488", border: "1.5px solid #0d9488" }}>
             🏷 Add Tag
           </button>
 
+          {/* ✅ ALL roles can add contact */}
           <button onClick={() => setShowAddModal(true)} style={primaryBtn}>+ Add Contact</button>
-
-          <button style={{ ...primaryBtn, background: "#fff", color: "#374151", border: "1px solid #d1d5db" }}>Import ▾</button>
-          <button style={{ ...primaryBtn, background: "#fff", color: "#374151", border: "1px solid #d1d5db" }}>Actions ▾</button>
         </div>
 
         {/* Table */}
@@ -408,53 +546,67 @@ export default function ContactsPage() {
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
               <thead>
                 <tr style={{ borderBottom: "1px solid #e5e7eb" }}>
-                  <th style={stickyTh}><input type="checkbox" checked={selected.size === paged.length && paged.length > 0} onChange={toggleAll} /></th>
+                  {isSuperAdmin && (
+                    <th style={stickyTh}>
+                      <input type="checkbox" checked={selected.size === paged.length && paged.length > 0} onChange={toggleAll} />
+                    </th>
+                  )}
                   <th style={{ ...stickyTh, textAlign: "left" }}>Name</th>
-                  <th style={{ ...stickyTh, textAlign: "left" }}>Mobile Number</th>
+                  <th style={{ ...stickyTh, textAlign: "left" }}>Mobile</th>
                   <th style={{ ...stickyTh, textAlign: "left" }}>Tags</th>
                   <th style={{ ...stickyTh, textAlign: "left" }}>Source</th>
-                  <th style={{ ...stickyTh, textAlign: "left" }}>Actions</th>
+                  <th style={{ ...stickyTh, textAlign: "left" }}>Status</th>
+                  {isSuperAdmin && <th style={{ ...stickyTh, textAlign: "left" }}>Created By</th>}
+                  {isManagerOrAbove && <th style={{ ...stickyTh, textAlign: "left" }}>Actions</th>}
                 </tr>
               </thead>
               <tbody>
                 {paged.length === 0 && (
                   <tr>
-                    <td colSpan={6} style={{ textAlign: "center", padding: "48px 0", color: "#9ca3af", fontSize: 14 }}>
+                    <td colSpan={8} style={{ textAlign: "center", padding: "48px 0", color: "#9ca3af", fontSize: 14 }}>
                       No contacts found. Click "+ Add Contact" to get started.
                     </td>
                   </tr>
                 )}
                 {paged.map((c, i) => (
                   <tr key={c._id} style={{ borderBottom: "1px solid #f3f4f6", background: selected.has(c._id) ? "#f0fdf4" : i % 2 === 0 ? "#fff" : "#fafafa" }}>
-                    <td style={td}><input type="checkbox" checked={selected.has(c._id)} onChange={() => toggleOne(c._id)} /></td>
+                    {isSuperAdmin && (
+                      <td style={td}>
+                        <input type="checkbox" checked={selected.has(c._id)} onChange={() => toggleOne(c._id)} />
+                      </td>
+                    )}
                     <td style={td}>{c.name}</td>
                     <td style={td}>{c.mobile}</td>
                     <td style={td}>
                       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                        {c.tags && c.tags.length > 0 ? (
-                          c.tags.map((tag, idx) => <TagBadge key={idx} label={getTagName(tag)} />)
-                        ) : <span style={{ color: "#9ca3af" }}>—</span>}
+                        {c.tags && c.tags.length > 0
+                          ? c.tags.map((tag, idx) => <TagBadge key={idx} label={getTagName(tag)} />)
+                          : <span style={{ color: "#9ca3af" }}>—</span>}
                       </div>
                     </td>
-                    <td style={{ ...td, fontWeight: c.source ? 600 : 400, color: c.source ? "#374151" : "#9ca3af" }}>{c.source || "—"}</td>
-                    <td style={td}>
-                      <div style={{ display: "flex", gap: 8 }}>
-                        <button
-                          onClick={() => setEditingContact(c)}
-                          style={{ background: "none", border: "none", cursor: "pointer", color: "#3b82f6", fontSize: 16 }}
-                          title="Edit contact"
-                        >
-                          <FiEdit2 size={16} />
-                        </button>
-                        <button
-                          onClick={() => deleteSingleContact(c._id, c.name)}
-                          style={{ background: "none", border: "none", cursor: "pointer", color: "#dc3545", fontSize: 16 }}
-                          title="Delete contact"
-                        >
-                          <FiTrash2 size={16} />
-                        </button>
-                      </div>
-                    </td>
+                    <td style={td}>{c.source || "—"}</td>
+                    <td style={td}><StatusBadge status={c.status || "approved"} /></td>
+                    {isSuperAdmin && (
+                      <td style={{ ...td, fontSize: 12, color: "#6b7280" }}>
+                        {c.createdBy?.name || "—"}
+                        <br />
+                        <span style={{ color: "#9ca3af" }}>{c.createdBy?.role}</span>
+                      </td>
+                    )}
+                    {isManagerOrAbove && (
+                      <td style={td}>
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <button onClick={() => setEditingContact(c)} style={{ background: "none", border: "none", cursor: "pointer", color: "#3b82f6" }} title="Edit">
+                            <FiEdit2 size={16} />
+                          </button>
+                          {isSuperAdmin && (
+                            <button onClick={() => deleteSingleContact(c._id, c.name)} style={{ background: "none", border: "none", cursor: "pointer", color: "#dc3545" }} title="Delete">
+                              <FiTrash2 size={16} />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -469,190 +621,34 @@ export default function ContactsPage() {
             {total === 0 ? "0–0 of 0" : `${(currentPage - 1) * PER_PAGE + 1}–${Math.min(currentPage * PER_PAGE, total)} of ${total}`}
           </span>
           <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} style={pageBtn(currentPage === totalPages)}>›</button>
-          <span style={{ fontSize: 12, color: "#6b7280", marginLeft: 8 }}>{PER_PAGE} per page</span>
         </div>
       </div>
 
-      {/* Modals */}
       {showAddModal && (
-        <AddContactModal
-          onClose={() => setShowAddModal(false)}
-          onAdd={addContact}
-          availableTags={tags}
-        />
+        <AddContactModal onClose={() => setShowAddModal(false)} onAdd={addContact} availableTags={tags} isSuperAdmin={isSuperAdmin} />
       )}
-
       {editingContact && (
-        <EditContactModal
-          contact={editingContact}
-          onClose={() => setEditingContact(null)}
-          onUpdate={updateContact}
-          availableTags={tags}
-        />
+        <EditContactModal contact={editingContact} onClose={() => setEditingContact(null)} onUpdate={updateContact} availableTags={tags} isSuperAdmin={isSuperAdmin} />
       )}
     </div>
   );
 }
 
-// ── Styles (unchanged) ────────────────────────────────────────────────────
-const pageWrap = {
-  width: "100%",
-  height: "100%",
-  minHeight: 0,
-  background: "#f3f4f6",
-  padding: "28px 32px 20px",
-  fontFamily: "'DM Sans', 'Segoe UI', sans-serif",
-  overflow: "hidden",
-  boxSizing: "border-box",
-};
-const contentShell = {
-  width: "100%",
-  height: "100%",
-  minHeight: 0,
-  display: "flex",
-  flexDirection: "column",
-  overflow: "hidden",
-};
-const guideBanner = {
-  background: "#fff",
-  borderRadius: 12,
-  padding: "20px 24px",
-  marginBottom: 20,
-  boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-  flexShrink: 0,
-};
-const guideLink = {
-  color: "#0d9488",
-  fontSize: 13,
-  textDecoration: "none",
-  fontWeight: 500,
-};
-const toolbar = {
-  display: "flex",
-  alignItems: "center",
-  gap: 10,
-  marginBottom: 16,
-  flexWrap: "wrap",
-  flexShrink: 0,
-};
-const tableCard = {
-  background: "#fff",
-  borderRadius: 12,
-  boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-  flex: 1,
-  minHeight: 0,
-  overflow: "hidden",
-};
-const tableScroll = {
-  height: "100%",
-  overflowY: "auto",
-  overflowX: "auto",
-  scrollbarWidth: "none",
-  msOverflowStyle: "none",
-};
-const stickyTh = {
-  padding: "12px 16px",
-  fontWeight: 600,
-  fontSize: 13,
-  color: "#0d9488",
-  whiteSpace: "nowrap",
-  background: "#f9fafb",
-  position: "sticky",
-  top: 0,
-  zIndex: 2,
-};
-const td = {
-  padding: "12px 16px",
-  color: "#374151",
-  fontSize: 14,
-};
-const paginationRow = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: 12,
-  marginTop: 16,
-  flexShrink: 0,
-};
-const pageBtn = (disabled) => ({
-  background: "#fff",
-  border: "1px solid #d1d5db",
-  borderRadius: 6,
-  padding: "4px 12px",
-  cursor: disabled ? "not-allowed" : "pointer",
-  opacity: disabled ? 0.4 : 1,
-  fontSize: 16,
-});
-const inputStyle = {
-  width: "100%",
-  padding: "9px 12px",
-  border: "1.5px solid #e5e7eb",
-  borderRadius: 8,
-  fontSize: 14,
-  outline: "none",
-  boxSizing: "border-box",
-  color: "#1a2233",
-  background: "#fff",
-};
-const labelStyle = {
-  display: "block",
-  fontSize: 13,
-  fontWeight: 600,
-  color: "#374151",
-  marginBottom: 5,
-};
-const primaryBtn = {
-  background: "#0d9488",
-  color: "#fff",
-  border: "none",
-  borderRadius: 8,
-  padding: "9px 16px",
-  fontSize: 13,
-  fontWeight: 600,
-  cursor: "pointer",
-  whiteSpace: "nowrap",
-};
-const secondaryBtn = {
-  background: "#fff",
-  color: "#374151",
-  border: "1.5px solid #d1d5db",
-  borderRadius: 8,
-  padding: "9px 16px",
-  fontSize: 13,
-  fontWeight: 600,
-  cursor: "pointer",
-};
-const filterBtn = {
-  background: "#fff",
-  border: "1px solid #d1d5db",
-  borderRadius: 8,
-  padding: "9px 14px",
-  fontSize: 13,
-  cursor: "pointer",
-  color: "#374151",
-};
-const closeBtn = {
-  background: "none",
-  border: "none",
-  fontSize: 18,
-  cursor: "pointer",
-  color: "#6b7280",
-  padding: "0 4px",
-};
-const overlay = {
-  position: "fixed",
-  inset: 0,
-  background: "rgba(0,0,0,0.35)",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  zIndex: 1000,
-};
-const modalBox = {
-  background: "#fff",
-  borderRadius: 14,
-  padding: "28px 32px",
-  width: 440,
-  maxWidth: "95vw",
-  boxShadow: "0 8px 40px rgba(0,0,0,0.18)",
-};
+// ── Styles ────────────────────────────────────────────────────────────────
+const pageWrap = { width: "100%", height: "100%", minHeight: 0, background: "#f3f4f6", padding: "28px 32px 20px", fontFamily: "'DM Sans', 'Segoe UI', sans-serif", overflow: "hidden", boxSizing: "border-box" };
+const contentShell = { width: "100%", height: "100%", minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden" };
+const toolbar = { display: "flex", alignItems: "center", gap: 10, marginBottom: 16, flexWrap: "wrap", flexShrink: 0 };
+const tableCard = { background: "#fff", borderRadius: 12, boxShadow: "0 1px 4px rgba(0,0,0,0.06)", flex: 1, minHeight: 0, overflow: "hidden" };
+const tableScroll = { height: "100%", overflowY: "auto", overflowX: "auto", scrollbarWidth: "none", msOverflowStyle: "none" };
+const stickyTh = { padding: "12px 16px", fontWeight: 600, fontSize: 13, color: "#0d9488", whiteSpace: "nowrap", background: "#f9fafb", position: "sticky", top: 0, zIndex: 2, textAlign: "left" };
+const td = { padding: "12px 16px", color: "#374151", fontSize: 14 };
+const paginationRow = { display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginTop: 16, flexShrink: 0 };
+const pageBtn = (disabled) => ({ background: "#fff", border: "1px solid #d1d5db", borderRadius: 6, padding: "4px 12px", cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.4 : 1, fontSize: 16 });
+const tabBtn = { background: "#fff", border: "1.5px solid #e5e7eb", borderRadius: 8, padding: "8px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", color: "#374151" };
+const inputStyle = { width: "100%", padding: "9px 12px", border: "1.5px solid #e5e7eb", borderRadius: 8, fontSize: 14, outline: "none", boxSizing: "border-box", color: "#1a2233", background: "#fff" };
+const labelStyle = { display: "block", fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 5 };
+const primaryBtn = { background: "#0d9488", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" };
+const secondaryBtn = { background: "#fff", color: "#374151", border: "1.5px solid #d1d5db", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer" };
+const closeBtn = { background: "none", border: "none", fontSize: 18, cursor: "pointer", color: "#6b7280", padding: "0 4px" };
+const overlay = { position: "fixed", inset: 0, background: "rgba(0,0,0,0.35)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 };
+const modalBox = { background: "#fff", borderRadius: 14, padding: "28px 32px", width: 440, maxWidth: "95vw", boxShadow: "0 8px 40px rgba(0,0,0,0.18)" };
