@@ -7,11 +7,11 @@ import { motion } from "framer-motion";
 import {
   LayoutDashboard,
   MessageCircleMore,
-  History,
   Users,
   Megaphone,
   Settings,
   FileText,
+  CheckSquare,
 } from "lucide-react";
 
 // ✅ Define roles allowed for each nav item
@@ -19,7 +19,7 @@ import {
 const allNavItems = [
   { id: "dashboard",  label: "Dashboard", path: "/",          icon: LayoutDashboard },
   { id: "live-chat",  label: "Live Chat",  path: "/live-chat", icon: MessageCircleMore },
-  { id: "history",    label: "History",    path: "/history",   icon: History },
+  { id: "task", label: "task", path: "/task", icon: CheckSquare },
   { id: "contacts",   label: "Contacts",   path: "/contacts",  icon: Users },
   {
     id: "campaigns",
