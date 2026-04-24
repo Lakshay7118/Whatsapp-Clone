@@ -1819,31 +1819,137 @@ const deleteForEveryone = async () => {
         </div>
       </div>
 
-      {/* Group Creation Modal (unchanged) */}
       {showGroupModal && (
-        <div className="modal-overlay" onClick={() => setShowGroupModal(false)} style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ background: "white", padding: "20px", borderRadius: "12px", width: "90%", maxWidth: "400px", maxHeight: "80vh", overflowY: "auto" }}>
-            <h4>Create Group</h4>
-            <input type="text" placeholder="Group name" value={groupName} onChange={(e) => setGroupName(e.target.value)} className="form-control mb-2" style={{ width: "100%", padding: "8px", marginBottom: "10px" }} />
-            <p>Select contacts:</p>
-            <div style={{ maxHeight: "200px", overflowY: "auto" }}>
-              {contacts.map(contact => (
-                <label key={contact.mobile} className="d-flex align-items-center gap-2 mb-2">
-                  <input type="checkbox" checked={selectedContactsForGroup.some(c => c.mobile === contact.mobile)} onChange={(e) => {
-                    if (e.target.checked) setSelectedContactsForGroup([...selectedContactsForGroup, contact]);
-                    else setSelectedContactsForGroup(selectedContactsForGroup.filter(c => c.mobile !== contact.mobile));
-                  }} />
-                  {contact.name} ({contact.mobile})
-                </label>
-              ))}
-            </div>
-            <div className="d-flex justify-content-end gap-2 mt-3">
-              <button className="btn btn-secondary" onClick={() => setShowGroupModal(false)}>Cancel</button>
-              <button className="btn btn-primary" onClick={createGroup}>Create</button>
-            </div>
-          </div>
-        </div>
-      )}
+  <div 
+    className="modal-overlay" 
+    onClick={() => setShowGroupModal(false)} 
+    style={{ 
+      position: "fixed", 
+      top: 0, left: 0, right: 0, bottom: 0, 
+      background: "rgba(0, 0, 0, 0.4)", 
+      backdropFilter: "blur(4px)", /* Adds a modern blurred background effect */
+      display: "flex", 
+      alignItems: "center", 
+      justifyContent: "center", 
+      zIndex: 1000,
+      padding: "20px"
+    }}
+  >
+    <div 
+      className="modal-content shadow-lg" 
+      onClick={(e) => e.stopPropagation()} 
+      style={{ 
+        background: "#ffffff", 
+        padding: "28px", 
+        borderRadius: "16px", 
+        width: "100%", 
+        maxWidth: "420px", 
+        maxHeight: "85vh", 
+        display: "flex",
+        flexDirection: "column",
+        boxShadow: "0 10px 30px rgba(0,0,0,0.15)"
+      }}
+    >
+      {/* Header */}
+      <div style={{ marginBottom: "20px" }}>
+        <h4 style={{ margin: 0, fontWeight: "600", color: "#1a1a1a" }}>Create New Group</h4>
+        <p style={{ margin: "4px 0 0 0", fontSize: "14px", color: "#666" }}>Add a name and select members</p>
+      </div>
+
+      {/* Group Name Input */}
+      <input 
+        type="text" 
+        placeholder="e.g. Weekend Plan 🌴" 
+        value={groupName} 
+        onChange={(e) => setGroupName(e.target.value)} 
+        className="form-control" 
+        style={{ 
+          width: "100%", 
+          padding: "12px 16px", 
+          borderRadius: "8px",
+          border: "1px solid #e0e0e0",
+          fontSize: "15px",
+          marginBottom: "20px",
+          outline: "none",
+          transition: "border-color 0.2s"
+        }} 
+      />
+
+      {/* Contact List */}
+      <div style={{ flex: 1, overflowY: "auto", paddingRight: "4px", marginBottom: "20px" }}>
+        <p style={{ fontSize: "13px", fontWeight: "600", color: "#888", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "12px" }}>
+          Suggested Contacts
+        </p>
+        
+        {contacts.map(contact => {
+          const isSelected = selectedContactsForGroup.some(c => c.mobile === contact.mobile);
+          
+          return (
+            <label 
+              key={contact.mobile} 
+              style={{
+                display: "flex",
+                alignItems: "center",
+                padding: "10px 12px",
+                borderRadius: "8px",
+                cursor: "pointer",
+                background: isSelected ? "#f0f7ff" : "transparent",
+                border: "1px solid",
+                borderColor: isSelected ? "#cce3ff" : "transparent",
+                transition: "all 0.2s ease",
+                marginBottom: "4px"
+              }}
+            >
+              <input 
+                type="checkbox" 
+                style={{ width: "18px", height: "18px", marginRight: "12px", accentColor: "#0d6efd", cursor: "pointer" }}
+                checked={isSelected} 
+                onChange={(e) => {
+                  if (e.target.checked) setSelectedContactsForGroup([...selectedContactsForGroup, contact]);
+                  else setSelectedContactsForGroup(selectedContactsForGroup.filter(c => c.mobile !== contact.mobile));
+                }} 
+              />
+              
+              {/* Fake Avatar */}
+              <div style={{
+                width: "36px", height: "36px", borderRadius: "50%", background: "#e9ecef", 
+                display: "flex", alignItems: "center", justifyContent: "center", 
+                marginRight: "12px", color: "#495057", fontWeight: "600", fontSize: "14px"
+              }}>
+                {contact.name.charAt(0).toUpperCase()}
+              </div>
+              
+              {/* Contact Info */}
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                <span style={{ fontWeight: "500", color: "#1a1a1a", fontSize: "15px" }}>{contact.name}</span>
+                <span style={{ color: "#6c757d", fontSize: "13px" }}>{contact.mobile}</span>
+              </div>
+            </label>
+          );
+        })}
+      </div>
+
+      {/* Actions */}
+      <div className="d-flex justify-content-end gap-3" style={{ paddingTop: "16px", borderTop: "1px solid #f0f0f0" }}>
+        <button 
+          className="btn btn-light" 
+          onClick={() => setShowGroupModal(false)}
+          style={{ padding: "8px 20px", fontWeight: "500", borderRadius: "8px", background: "#f8f9fa", border: "none" }}
+        >
+          Cancel
+        </button>
+        <button 
+          className="btn btn-primary" 
+          onClick={createGroup}
+          disabled={!groupName.trim() || selectedContactsForGroup.length === 0}
+          style={{ padding: "8px 24px", fontWeight: "500", borderRadius: "8px" }}
+        >
+          Create Group
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
 
       {/* Forward Message Modal */}
