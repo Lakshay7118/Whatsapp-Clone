@@ -21,41 +21,11 @@ import {
   Plus,
   X,
   Save,
-  Upload,
 } from "lucide-react";
 import API from "../utils/api";
 
-// ------------------------------------------------------------
-// Styles (keeping existing + additions for modal)
-// ------------------------------------------------------------
+/* ---------- shared styles ---------- */
 const pageStyles = {
-
-  // Add inside pageStyles object:
-label: {
-  fontSize: 12,
-  fontWeight: 700,
-  color: "#0f172a",
-  marginBottom: 6,
-  display: "block",
-},
-textarea: {
-  width: "100%",
-  padding: "10px 14px",
-  borderRadius: 12,
-  border: "1px solid #dbe5ee",
-  fontSize: 14,
-  resize: "vertical",
-},
-checkboxGroup: {
-  maxHeight: 150,
-  overflowY: "auto",
-  border: "1px solid #dbe5ee",
-  borderRadius: 12,
-  padding: "10px 14px",
-  display: "flex",
-  flexDirection: "column",
-  gap: 8,
-},
   shell: {
     background:
       "radial-gradient(circle at top left, rgba(15, 95, 100, 0.06), transparent 22%), radial-gradient(circle at top right, rgba(34, 197, 94, 0.05), transparent 20%), linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)",
@@ -135,7 +105,6 @@ checkboxGroup: {
   searchWrap: {
     position: "relative",
     width: "100%",
-    maxWidth: "420px",
   },
   searchInput: {
     height: "46px",
@@ -147,6 +116,7 @@ checkboxGroup: {
     fontWeight: 500,
     color: "#0f172a",
     boxShadow: "0 2px 8px rgba(15,23,42,0.04)",
+    width: "100%",
   },
   refreshBtn: {
     height: "44px",
@@ -246,7 +216,6 @@ checkboxGroup: {
     fontSize: "11px",
     fontWeight: 700,
   },
-  // Modal styles
   modalOverlay: {
     position: "fixed",
     inset: 0,
@@ -307,8 +276,34 @@ checkboxGroup: {
     fontSize: 13,
     color: "#92400e",
   },
+  label: {
+    fontSize: 12,
+    fontWeight: 700,
+    color: "#0f172a",
+    marginBottom: 6,
+    display: "block",
+  },
+  textarea: {
+    width: "100%",
+    padding: "10px 14px",
+    borderRadius: 12,
+    border: "1px solid #dbe5ee",
+    fontSize: 14,
+    resize: "vertical",
+  },
+  checkboxGroup: {
+    maxHeight: 150,
+    overflowY: "auto",
+    border: "1px solid #dbe5ee",
+    borderRadius: 12,
+    padding: "10px 14px",
+    display: "flex",
+    flexDirection: "column",
+    gap: 8,
+  },
 };
 
+/* ---------- helpers ---------- */
 function getStatusStyle(status) {
   const s = status?.toLowerCase() || "";
   if (s === "running" || s === "active") {
@@ -375,9 +370,7 @@ function getTypeStyle(type) {
   };
 }
 
-// ------------------------------------------------------------
-// Skeleton Components
-// ------------------------------------------------------------
+/* ---------- Skeleton components ---------- */
 function SkeletonLine({ width = "100%", height = 14, radius = 8 }) {
   return (
     <div
@@ -412,9 +405,9 @@ function HeaderSkeleton() {
 
 function StatsSkeleton() {
   return (
-    <div className="row g-3">
+    <div className="row g-2 g-md-3">
       {[1, 2, 3, 4].map((item) => (
-        <div key={item} className="col-12 col-sm-6 col-xl-3">
+        <div key={item} className="col-6 col-xl-3">
           <div style={pageStyles.statCard}>
             <SkeletonLine width={90} height={13} />
             <div className="mt-3">
@@ -438,7 +431,6 @@ function SearchFilterSkeleton() {
           className="rounded-4"
           style={{
             width: "100%",
-            maxWidth: 420,
             height: 46,
             background:
               "linear-gradient(90deg, #eef2f7 0%, #f8fafc 50%, #eef2f7 100%)",
@@ -473,16 +465,14 @@ function SearchFilterSkeleton() {
   );
 }
 
-// ------------------------------------------------------------
-// Stat Card Component
-// ------------------------------------------------------------
+/* ---------- Stat Card ---------- */
 function StatCard({ icon: Icon, label, value, subtext }) {
   return (
-    <div style={pageStyles.statCard}>
-      <div style={pageStyles.statIcon}>
+    <div style={pageStyles.statCard} className="stat-card-mobile">
+      <div style={pageStyles.statIcon} className="stat-icon-mobile">
         <Icon size={18} />
       </div>
-      <div style={{ fontSize: "12px", fontWeight: 700, color: "#64748b" }}>
+      <div style={{ fontSize: "12px", fontWeight: 700, color: "#64748b" }} className="stat-label-mobile">
         {label}
       </div>
       <div
@@ -493,19 +483,18 @@ function StatCard({ icon: Icon, label, value, subtext }) {
           lineHeight: 1.2,
           marginTop: "6px",
         }}
+        className="stat-value-mobile"
       >
         {value}
       </div>
-      <div style={{ fontSize: "12px", color: "#94a3b8", marginTop: "6px" }}>
+      <div style={{ fontSize: "12px", color: "#94a3b8", marginTop: "6px" }} className="stat-subtext-mobile">
         {subtext}
       </div>
     </div>
   );
 }
 
-// ------------------------------------------------------------
-// Pending Approvals Panel (super_admin only)
-// ------------------------------------------------------------
+/* ---------- Pending Approvals Panel ---------- */
 function PendingApprovalsPanel({ onApprove, onReject }) {
   const [pending, setPending] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -539,64 +528,186 @@ function PendingApprovalsPanel({ onApprove, onReject }) {
     }
   };
 
-  if (loading) return <div style={{ textAlign: "center", padding: 40 }}>Loading pending approvals...</div>;
+  if (loading)
+    return (
+      <div style={{ textAlign: "center", padding: 40 }}>
+        Loading pending approvals...
+      </div>
+    );
 
   return (
-    <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 1px 4px rgba(0,0,0,0.06)", overflow: "hidden" }}>
-      <div style={{ padding: "16px 20px", borderBottom: "1px solid #f1f5f9", fontWeight: 800, fontSize: 15, color: "#0f172a", display: "flex", alignItems: "center", gap: 10 }}>
+    <div
+      style={{
+        background: "#fff",
+        borderRadius: 16,
+        boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+        overflow: "hidden",
+      }}
+    >
+      <div
+        style={{
+          padding: "16px 20px",
+          borderBottom: "1px solid #f1f5f9",
+          fontWeight: 800,
+          fontSize: 15,
+          color: "#0f172a",
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+        }}
+      >
         <Bell size={18} color="#f59e0b" />
         Pending Campaign Approvals
-        <span style={{ background: "#fee2e2", color: "#991b1b", borderRadius: 999, padding: "2px 8px", fontSize: 12, fontWeight: 700 }}>{pending.length}</span>
+        <span
+          style={{
+            background: "#fee2e2",
+            color: "#991b1b",
+            borderRadius: 999,
+            padding: "2px 8px",
+            fontSize: 12,
+            fontWeight: 700,
+          }}
+        >
+          {pending.length}
+        </span>
       </div>
 
       {pending.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "48px 20px", color: "#9ca3af", fontSize: 14 }}>🎉 No pending approvals</div>
+        <div
+          style={{
+            textAlign: "center",
+            padding: "48px 20px",
+            color: "#9ca3af",
+            fontSize: 14,
+          }}
+        >
+          🎉 No pending approvals
+        </div>
       ) : (
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
-          <thead>
-            <tr style={{ background: "#f9fafb" }}>
-              <th style={{ padding: "12px 16px", fontWeight: 700, fontSize: 12, color: "#0d9488", textAlign: "left", whiteSpace: "nowrap" }}>Campaign Name</th>
-              <th style={{ padding: "12px 16px", fontWeight: 700, fontSize: 12, color: "#0d9488", textAlign: "left", whiteSpace: "nowrap" }}>Type</th>
-              <th style={{ padding: "12px 16px", fontWeight: 700, fontSize: 12, color: "#0d9488", textAlign: "left", whiteSpace: "nowrap" }}>Submitted By</th>
-              <th style={{ padding: "12px 16px", fontWeight: 700, fontSize: 12, color: "#0d9488", textAlign: "left", whiteSpace: "nowrap" }}>Role</th>
-              <th style={{ padding: "12px 16px", fontWeight: 700, fontSize: 12, color: "#0d9488", textAlign: "left", whiteSpace: "nowrap" }}>Date</th>
-              <th style={{ padding: "12px 16px", fontWeight: 700, fontSize: 12, color: "#0d9488", textAlign: "left", whiteSpace: "nowrap" }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pending.map((c) => (
-              <tr key={c._id} style={{ borderBottom: "1px solid #f3f4f6" }}>
-                <td style={{ padding: "12px 16px", color: "#374151", fontSize: 14 }}>{c.campaignName}</td>
-                <td style={{ padding: "12px 16px", color: "#374151", fontSize: 14 }}>{c.messageType}</td>
-                <td style={{ padding: "12px 16px", color: "#374151", fontSize: 14 }}>{c.createdBy?.name || "—"}</td>
-                <td style={{ padding: "12px 16px", color: "#374151", fontSize: 14 }}>
-                  <span style={{ background: "#e0f2fe", color: "#0369a1", borderRadius: 6, padding: "2px 8px", fontSize: 12, fontWeight: 700 }}>
-                    {c.createdBy?.role}
-                  </span>
-                </td>
-                <td style={{ padding: "12px 16px", color: "#374151", fontSize: 14 }}>{c.createdAt ? new Date(c.createdAt).toLocaleDateString() : "—"}</td>
-                <td style={{ padding: "12px 16px", color: "#374151", fontSize: 14 }}>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <button onClick={() => handleApprove(c._id)} style={{ background: "#d1fae5", color: "#065f46", border: "none", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontWeight: 700, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
-                      <CheckCircle size={14} /> Approve
-                    </button>
-                    <button onClick={() => handleReject(c._id)} style={{ background: "#fee2e2", color: "#991b1b", border: "none", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontWeight: 700, fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
-                      <XCircle size={14} /> Reject
-                    </button>
-                  </div>
-                </td>
+        <div style={{ overflowX: "auto" }}>
+          <table
+            style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}
+          >
+            <thead>
+              <tr style={{ background: "#f9fafb" }}>
+                {[
+                  "Campaign Name",
+                  "Type",
+                  "Submitted By",
+                  "Role",
+                  "Date",
+                  "Actions",
+                ].map((h) => (
+                  <th
+                    key={h}
+                    style={{
+                      padding: "12px 16px",
+                      fontWeight: 700,
+                      fontSize: 12,
+                      color: "#0d9488",
+                      textAlign: "left",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {h}
+                  </th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {pending.map((c) => (
+                <tr key={c._id} style={{ borderBottom: "1px solid #f3f4f6" }}>
+                  <td
+                    style={{ padding: "12px 16px", color: "#374151", fontSize: 14 }}
+                  >
+                    {c.campaignName}
+                  </td>
+                  <td
+                    style={{ padding: "12px 16px", color: "#374151", fontSize: 14 }}
+                  >
+                    {c.messageType}
+                  </td>
+                  <td
+                    style={{ padding: "12px 16px", color: "#374151", fontSize: 14 }}
+                  >
+                    {c.createdBy?.name || "—"}
+                  </td>
+                  <td
+                    style={{ padding: "12px 16px", color: "#374151", fontSize: 14 }}
+                  >
+                    <span
+                      style={{
+                        background: "#e0f2fe",
+                        color: "#0369a1",
+                        borderRadius: 6,
+                        padding: "2px 8px",
+                        fontSize: 12,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {c.createdBy?.role}
+                    </span>
+                  </td>
+                  <td
+                    style={{ padding: "12px 16px", color: "#374151", fontSize: 14 }}
+                  >
+                    {c.createdAt
+                      ? new Date(c.createdAt).toLocaleDateString()
+                      : "—"}
+                  </td>
+                  <td
+                    style={{ padding: "12px 16px", color: "#374151", fontSize: 14 }}
+                  >
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button
+                        onClick={() => handleApprove(c._id)}
+                        style={{
+                          background: "#d1fae5",
+                          color: "#065f46",
+                          border: "none",
+                          borderRadius: 8,
+                          padding: "6px 14px",
+                          cursor: "pointer",
+                          fontWeight: 700,
+                          fontSize: 13,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                        }}
+                      >
+                        <CheckCircle size={14} /> Approve
+                      </button>
+                      <button
+                        onClick={() => handleReject(c._id)}
+                        style={{
+                          background: "#fee2e2",
+                          color: "#991b1b",
+                          border: "none",
+                          borderRadius: 8,
+                          padding: "6px 14px",
+                          cursor: "pointer",
+                          fontWeight: 700,
+                          fontSize: 13,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                        }}
+                      >
+                        <XCircle size={14} /> Reject
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );
 }
 
-// ------------------------------------------------------------
-// Edit Campaign Modal Component
-// ------------------------------------------------------------
+/* ---------- Edit Campaign Modal ---------- */
 function EditCampaignModal({ campaignId, onClose, onUpdate, isSuperAdmin }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -615,7 +726,6 @@ function EditCampaignModal({ campaignId, onClose, onUpdate, isSuperAdmin }) {
     messagePreview: "",
   });
 
-  // Options
   const [templates, setTemplates] = useState([]);
   const [tags, setTags] = useState([]);
   const [contacts, setContacts] = useState([]);
@@ -623,16 +733,16 @@ function EditCampaignModal({ campaignId, onClose, onUpdate, isSuperAdmin }) {
 
   useEffect(() => {
     if (!campaignId) return;
-
     const fetchData = async () => {
       try {
-        const [campaignRes, templatesRes, tagsRes, contactsRes, groupsRes] = await Promise.all([
-          API.get(`/campaigns/${campaignId}`),
-          API.get("/templates"),
-          API.get("/tags"),
-          API.get("/contacts"),
-          API.get("/groups"),
-        ]);
+        const [campaignRes, templatesRes, tagsRes, contactsRes, groupsRes] =
+          await Promise.all([
+            API.get(`/campaigns/${campaignId}`),
+            API.get("/templates"),
+            API.get("/tags"),
+            API.get("/contacts"),
+            API.get("/groups"),
+          ]);
 
         if (campaignRes.data.success) {
           const c = campaignRes.data.campaign;
@@ -674,11 +784,8 @@ function EditCampaignModal({ campaignId, onClose, onUpdate, isSuperAdmin }) {
   const handleArrayToggle = (field, id, checked) => {
     setForm((prev) => {
       const arr = prev[field] || [];
-      if (checked) {
-        return { ...prev, [field]: [...arr, id] };
-      } else {
-        return { ...prev, [field]: arr.filter((v) => v !== id) };
-      }
+      if (checked) return { ...prev, [field]: [...arr, id] };
+      return { ...prev, [field]: arr.filter((v) => v !== id) };
     });
   };
 
@@ -709,7 +816,9 @@ function EditCampaignModal({ campaignId, onClose, onUpdate, isSuperAdmin }) {
         throw new Error(res.data.error || "Update failed");
       }
     } catch (err) {
-      setError(err.response?.data?.error || err.message || "Failed to update campaign");
+      setError(
+        err.response?.data?.error || err.message || "Failed to update campaign"
+      );
     } finally {
       setSaving(false);
     }
@@ -735,21 +844,23 @@ function EditCampaignModal({ campaignId, onClose, onUpdate, isSuperAdmin }) {
           </button>
         </div>
 
-        {/* Manager warning */}
         {!isSuperAdmin && (
           <div style={pageStyles.warningBox}>
-            ⏳ Your edits will be sent to <strong>admin for approval</strong> before going live.
+            ⏳ Your edits will be sent to{" "}
+            <strong>admin for approval</strong> before going live.
           </div>
         )}
 
         {error && (
-          <div className="alert alert-danger" style={{ fontSize: 13, padding: "10px 14px" }}>
+          <div
+            className="alert alert-danger"
+            style={{ fontSize: 13, padding: "10px 14px" }}
+          >
             {error}
           </div>
         )}
 
         <div style={{ display: "grid", gap: 16 }}>
-          {/* Campaign Name */}
           <div>
             <label style={pageStyles.label}>Campaign Name *</label>
             <input
@@ -760,7 +871,6 @@ function EditCampaignModal({ campaignId, onClose, onUpdate, isSuperAdmin }) {
             />
           </div>
 
-          {/* Message Type */}
           <div>
             <label style={pageStyles.label}>Message Type</label>
             <select
@@ -768,12 +878,13 @@ function EditCampaignModal({ campaignId, onClose, onUpdate, isSuperAdmin }) {
               value={form.messageType}
               onChange={(e) => handleChange("messageType", e.target.value)}
             >
-              <option value="Pre-approved template message">Pre-approved template message</option>
+              <option value="Pre-approved template message">
+                Pre-approved template message
+              </option>
               <option value="Custom message">Custom message</option>
             </select>
           </div>
 
-          {/* Template (if template message) */}
           {form.messageType === "Pre-approved template message" && (
             <div>
               <label style={pageStyles.label}>Template</label>
@@ -792,7 +903,6 @@ function EditCampaignModal({ campaignId, onClose, onUpdate, isSuperAdmin }) {
             </div>
           )}
 
-          {/* Audience Type */}
           <div>
             <label style={pageStyles.label}>Audience Type *</label>
             <select
@@ -807,7 +917,6 @@ function EditCampaignModal({ campaignId, onClose, onUpdate, isSuperAdmin }) {
             </select>
           </div>
 
-          {/* Tags */}
           {form.audienceType === "tags" && (
             <div>
               <label style={pageStyles.label}>Select Tags</label>
@@ -819,9 +928,14 @@ function EditCampaignModal({ campaignId, onClose, onUpdate, isSuperAdmin }) {
                       className="form-check-input"
                       id={`tag-${tag._id}`}
                       checked={form.tagIds.includes(tag._id)}
-                      onChange={(e) => handleArrayToggle("tagIds", tag._id, e.target.checked)}
+                      onChange={(e) =>
+                        handleArrayToggle("tagIds", tag._id, e.target.checked)
+                      }
                     />
-                    <label className="form-check-label" htmlFor={`tag-${tag._id}`}>
+                    <label
+                      className="form-check-label"
+                      htmlFor={`tag-${tag._id}`}
+                    >
                       {tag.name}
                     </label>
                   </div>
@@ -830,7 +944,6 @@ function EditCampaignModal({ campaignId, onClose, onUpdate, isSuperAdmin }) {
             </div>
           )}
 
-          {/* Contacts */}
           {form.audienceType === "contact" && (
             <div>
               <label style={pageStyles.label}>Select Contacts</label>
@@ -842,9 +955,18 @@ function EditCampaignModal({ campaignId, onClose, onUpdate, isSuperAdmin }) {
                       className="form-check-input"
                       id={`contact-${contact._id}`}
                       checked={form.contactIds.includes(contact._id)}
-                      onChange={(e) => handleArrayToggle("contactIds", contact._id, e.target.checked)}
+                      onChange={(e) =>
+                        handleArrayToggle(
+                          "contactIds",
+                          contact._id,
+                          e.target.checked
+                        )
+                      }
                     />
-                    <label className="form-check-label" htmlFor={`contact-${contact._id}`}>
+                    <label
+                      className="form-check-label"
+                      htmlFor={`contact-${contact._id}`}
+                    >
                       {contact.name} ({contact.mobile})
                     </label>
                   </div>
@@ -853,7 +975,6 @@ function EditCampaignModal({ campaignId, onClose, onUpdate, isSuperAdmin }) {
             </div>
           )}
 
-          {/* Groups */}
           {form.audienceType === "group" && (
             <div>
               <label style={pageStyles.label}>Select Groups</label>
@@ -865,9 +986,18 @@ function EditCampaignModal({ campaignId, onClose, onUpdate, isSuperAdmin }) {
                       className="form-check-input"
                       id={`group-${group._id}`}
                       checked={form.groupIds.includes(group._id)}
-                      onChange={(e) => handleArrayToggle("groupIds", group._id, e.target.checked)}
+                      onChange={(e) =>
+                        handleArrayToggle(
+                          "groupIds",
+                          group._id,
+                          e.target.checked
+                        )
+                      }
                     />
-                    <label className="form-check-label" htmlFor={`group-${group._id}`}>
+                    <label
+                      className="form-check-label"
+                      htmlFor={`group-${group._id}`}
+                    >
                       {group.name}
                     </label>
                   </div>
@@ -876,10 +1006,11 @@ function EditCampaignModal({ campaignId, onClose, onUpdate, isSuperAdmin }) {
             </div>
           )}
 
-          {/* Manual Numbers */}
           {form.audienceType === "manual" && (
             <div>
-              <label style={pageStyles.label}>Manual Numbers (one per line)</label>
+              <label style={pageStyles.label}>
+                Manual Numbers (one per line)
+              </label>
               <textarea
                 style={pageStyles.textarea}
                 rows={4}
@@ -890,25 +1021,28 @@ function EditCampaignModal({ campaignId, onClose, onUpdate, isSuperAdmin }) {
             </div>
           )}
 
-          {/* Scheduled Date/Time */}
           <div>
             <label style={pageStyles.label}>Scheduled Date & Time</label>
             <input
               type="datetime-local"
               style={pageStyles.formControl}
               value={form.scheduledDateTime}
-              onChange={(e) => handleChange("scheduledDateTime", e.target.value)}
+              onChange={(e) =>
+                handleChange("scheduledDateTime", e.target.value)
+              }
             />
           </div>
 
-          {/* Recurrence */}
           <div>
             <label style={pageStyles.label}>Recurrence</label>
             <select
               style={pageStyles.formControl}
               value={form.recurrence.type}
               onChange={(e) =>
-                handleChange("recurrence", { ...form.recurrence, type: e.target.value })
+                handleChange("recurrence", {
+                  ...form.recurrence,
+                  type: e.target.value,
+                })
               }
             >
               <option value="one-time">One-time</option>
@@ -918,7 +1052,6 @@ function EditCampaignModal({ campaignId, onClose, onUpdate, isSuperAdmin }) {
             </select>
           </div>
 
-          {/* Message Preview */}
           <div>
             <label style={pageStyles.label}>Message Preview</label>
             <textarea
@@ -930,8 +1063,14 @@ function EditCampaignModal({ campaignId, onClose, onUpdate, isSuperAdmin }) {
           </div>
         </div>
 
-        {/* Actions */}
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 24 }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            gap: 12,
+            marginTop: 24,
+          }}
+        >
           <button
             onClick={onClose}
             style={{
@@ -968,9 +1107,7 @@ function EditCampaignModal({ campaignId, onClose, onUpdate, isSuperAdmin }) {
   );
 }
 
-// ------------------------------------------------------------
-// Main Component
-// ------------------------------------------------------------
+/* ---------- Main Page Component ---------- */
 export default function CampaignsPage() {
   const router = useRouter();
   const pageRef = useRef(null);
@@ -983,26 +1120,36 @@ export default function CampaignsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [campaigns, setCampaigns] = useState([]);
   const [updatingId, setUpdatingId] = useState(null);
-  const [editingCampaignId, setEditingCampaignId] = useState(null); // For modal
+  const [editingCampaignId, setEditingCampaignId] = useState(null);
 
   const [userRole, setUserRole] = useState("");
   const [userId, setUserId] = useState("");
 
- useEffect(() => {
-  if (typeof window !== "undefined") {
-    const role = localStorage.getItem("role");
-    let id = null;
-    try {
-      const userStr = localStorage.getItem("user");
-      if (userStr) {
-        const userObj = JSON.parse(userStr);
-        id = userObj._id || userObj.id;
-      }
-    } catch (e) {}
-    setUserRole(role || "");
-    setUserId(id || "");
-  }
-}, []); 
+  // Mobile detection
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth <= 820);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const role = localStorage.getItem("role");
+      let id = null;
+      try {
+        const userStr = localStorage.getItem("user");
+        if (userStr) {
+          const userObj = JSON.parse(userStr);
+          id = userObj._id || userObj.id;
+        }
+      } catch (e) {}
+      setUserRole(role || "");
+      setUserId(id || "");
+    }
+  }, []);
 
   const isSuperAdmin = userRole === "super_admin";
   const isManager = userRole === "manager";
@@ -1012,7 +1159,6 @@ export default function CampaignsPage() {
     if (!userId) return false;
     const createdBy = campaign.createdBy;
     const ownerId = typeof createdBy === "object" ? createdBy?._id : createdBy;
-    console.log("isOwner check → userId:", userId, "ownerId:", ownerId);
     return ownerId?.toString() === userId;
   };
 
@@ -1079,7 +1225,10 @@ export default function CampaignsPage() {
     let audience = "Unknown";
     if (camp.audienceType === "tags" && camp.tagIds?.length) {
       audience = `${camp.tagIds.length} tag(s)`;
-    } else if (camp.audienceType === "manual" && camp.manualNumbers?.length) {
+    } else if (
+      camp.audienceType === "manual" &&
+      camp.manualNumbers?.length
+    ) {
       audience = `${camp.manualNumbers.length} number(s)`;
     }
 
@@ -1137,7 +1286,10 @@ export default function CampaignsPage() {
       (c) => c.status === "active" || c.status === "running"
     ).length;
     const scheduled = campaigns.filter((c) => c.status === "scheduled").length;
-    const totalSent = campaigns.reduce((sum, c) => sum + (c.sentCount || 0), 0);
+    const totalSent = campaigns.reduce(
+      (sum, c) => sum + (c.sentCount || 0),
+      0
+    );
     return { total, running, scheduled, totalSent };
   }, [campaigns]);
 
@@ -1152,9 +1304,12 @@ export default function CampaignsPage() {
   };
 
   const getApprovalBadge = (campaign) => {
-    if (!campaign.approvalStatus || campaign.approvalStatus === "approved") return null;
+    if (!campaign.approvalStatus || campaign.approvalStatus === "approved")
+      return null;
     if (campaign.approvalStatus === "pending_approval") {
-      return <span style={pageStyles.approvalBadge}>⏳ Awaiting Approval</span>;
+      return (
+        <span style={pageStyles.approvalBadge}>⏳ Awaiting Approval</span>
+      );
     }
     if (campaign.approvalStatus === "rejected") {
       return <span style={pageStyles.rejectedBadge}>❌ Rejected</span>;
@@ -1162,10 +1317,9 @@ export default function CampaignsPage() {
     return null;
   };
 
-  // Animations
+  // GSAP animations
   useEffect(() => {
     if (isLoading || !contentRef.current) return;
-
     const ctx = gsap.context(() => {
       gsap.fromTo(
         contentRef.current,
@@ -1196,18 +1350,31 @@ export default function CampaignsPage() {
         );
       }
     }, pageRef);
-
     return () => ctx.revert();
   }, [isLoading, filteredData, activeTab]);
 
   rowsRef.current = [];
 
+  // Prevent access for non‑manager roles
   if (userRole && !isManagerOrAbove) {
     return (
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "60vh", gap: 12 }}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          height: "60vh",
+          gap: 12,
+        }}
+      >
         <div style={{ fontSize: 48 }}>🚫</div>
-        <div style={{ fontSize: 20, fontWeight: 800, color: "#0f172a" }}>Access Restricted</div>
-        <div style={{ fontSize: 14, color: "#64748b" }}>Campaigns are only accessible to managers and admins.</div>
+        <div style={{ fontSize: 20, fontWeight: 800, color: "#0f172a" }}>
+          Access Restricted
+        </div>
+        <div style={{ fontSize: 14, color: "#64748b" }}>
+          Campaigns are only accessible to managers and admins.
+        </div>
       </div>
     );
   }
@@ -1216,7 +1383,6 @@ export default function CampaignsPage() {
 
   return (
     <>
-      {/* Edit Modal */}
       {editingCampaignId && (
         <EditCampaignModal
           campaignId={editingCampaignId}
@@ -1228,10 +1394,10 @@ export default function CampaignsPage() {
 
       <div
         ref={pageRef}
-        className="container-fluid py-3 py-md-4"
+        className="container-fluid py-2 py-md-4"
         style={pageStyles.shell}
       >
-        <div className="d-flex flex-column gap-3 gap-md-4 h-100">
+        <div className="d-flex flex-column gap-2 gap-md-4 h-100">
           {isLoading ? (
             <>
               <HeaderSkeleton />
@@ -1241,9 +1407,9 @@ export default function CampaignsPage() {
           ) : (
             <div
               ref={contentRef}
-              className="d-flex flex-column gap-3 gap-md-4 h-100"
+              className="d-flex flex-column gap-2 gap-md-4 h-100"
             >
-              {/* Header with stats */}
+              {/* ── Header ── */}
               <div style={pageStyles.premiumCard} className="p-3 p-md-4">
                 <div className="d-flex flex-column flex-lg-row justify-content-between gap-3 align-items-start align-items-lg-center">
                   <div>
@@ -1258,9 +1424,10 @@ export default function CampaignsPage() {
                       Manage all your WhatsApp campaigns from one dashboard.
                     </div>
                   </div>
+                  {/* Launch button in header — visible on desktop only */}
                   <button
                     style={pageStyles.launchBtn}
-                    className="btn d-inline-flex align-items-center justify-content-center gap-2"
+                    className="btn d-none d-lg-inline-flex align-items-center justify-content-center gap-2"
                     onClick={() => router.push("/Campaigns/launch")}
                     type="button"
                   >
@@ -1271,9 +1438,9 @@ export default function CampaignsPage() {
                 </div>
               </div>
 
-              {/* Stats row */}
-              <div className="row g-3">
-                <div className="col-12 col-sm-6 col-xl-3">
+              {/* ── Stats — 2-per-row on mobile, 4-per-row on xl ── */}
+              <div className="row g-2 g-md-3">
+                <div className="col-6 col-xl-3">
                   <StatCard
                     icon={Megaphone}
                     label="Total Campaigns"
@@ -1281,7 +1448,7 @@ export default function CampaignsPage() {
                     subtext="All campaigns"
                   />
                 </div>
-                <div className="col-12 col-sm-6 col-xl-3">
+                <div className="col-6 col-xl-3">
                   <StatCard
                     icon={PlayCircle}
                     label="Running"
@@ -1289,7 +1456,7 @@ export default function CampaignsPage() {
                     subtext="Active now"
                   />
                 </div>
-                <div className="col-12 col-sm-6 col-xl-3">
+                <div className="col-6 col-xl-3">
                   <StatCard
                     icon={CalendarDays}
                     label="Scheduled"
@@ -1297,7 +1464,7 @@ export default function CampaignsPage() {
                     subtext="Upcoming"
                   />
                 </div>
-                <div className="col-12 col-sm-6 col-xl-3">
+                <div className="col-6 col-xl-3">
                   <StatCard
                     icon={Send}
                     label="Total Sent"
@@ -1307,7 +1474,7 @@ export default function CampaignsPage() {
                 </div>
               </div>
 
-              {/* Tabs */}
+              {/* ── Tabs / Filter pills ── */}
               <div className="d-flex flex-wrap gap-2 align-items-center">
                 {topTabs.map((tab) => (
                   <button
@@ -1316,7 +1483,9 @@ export default function CampaignsPage() {
                     type="button"
                     style={{
                       ...pageStyles.filterPill,
-                      ...(activeFilter === tab ? pageStyles.filterPillActive : {}),
+                      ...(activeFilter === tab
+                        ? pageStyles.filterPillActive
+                        : {}),
                     }}
                     onClick={() => {
                       setActiveFilter(tab);
@@ -1341,14 +1510,17 @@ export default function CampaignsPage() {
                 )}
               </div>
 
-              {/* Pending Approvals Panel or Main Content */}
               {isPendingTab && isSuperAdmin ? (
                 <PendingApprovalsPanel
                   onApprove={(id) => {
                     setCampaigns((prev) =>
                       prev.map((c) =>
                         c._id === id
-                          ? { ...c, approvalStatus: "approved", status: "scheduled" }
+                          ? {
+                              ...c,
+                              approvalStatus: "approved",
+                              status: "scheduled",
+                            }
                           : c
                       )
                     );
@@ -1357,7 +1529,11 @@ export default function CampaignsPage() {
                     setCampaigns((prev) =>
                       prev.map((c) =>
                         c._id === id
-                          ? { ...c, approvalStatus: "rejected", status: "cancelled" }
+                          ? {
+                              ...c,
+                              approvalStatus: "rejected",
+                              status: "cancelled",
+                            }
                           : c
                       )
                     );
@@ -1365,9 +1541,9 @@ export default function CampaignsPage() {
                 />
               ) : (
                 <>
-                  {/* Search & Filter Toolbar */}
+                  {/* ── Toolbar ── */}
                   <div style={pageStyles.toolbarCard}>
-                    <div className="d-flex flex-column flex-xl-row gap-3 justify-content-between align-items-stretch align-items-xl-center">
+                    <div className="d-flex flex-column flex-xl-row gap-2 gap-xl-3 justify-content-between align-items-stretch align-items-xl-center">
                       <div style={pageStyles.searchWrap}>
                         <Search
                           size={18}
@@ -1389,9 +1565,9 @@ export default function CampaignsPage() {
                         />
                       </div>
 
-                      <div className="d-flex flex-column flex-sm-row gap-2">
+                      <div className="d-flex gap-2">
                         <button
-                          className="btn d-inline-flex align-items-center justify-content-center gap-2"
+                          className="btn d-inline-flex align-items-center justify-content-center gap-2 flex-grow-1 flex-xl-grow-0"
                           style={pageStyles.refreshBtn}
                           onClick={handleRefresh}
                           type="button"
@@ -1400,9 +1576,13 @@ export default function CampaignsPage() {
                           Refresh
                         </button>
 
+                        {/* Launch button in toolbar — desktop only */}
                         <button
-                          style={pageStyles.launchBtn}
-                          className="btn d-inline-flex align-items-center justify-content-center gap-2"
+                          style={{
+                            ...pageStyles.launchBtn,
+                            minWidth: "unset",
+                          }}
+                          className="btn d-none d-xl-inline-flex align-items-center justify-content-center gap-2"
                           onClick={() => router.push("/Campaigns/launch")}
                           type="button"
                         >
@@ -1412,11 +1592,31 @@ export default function CampaignsPage() {
                         </button>
                       </div>
                     </div>
+
+                    {/* Mobile-only Launch button — full width below search */}
+                    {isMobile && (
+                      <div className="mt-2">
+                        <button
+                          style={{ ...pageStyles.launchBtn, width: "100%" }}
+                          className="btn d-inline-flex align-items-center justify-content-center gap-2"
+                          onClick={() => router.push("/Campaigns/launch")}
+                          type="button"
+                        >
+                          <Plus size={16} />
+                          Launch Campaign
+                          <ChevronRight size={16} />
+                        </button>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Campaigns Table */}
+                  {/* ── Table ── */}
                   <div style={pageStyles.tableWrap}>
-                    <div className="d-none d-md-block px-3" style={pageStyles.tableHeader}>
+                    {/* Desktop header row */}
+                    <div
+                      className="d-none d-md-block px-3"
+                      style={pageStyles.tableHeader}
+                    >
                       <div className="row m-0 align-items-center">
                         <div className="col-md-3 py-3">Campaign</div>
                         <div className="col-md-2 py-3">Type</div>
@@ -1428,13 +1628,21 @@ export default function CampaignsPage() {
                       </div>
                     </div>
 
-                    <div style={{ maxHeight: "60vh", overflowY: "auto", overflowX: "hidden" }}>
+                    <div
+                      style={{
+                        maxHeight: "60vh",
+                        overflowY: "auto",
+                        overflowX: "hidden",
+                      }}
+                    >
                       {filteredData.length > 0 ? (
                         filteredData.map((item, index) => {
                           const isUpdating = updatingId === item.id;
                           const isPaused = item.raw.status === "paused";
-                          const canEdit = isSuperAdmin || (isManager && isOwner(item.raw));
-                          const canDelete = isSuperAdmin || (isManager && isOwner(item.raw));
+                          const canEdit =
+                            isSuperAdmin || (isManager && isOwner(item.raw));
+                          const canDelete =
+                            isSuperAdmin || (isManager && isOwner(item.raw));
 
                           return (
                             <div
@@ -1442,100 +1650,203 @@ export default function CampaignsPage() {
                               ref={(el) => {
                                 rowsRef.current[index] = el;
                               }}
-                              className="px-3 py-3"
+                              className="px-3 py-2 py-md-3"
                               style={pageStyles.row}
                             >
-                              {/* Mobile view */}
+                              {/* ── Mobile card ── */}
                               <div className="d-block d-md-none">
-                                <div style={{ fontSize: "14px", fontWeight: 700, color: "#0f172a", marginBottom: "4px" }}>
-                                  {item.name}
-                                </div>
-                                <div style={{ fontSize: "12px", color: "#94a3b8", marginBottom: "8px" }}>
-                                  Sent {item.sent}
-                                </div>
-                                <div className="d-flex flex-wrap gap-2 mb-2">
-                                  <span style={{ ...pageStyles.badgeBase, ...getTypeStyle(item.type) }}>
-                                    {item.type}
-                                  </span>
-                                  <span style={{ ...pageStyles.badgeBase, ...getStatusStyle(item.status) }}>
-                                    {item.status}
-                                  </span>
-                                </div>
-                                {getApprovalBadge(item.raw) && (
-                                  <div className="mb-2">{getApprovalBadge(item.raw)}</div>
-                                )}
-                                <div className="small text-secondary mb-2">
-                                  <strong>Date:</strong> {item.date}
-                                </div>
-                                <div className="small text-secondary mb-2">
-                                  <strong>Audience:</strong> {item.audience}
-                                </div>
-                                <div className="d-flex flex-wrap gap-2 mt-2">
-                                  {canEdit && (
-                                    <>
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "flex-start",
+                                    marginBottom: 6,
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      fontSize: "13px",
+                                      fontWeight: 700,
+                                      color: "#0f172a",
+                                      flex: 1,
+                                      marginRight: 8,
+                                    }}
+                                  >
+                                    {item.name}
+                                  </div>
+                                  {/* Action buttons inline top-right */}
+                                  <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
+                                    {canEdit && (
+                                      <>
+                                        <button
+                                          onClick={() =>
+                                            handleToggleStatus(item.raw)
+                                          }
+                                          disabled={isUpdating}
+                                          style={{
+                                            ...pageStyles.actionBtn,
+                                            color: isPaused
+                                              ? "#16a34a"
+                                              : "#f59e0b",
+                                            opacity: isUpdating ? 0.5 : 1,
+                                          }}
+                                          title={isPaused ? "Resume" : "Pause"}
+                                        >
+                                          {isPaused ? (
+                                            <Play size={15} />
+                                          ) : (
+                                            <PauseCircle size={15} />
+                                          )}
+                                        </button>
+                                        <button
+                                          onClick={() =>
+                                            setEditingCampaignId(item.id)
+                                          }
+                                          style={pageStyles.actionBtn}
+                                          title="Edit"
+                                        >
+                                          <Edit size={15} />
+                                        </button>
+                                      </>
+                                    )}
+                                    {canDelete && (
                                       <button
-                                        onClick={() => handleToggleStatus(item.raw)}
-                                        disabled={isUpdating}
+                                        onClick={() =>
+                                          handleDelete(item.id, item.name)
+                                        }
                                         style={{
                                           ...pageStyles.actionBtn,
-                                          color: isPaused ? "#16a34a" : "#f59e0b",
-                                          opacity: isUpdating ? 0.5 : 1,
+                                          color: "#dc2626",
                                         }}
-                                        title={isPaused ? "Resume" : "Pause"}
+                                        title="Delete"
                                       >
-                                        {isPaused ? <Play size={16} /> : <PauseCircle size={16} />}
+                                        <Trash2 size={15} />
                                       </button>
-                                      <button
-                                        onClick={() => setEditingCampaignId(item.id)}
-                                        style={pageStyles.actionBtn}
-                                        title="Edit"
-                                      >
-                                        <Edit size={16} />
-                                      </button>
-                                    </>
-                                  )}
-                                  {canDelete && (
-                                    <button
-                                      onClick={() => handleDelete(item.id, item.name)}
-                                      style={{ ...pageStyles.actionBtn, color: "#dc2626" }}
-                                      title="Delete"
-                                    >
-                                      <Trash2 size={16} />
-                                    </button>
-                                  )}
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Badges row */}
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    flexWrap: "wrap",
+                                    gap: 6,
+                                    marginBottom: 6,
+                                  }}
+                                >
+                                  <span
+                                    style={{
+                                      ...pageStyles.badgeBase,
+                                      ...getTypeStyle(item.type),
+                                      fontSize: 10,
+                                      padding: "4px 10px",
+                                    }}
+                                  >
+                                    {item.type}
+                                  </span>
+                                  <span
+                                    style={{
+                                      ...pageStyles.badgeBase,
+                                      ...getStatusStyle(item.status),
+                                      fontSize: 10,
+                                      padding: "4px 10px",
+                                    }}
+                                  >
+                                    {item.status}
+                                  </span>
+                                  {getApprovalBadge(item.raw)}
+                                </div>
+
+                                {/* Meta row */}
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    gap: 12,
+                                    fontSize: 11,
+                                    color: "#94a3b8",
+                                    flexWrap: "wrap",
+                                  }}
+                                >
+                                  <span>📅 {item.date}</span>
+                                  <span>👥 {item.audience}</span>
+                                  <span>📤 Sent {item.sent}</span>
                                 </div>
                               </div>
 
-                              {/* Desktop view */}
+                              {/* ── Desktop row ── */}
                               <div className="row align-items-center d-none d-md-flex">
                                 <div className="col-md-3">
-                                  <div style={{ fontSize: "14px", fontWeight: 700, color: "#0f172a", marginBottom: "4px" }}>
+                                  <div
+                                    style={{
+                                      fontSize: "14px",
+                                      fontWeight: 700,
+                                      color: "#0f172a",
+                                      marginBottom: "4px",
+                                    }}
+                                  >
                                     {item.name}
                                   </div>
-                                  <div style={{ fontSize: "12px", color: "#94a3b8" }}>
+                                  <div
+                                    style={{
+                                      fontSize: "12px",
+                                      color: "#94a3b8",
+                                    }}
+                                  >
                                     Sent {item.sent}
                                   </div>
                                 </div>
                                 <div className="col-md-2">
-                                  <span style={{ ...pageStyles.badgeBase, ...getTypeStyle(item.type) }}>
+                                  <span
+                                    style={{
+                                      ...pageStyles.badgeBase,
+                                      ...getTypeStyle(item.type),
+                                    }}
+                                  >
                                     {item.type}
                                   </span>
                                 </div>
                                 <div className="col-md-1">
-                                  <div style={{ fontSize: "13px", fontWeight: 700, color: "#334155" }}>
+                                  <div
+                                    style={{
+                                      fontSize: "13px",
+                                      fontWeight: 700,
+                                      color: "#334155",
+                                    }}
+                                  >
                                     {item.date}
                                   </div>
                                 </div>
                                 <div className="col-md-1">
-                                  <span style={{ ...pageStyles.badgeBase, ...getStatusStyle(item.status) }}>
+                                  <span
+                                    style={{
+                                      ...pageStyles.badgeBase,
+                                      ...getStatusStyle(item.status),
+                                    }}
+                                  >
                                     {item.status}
                                   </span>
                                 </div>
                                 <div className="col-md-1">
-                                  {getApprovalBadge(item.raw) || <span style={{ color: "#9ca3af", fontSize: 12 }}>—</span>}
+                                  {getApprovalBadge(item.raw) || (
+                                    <span
+                                      style={{
+                                        color: "#9ca3af",
+                                        fontSize: 12,
+                                      }}
+                                    >
+                                      —
+                                    </span>
+                                  )}
                                 </div>
                                 <div className="col-md-2">
-                                  <div style={{ fontSize: "13px", fontWeight: 700, color: "#334155" }}>
+                                  <div
+                                    style={{
+                                      fontSize: "13px",
+                                      fontWeight: 700,
+                                      color: "#334155",
+                                    }}
+                                  >
                                     {item.audience}
                                   </div>
                                 </div>
@@ -1544,19 +1855,29 @@ export default function CampaignsPage() {
                                     {canEdit && (
                                       <>
                                         <button
-                                          onClick={() => handleToggleStatus(item.raw)}
+                                          onClick={() =>
+                                            handleToggleStatus(item.raw)
+                                          }
                                           disabled={isUpdating}
                                           style={{
                                             ...pageStyles.actionBtn,
-                                            color: isPaused ? "#16a34a" : "#f59e0b",
+                                            color: isPaused
+                                              ? "#16a34a"
+                                              : "#f59e0b",
                                             opacity: isUpdating ? 0.5 : 1,
                                           }}
                                           title={isPaused ? "Resume" : "Pause"}
                                         >
-                                          {isPaused ? <Play size={16} /> : <PauseCircle size={16} />}
+                                          {isPaused ? (
+                                            <Play size={16} />
+                                          ) : (
+                                            <PauseCircle size={16} />
+                                          )}
                                         </button>
                                         <button
-                                          onClick={() => setEditingCampaignId(item.id)}
+                                          onClick={() =>
+                                            setEditingCampaignId(item.id)
+                                          }
                                           style={pageStyles.actionBtn}
                                           title="Edit"
                                         >
@@ -1566,8 +1887,13 @@ export default function CampaignsPage() {
                                     )}
                                     {canDelete && (
                                       <button
-                                        onClick={() => handleDelete(item.id, item.name)}
-                                        style={{ ...pageStyles.actionBtn, color: "#dc2626" }}
+                                        onClick={() =>
+                                          handleDelete(item.id, item.name)
+                                        }
+                                        style={{
+                                          ...pageStyles.actionBtn,
+                                          color: "#dc2626",
+                                        }}
                                         title="Delete"
                                       >
                                         <Trash2 size={16} />
@@ -1599,6 +1925,7 @@ export default function CampaignsPage() {
             </div>
           )}
         </div>
+
         <style jsx global>{`
           @keyframes pulse {
             0% {
@@ -1606,6 +1933,31 @@ export default function CampaignsPage() {
             }
             100% {
               background-position: -200% 0;
+            }
+          }
+
+          /* ── Mobile stat card compaction ── */
+          @media (max-width: 575px) {
+            .stat-card-mobile {
+              padding: 14px !important;
+              border-radius: 16px !important;
+            }
+            .stat-icon-mobile {
+              width: 34px !important;
+              height: 34px !important;
+              border-radius: 10px !important;
+              margin-bottom: 8px !important;
+            }
+            .stat-label-mobile {
+              font-size: 10px !important;
+            }
+            .stat-value-mobile {
+              font-size: 20px !important;
+              margin-top: 4px !important;
+            }
+            .stat-subtext-mobile {
+              font-size: 10px !important;
+              margin-top: 2px !important;
             }
           }
         `}</style>

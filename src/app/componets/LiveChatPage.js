@@ -319,6 +319,10 @@ export default function LiveChatPage() {
   const attachmentWrapRef = useRef(null);
   const emojiWrapRef = useRef(null);
   const currentUserRef = useRef(null);
+  const selectedChatRef = useRef(null);
+useEffect(() => {
+  selectedChatRef.current = selectedChat;
+}, [selectedChat]);
 
   useEffect(() => {
     currentUserRef.current = currentUser;
@@ -378,7 +382,8 @@ useEffect(() => {
   // 🔥 Global handler — updates left panel preview for ALL chats
   const handleGlobalNewMessage = (msg) => {
   // ❌ prevent duplicate in open chat
-  if (String(msg.chatId) === String(selectedChat?._id)) return;
+  // ✅ always fresh value
+if (String(msg.chatId) === String(selectedChatRef.current?._id)) return;
     // Update messages state so lastMessageText() reflects new msg
     setMessages(prev => {
       const chatId = msg.chatId;
@@ -430,12 +435,44 @@ useEffect(() => {
 
   s.on("newMessage", handleGlobalNewMessage);
 
+  // ✅ Single tick → Double tick (delivered)
+  const handleMessageDelivered = ({ messageId, chatId }) => {
+    setMessages(prev => {
+      if (!prev[chatId]) return prev;
+      return {
+        ...prev,
+        [chatId]: prev[chatId].map(m =>
+          // match by real id OR mark last temp message as delivered
+          (m.id === messageId || (String(m.id).startsWith("tmp-") && m.type === "sent"))
+            ? { ...m, delivered: true, id: m.id.startsWith("tmp-") ? messageId : m.id }
+            : m
+        ),
+      };
+    });
+  };
+  s.on("messageDelivered", handleMessageDelivered);
+
+  // ✅ Global seen handler — works even when chat is not selected
+  const handleGlobalMessagesSeen = ({ chatId }) => {
+    setMessages(prev => {
+      if (!prev[chatId]) return prev;
+      return {
+        ...prev,
+        [chatId]: prev[chatId].map(m =>
+          m.type === "sent" ? { ...m, seen: true, delivered: true } : m
+        ),
+      };
+    });
+  };
+
+  s.on("messagesSeen", handleGlobalMessagesSeen);
+
   return () => {
     s.off("newMessage", handleGlobalNewMessage);
-    s.disconnect();
+    s.off("messageDelivered", handleMessageDelivered);
+    s.off("messagesSeen", handleGlobalMessagesSeen);
   };
 }, []);
-
 
 // ✅ Fix — only approved templates
 useEffect(() => {
@@ -461,8 +498,14 @@ useEffect(() => {
     try {
       const res = await API.get("/chats");
 
-      if (Array.isArray(res.data)) {
+     if (Array.isArray(res.data)) {
         setChatList(res.data);
+
+        // ✅ Join ALL chat rooms
+        const s = getSocket();
+        res.data.forEach(chat => {
+          s.emit("joinChat", chat._id);
+        });
       } else {
         console.error("Chat list is not an array:", res.data);
         setChatList([]);
@@ -574,7 +617,7 @@ useEffect(() => {
             hour: "2-digit",
             minute: "2-digit",
           }),
-          delivered: false,
+          delivered: true,  // ✅ backend already processed it
           seen: false,
           fileName: msg.fileName,
           url: msg.fileUrl,
@@ -609,7 +652,29 @@ useEffect(() => {
     });
   };
 
-  // (rest socket handlers unchanged...)
+  // ✅ TYPING INDICATOR
+  const handleUserTyping = ({ chatId: tChatId }) => {
+    if (String(tChatId) !== String(chatId)) return;
+    setIsUserTyping(true);
+    clearTimeout(window._typingTimer);
+    window._typingTimer = setTimeout(() => setIsUserTyping(false), 2500);
+  };
+
+  // ✅ BLUE DOUBLE TICK — handled by global listener
+  const handleMessagesSeen = () => {};
+
+  // ✅ Register all listeners
+  s.on("newMessage", handleNewMessage);
+  s.on("userTyping", handleUserTyping);
+  s.on("messagesSeen", handleMessagesSeen);
+
+  // ✅ Cleanup on unmount / chat change
+  return () => {
+    s.off("newMessage", handleNewMessage);
+    s.off("userTyping", handleUserTyping);
+    s.off("messagesSeen", handleMessagesSeen);
+    clearTimeout(window._typingTimer);
+  };
 
 }, [selectedChat, currentUser]);
 
@@ -681,6 +746,7 @@ useEffect(() => {
   const handleSelectChat = (chat) => {
     setSelectedChat(chat);
     if (isMobile) setMobileChatOpen(true);
+     window.dispatchEvent(new CustomEvent("detailViewOpen"));
     setShowEmojiPicker(false);
     setAttachmentMenuOpen(false);
     setPendingAttachment(null);
@@ -850,6 +916,7 @@ const deleteForEveryone = async () => {
       });
       const chat = res.data;
       if (!chat._id) throw new Error("Chat creation failed");
+      getSocket().emit("joinChat", chat._id); // ✅
       setChatList(prev => (Array.isArray(prev) ? [chat, ...prev] : [chat]));
       setSelectedChat(chat);
       setShowContacts(false);
@@ -936,6 +1003,7 @@ const deleteForEveryone = async () => {
       });
       const chat = res.data;
       if (!chat._id) throw new Error("Chat creation failed");
+      getSocket().emit("joinChat", chat._id); // ✅
 
       setChatList((prev) => {
         if (!Array.isArray(prev)) return [chat];
@@ -1472,7 +1540,10 @@ const deleteForEveryone = async () => {
                       <div className="d-flex align-items-center justify-content-between px-3 border-bottom flex-shrink-0" style={{ height: 59, background: "#f0f2f5" }}>
                         <div className="d-flex align-items-center gap-3 overflow-hidden">
                           {isMobile && (
-                            <button type="button" className="btn btn-sm border-0 shadow-none p-1" onClick={() => setMobileChatOpen(false)} style={{ color: "#54656f" }}>
+                            <button type="button" className="btn btn-sm border-0 shadow-none p-1" onClick={() => {
+  setMobileChatOpen(false);
+  window.dispatchEvent(new CustomEvent("detailViewClose")); // ← add this
+}} style={{ color: "#54656f" }}>
                               <FiArrowLeft size={20} />
                             </button>
                           )}

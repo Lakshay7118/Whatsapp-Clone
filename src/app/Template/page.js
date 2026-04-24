@@ -224,7 +224,6 @@ function EditTemplateModal({ templateId, onClose, onUpdate, isSuperAdmin }) {
       const res = await API.put(`/templates/${templateId}`, formData, { headers: { "Content-Type": "multipart/form-data" } });
 
       if (res.data.success) {
-        // ✅ Show approval message if manager
         if (res.data.pendingApproval) {
           alert("✅ Template updated! Sent to admin for approval.");
         }
@@ -252,7 +251,6 @@ function EditTemplateModal({ templateId, onClose, onUpdate, isSuperAdmin }) {
           <button onClick={onClose} style={{ border: "1px solid #e2e8f0", borderRadius: 10, width: 36, height: 36, background: "#f8fafc", cursor: "pointer" }}><X size={18} /></button>
         </div>
 
-        {/* ✅ Warning for manager */}
         {!isSuperAdmin && (
           <div style={{ background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 8, padding: "10px 14px", marginBottom: 16, fontSize: 13, color: "#92400e" }}>
             ⏳ Your edits will be sent to <strong>admin for approval</strong> before going live.
@@ -440,12 +438,19 @@ export default function TemplatesPage() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingTemplateId, setEditingTemplateId] = useState(null);
 
-  // ✅ role state
   const [userRole, setUserRole] = useState("");
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     const role = localStorage.getItem("role");
     setUserRole(role || "");
+  }, []);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth <= 767);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
   }, []);
 
   const isSuperAdmin     = userRole === "super_admin";
@@ -525,7 +530,6 @@ export default function TemplatesPage() {
     return "status-draft";
   };
 
-  // ✅ Get approval badge for manager templates
   const getApprovalBadge = (item) => {
     if (!item.approvalStatus || item.approvalStatus === "approved") return null;
     if (item.approvalStatus === "pending_approval") return (
@@ -539,7 +543,67 @@ export default function TemplatesPage() {
 
   rowRefs.current = [];
 
-  // ✅ Block non-managers/admins
+  // ── Responsive list view function ──────────────────────────────────────
+  const renderListView = () => (
+    <>
+      {/* Desktop header (hidden on mobile) */}
+      <div className="d-none d-lg-grid list-head list-grid">
+        <div>Name</div><div>Category</div><div>Status</div><div>Approval</div><div>Created</div><div>Actions</div>
+      </div>
+      <div ref={listRef} className="list-wrap">
+        {filteredTemplates.map((item, index) => {
+          const preview = getPreviewData(item);
+          return (
+            <div key={item._id} ref={(el) => { rowRefs.current[index] = el; }} className="list-card" style={{ cursor: "pointer" }}>
+              {isMobile ? (
+                /* Mobile stacked view */
+                <div className="d-flex flex-column gap-2">
+                  <div className="template-name">{preview.title}</div>
+                  <div className="template-subline">{preview.language} · {preview.category}</div>
+                  <div className="d-flex align-items-center gap-2 flex-wrap">
+                    <span className={getStatusBadgeClass(preview.status)}>{preview.status}</span>
+                    {getApprovalBadge(item) || <span style={{ fontSize: 12, color: "#9ca3af" }}>—</span>}
+                  </div>
+                  <div className="d-flex align-items-center gap-2 flex-wrap">
+                    <span className="template-subline" style={{ fontSize: isMobile ? 10 : 11 }}>
+                      {item.createdAt ? new Date(item.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "--"}
+                    </span>
+                    <div className="d-flex gap-1">
+                      <button className="icon-btn" onClick={() => handleEdit(item._id)}><Edit size={15} /></button>
+                      <button className="icon-btn" onClick={() => toggleFavorite(item._id)}><Star size={15} color="#8b8b8b" fill={item.favorite ? "#8b8b8b" : "none"} /></button>
+                      <button className="icon-btn" onClick={() => handleCopy(item)}><Copy size={15} /></button>
+                      {isSuperAdmin && <button className="icon-btn" onClick={() => handleDelete(item._id)}><Trash2 size={15} /></button>}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* Desktop grid (unchanged) */
+                <div className="list-grid">
+                  <div>
+                    <div className="template-name mb-1">{preview.title}</div>
+                    <div className="template-subline mb-0">{preview.language}</div>
+                  </div>
+                  <div className="template-subline mb-0">{preview.category}</div>
+                  <div><span className={getStatusBadgeClass(preview.status)}>{preview.status}</span></div>
+                  <div>{getApprovalBadge(item) || <span style={{ color: "#9ca3af", fontSize: 12 }}>—</span>}</div>
+                  <div className="template-subline mb-0">{item.createdAt ? new Date(item.createdAt).toLocaleDateString("en-GB") : "--"}</div>
+                  <div className="d-flex align-items-center gap-2 flex-wrap">
+                    <button className="icon-btn" onClick={() => handleEdit(item._id)} title="Edit"><Edit size={15} /></button>
+                    <button className="icon-btn" onClick={() => toggleFavorite(item._id)} title="Favorite"><Star size={15} color="#8b8b8b" fill={item.favorite ? "#8b8b8b" : "none"} /></button>
+                    <button className="icon-btn" onClick={() => handleCopy(item)} title="Copy"><Copy size={15} /></button>
+                    {isSuperAdmin && (
+                      <button className="icon-btn" onClick={() => handleDelete(item._id)} title="Delete"><Trash2 size={15} /></button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
+
   if (userRole && !isManagerOrAbove) {
     return (
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "60vh", gap: 12 }}>
@@ -611,7 +675,23 @@ export default function TemplatesPage() {
         .view-detail-btn:hover { background:#e0f7f5; border-color:#0d5b63; }
         @media (max-width:1399px) { .explore-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } }
         @media (max-width:1199px) { .explore-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-        @media (max-width:767px)  { .explore-grid { grid-template-columns:1fr; } }
+        @media (max-width:767px) {
+          .explore-grid { grid-template-columns:1fr; }
+          .campaigns-topbar-box { padding: 12px 10px; }
+          .campaigns-search-input { height: 40px; font-size: 13px; padding-left: 12px; padding-right: 40px; }
+          .campaigns-search-btn { width: 28px; height: 28px; }
+          .campaigns-primary-btn, .campaigns-secondary-btn { padding: 8px 12px; font-size: 12px; border-radius: 12px; }
+          .campaigns-tab-btn { padding: 7px 11px; font-size: 12px; }
+          .explore-card { padding: 12px; }
+          .mini-preview-media { height: 130px; }
+          .mini-text-preview { min-height: 130px; padding-top: 36px; }
+          .template-name { font-size: 13px; }
+          .template-subline { font-size: 10px; }
+          .card-meta-row, .card-footer-row { margin-top: 8px; padding-top: 8px; }
+          .icon-btn { width: 28px; height: 28px; }
+          .list-card { padding: 12px; }
+          .list-head { display: none; }
+        }
       `}</style>
 
       {editModalOpen && (
@@ -654,8 +734,6 @@ export default function TemplatesPage() {
                 </button>
               );
             })}
-
-            {/* ✅ Pending Approvals tab — admin only */}
             {isSuperAdmin && (
               <button onClick={() => setActiveTab("PendingApprovals")} className={`btn d-flex align-items-center gap-2 campaigns-tab-btn ${activeTab === "PendingApprovals" ? "active" : ""}`} style={{ position: "relative" }}>
                 <Bell size={15} /><span>Pending Approvals</span>
@@ -663,7 +741,7 @@ export default function TemplatesPage() {
             )}
           </div>
 
-          {/* ✅ Pending Approvals Panel */}
+          {/* Content */}
           {isPendingTab && isSuperAdmin ? (
             <PendingApprovalsPanel
               onApprove={(id) => setTemplates(prev => prev.map(t => t._id === id ? { ...t, approvalStatus: "approved", status: "APPROVED" } : t))}
@@ -691,10 +769,7 @@ export default function TemplatesPage() {
                     </div>
                     <div className="template-name">{preview.title}</div>
                     <div className="template-subline">{preview.language}</div>
-
-                    {/* ✅ Approval status badge for managers */}
                     {getApprovalBadge(item) && <div style={{ marginBottom: 8 }}>{getApprovalBadge(item)}</div>}
-
                     <CompactTemplatePreview item={item} />
                     <div className="card-meta-row">
                       <span className={getStatusBadgeClass(preview.status)}>{preview.status}</span>
@@ -709,7 +784,6 @@ export default function TemplatesPage() {
                         <button className="icon-btn" onClick={(e) => { e.stopPropagation(); handleEdit(item._id); }} title="Edit"><Edit size={15} /></button>
                         <button className="icon-btn" onClick={(e) => { e.stopPropagation(); toggleFavorite(item._id); }} title="Favorite"><Star size={15} color="#8b8b8b" fill={item.favorite ? "#8b8b8b" : "none"} /></button>
                         <button className="icon-btn" onClick={(e) => { e.stopPropagation(); handleCopy(item); }} title="Copy"><Copy size={15} /></button>
-                        {/* ✅ Delete only for super_admin */}
                         {isSuperAdmin && (
                           <button className="icon-btn" onClick={(e) => { e.stopPropagation(); handleDelete(item._id); }} title="Delete"><Trash2 size={15} /></button>
                         )}
@@ -720,38 +794,7 @@ export default function TemplatesPage() {
               })}
             </div>
           ) : (
-            <>
-              <div className="d-none d-lg-grid list-head list-grid">
-                <div>Name</div><div>Category</div><div>Status</div><div>Approval</div><div>Created</div><div>Actions</div>
-              </div>
-              <div ref={listRef} className="list-wrap">
-                {filteredTemplates.map((item, index) => {
-                  const preview = getPreviewData(item);
-                  return (
-                    <div key={item._id} ref={(el) => { rowRefs.current[index] = el; }} className="list-card" style={{ cursor: "pointer" }}>
-                      <div className="list-grid">
-                        <div>
-                          <div className="template-name mb-1">{preview.title}</div>
-                          <div className="template-subline mb-0">{preview.language}</div>
-                        </div>
-                        <div className="template-subline mb-0">{preview.category}</div>
-                        <div><span className={getStatusBadgeClass(preview.status)}>{preview.status}</span></div>
-                        <div>{getApprovalBadge(item) || <span style={{ color: "#9ca3af", fontSize: 12 }}>—</span>}</div>
-                        <div className="template-subline mb-0">{item.createdAt ? new Date(item.createdAt).toLocaleDateString("en-GB") : "--"}</div>
-                        <div className="d-flex align-items-center gap-2 flex-wrap">
-                          <button className="icon-btn" onClick={() => handleEdit(item._id)} title="Edit"><Edit size={15} /></button>
-                          <button className="icon-btn" onClick={() => toggleFavorite(item._id)} title="Favorite"><Star size={15} color="#8b8b8b" fill={item.favorite ? "#8b8b8b" : "none"} /></button>
-                          <button className="icon-btn" onClick={() => handleCopy(item)} title="Copy"><Copy size={15} /></button>
-                          {isSuperAdmin && (
-                            <button className="icon-btn" onClick={() => handleDelete(item._id)} title="Delete"><Trash2 size={15} /></button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </>
+            renderListView()
           )}
         </div>
       </div>

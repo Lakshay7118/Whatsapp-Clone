@@ -1,4 +1,5 @@
 "use client";
+import API from "./utils/api";
 
 import { useEffect, useState } from "react";
 import DashboardPage from "./componets/DashboardPage";
@@ -9,8 +10,7 @@ export default function Page() {
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
-  const API_BASE = `${BASE}`;
+  // removed — using API instance instead
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -28,17 +28,8 @@ export default function Page() {
     setLoading(true);
 
     try {
-      const res = await fetch(`${API_BASE}/api/users/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, phone }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "Login failed");
-      }
+      const res = await API.post("/users/login", { name, phone });
+      const data = res.data;  
 
       console.log("LOGIN RESPONSE:", data);
 

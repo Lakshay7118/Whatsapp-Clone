@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { FiTrash2, FiEdit2, FiCheck, FiX, FiUsers, FiArrowLeft } from "react-icons/fi";
 import API from "../utils/api";
 
-// ── Status Badge ──────────────────────────────────────────────────────────
+// ── StatusBadge ──────────────────────────────────────────────────────────
 function StatusBadge({ status }) {
   const colors = {
     approved: { bg: "#d1fae5", color: "#065f46" },
@@ -220,9 +220,17 @@ export default function ContactsPage() {
   const [userRole, setUserRole] = useState("");
   const PER_PAGE = 25;
 
+  // 📱 Mobile detection
+  const [isMobile, setIsMobile] = useState(false);
+
   useEffect(() => {
     const role = localStorage.getItem("role");
     setUserRole(role || "");
+
+    const check = () => setIsMobile(window.innerWidth <= 820);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
   }, []);
 
   const isSuperAdmin = userRole === "super_admin";
@@ -376,17 +384,42 @@ export default function ContactsPage() {
     setSelected(next);
   };
 
-  if (loading) return <div style={pageWrap}>Loading...</div>;
+  // ── Responsive style creators ──
+  const pageWrapStyle = (mobile) => ({
+    width: "100%", height: "100%", minHeight: 0,
+    background: "#f3f4f6",
+    padding: mobile ? "16px 12px" : "28px 32px 20px",
+    fontFamily: "'DM Sans', 'Segoe UI', sans-serif",
+    overflow: "hidden",
+    boxSizing: "border-box",
+  });
+
+  const toolbarWrapStyle = (mobile) => ({
+    display: "flex",
+    flexDirection: mobile ? "column" : "row",
+    alignItems: mobile ? "stretch" : "center",
+    gap: 10,
+    marginBottom: 16,
+    flexWrap: mobile ? "nowrap" : "wrap",
+    flexShrink: 0,
+  });
+
+  const searchInputStyle = (mobile) => ({
+    ...inputStyle,
+    width: mobile ? "100%" : 260,
+    paddingLeft: 36,
+  });
+
+  if (loading) return <div style={pageWrapStyle(isMobile)}>Loading...</div>;
 
   // ════════════════════════════════════════
   // SUPER ADMIN — MANAGERS LIST VIEW
   // ════════════════════════════════════════
   if (isSuperAdmin && adminView === "managers") {
     return (
-      <div style={pageWrap}>
+      <div style={pageWrapStyle(isMobile)}>
         <div style={contentShell}>
-          {/* Tabs */}
-          <div style={{ display: "flex", gap: 10, marginBottom: 20, flexShrink: 0 }}>
+          <div style={{ display: "flex", gap: 10, marginBottom: 20, flexShrink: 0, flexWrap: "wrap" }}>
             <button onClick={() => setAdminView("managers")} style={{ ...tabBtn, background: "#0d9488", color: "#fff" }}>👥 Managers</button>
             <button onClick={() => { setAdminView("all"); setLoading(true); }} style={tabBtn}>🌐 All Contacts</button>
             <button onClick={() => { setAdminView("pending"); setLoading(true); }} style={{ ...tabBtn, position: "relative" }}>
@@ -396,9 +429,7 @@ export default function ContactsPage() {
               )}
             </button>
           </div>
-
           <h2 style={{ margin: "0 0 16px", fontSize: 18, fontWeight: 700, color: "#1a2233" }}>All Managers</h2>
-
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16, overflowY: "auto" }}>
             {managers.length === 0 && (
               <p style={{ color: "#9ca3af", fontSize: 14 }}>No managers found. Create one first.</p>
@@ -421,19 +452,16 @@ export default function ContactsPage() {
   // ════════════════════════════════════════
   if (isSuperAdmin && adminView === "pending") {
     return (
-      <div style={pageWrap}>
+      <div style={pageWrapStyle(isMobile)}>
         <div style={contentShell}>
-          {/* Tabs */}
-          <div style={{ display: "flex", gap: 10, marginBottom: 20, flexShrink: 0 }}>
+          <div style={{ display: "flex", gap: 10, marginBottom: 20, flexShrink: 0, flexWrap: "wrap" }}>
             <button onClick={() => setAdminView("managers")} style={tabBtn}>👥 Managers</button>
             <button onClick={() => { setAdminView("all"); setLoading(true); }} style={tabBtn}>🌐 All Contacts</button>
             <button style={{ ...tabBtn, background: "#0d9488", color: "#fff" }}>⏳ Pending Approvals</button>
           </div>
-
           <h2 style={{ margin: "0 0 16px", fontSize: 18, fontWeight: 700, color: "#1a2233" }}>
             Pending Approvals <span style={{ fontSize: 14, color: "#6b7280", fontWeight: 400 }}>({pendingContacts.length})</span>
           </h2>
-
           <div style={{ background: "#fff", borderRadius: 12, boxShadow: "0 1px 4px rgba(0,0,0,0.06)", flex: 1, minHeight: 0, overflow: "hidden" }}>
             <div style={{ height: "100%", overflowY: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
@@ -484,12 +512,11 @@ export default function ContactsPage() {
   // CONTACTS TABLE VIEW (all roles)
   // ════════════════════════════════════════
   return (
-    <div style={pageWrap}>
+    <div style={pageWrapStyle(isMobile)}>
       <div style={contentShell}>
-
         {/* Admin Tabs */}
         {isSuperAdmin && (
-          <div style={{ display: "flex", gap: 10, marginBottom: 20, flexShrink: 0, alignItems: "center" }}>
+          <div style={{ display: "flex", gap: 10, marginBottom: 20, flexShrink: 0, alignItems: "center", flexWrap: "wrap" }}>
             <button onClick={() => setAdminView("managers")} style={tabBtn}>👥 Managers</button>
             <button style={{ ...tabBtn, background: "#0d9488", color: "#fff" }}>
               {adminView === "manager" ? `📋 ${selectedManager?.name}'s Contacts` : "🌐 All Contacts"}
@@ -498,33 +525,33 @@ export default function ContactsPage() {
               ⏳ Pending
             </button>
             {adminView === "manager" && (
-              <button onClick={() => { setAdminView("managers"); setSelectedManager(null); }} style={{ ...secondaryBtn, marginLeft: "auto" }}>
+              <button onClick={() => { setAdminView("managers"); setSelectedManager(null); }} style={{ ...secondaryBtn, marginLeft: isMobile ? 0 : "auto" }}>
                 ← Back to Managers
               </button>
             )}
           </div>
         )}
 
-        {/* Toolbar */}
-        <div style={toolbar}>
-          <div style={{ position: "relative" }}>
+        {/* Toolbar – responsive */}
+        <div style={toolbarWrapStyle(isMobile)}>
+          <div style={{ position: "relative", width: isMobile ? "100%" : "auto" }}>
             <input
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
               placeholder="Search name, mobile, or tag"
-              style={{ ...inputStyle, width: 260, paddingLeft: 36 }}
+              style={searchInputStyle(isMobile)}
             />
             <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#9ca3af", fontSize: 15 }}>🔍</span>
           </div>
 
-          <select value={filterTagId} onChange={(e) => setFilterTagId(e.target.value)} style={{ ...inputStyle, width: 150 }}>
+          <select value={filterTagId} onChange={(e) => setFilterTagId(e.target.value)} style={{ ...inputStyle, width: isMobile ? "100%" : 150 }}>
             <option value="">All tags</option>
             {tags.map((tag) => (
               <option key={tag._id} value={tag._id}>{getTagName(tag)}</option>
             ))}
           </select>
 
-          <div style={{ flex: 1 }} />
+          <div style={{ flex: isMobile ? "0" : 1 }} />
 
           {isSuperAdmin && selected.size > 0 && (
             <button onClick={deleteSelected} style={{ ...secondaryBtn, color: "#e74c3c", borderColor: "#e74c3c" }}>
@@ -532,18 +559,17 @@ export default function ContactsPage() {
             </button>
           )}
 
-          <button onClick={() => router.push("/Tags")} style={{ ...primaryBtn, background: "#fff", color: "#0d9488", border: "1.5px solid #0d9488" }}>
+          <button onClick={() => router.push("/Tags")} style={{ ...primaryBtn, background: "#fff", color: "#0d9488", border: "1.5px solid #0d9488", width: isMobile ? "100%" : "auto" }}>
             🏷 Add Tag
           </button>
 
-          {/* ✅ ALL roles can add contact */}
-          <button onClick={() => setShowAddModal(true)} style={primaryBtn}>+ Add Contact</button>
+          <button onClick={() => setShowAddModal(true)} style={{ ...primaryBtn, width: isMobile ? "100%" : "auto" }}>+ Add Contact</button>
         </div>
 
-        {/* Table */}
+        {/* Table – responsive */}
         <div style={tableCard}>
           <div style={tableScroll}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14, minWidth: isMobile ? 600 : 0 }}>
               <thead>
                 <tr style={{ borderBottom: "1px solid #e5e7eb" }}>
                   {isSuperAdmin && (
@@ -554,7 +580,7 @@ export default function ContactsPage() {
                   <th style={{ ...stickyTh, textAlign: "left" }}>Name</th>
                   <th style={{ ...stickyTh, textAlign: "left" }}>Mobile</th>
                   <th style={{ ...stickyTh, textAlign: "left" }}>Tags</th>
-                  <th style={{ ...stickyTh, textAlign: "left" }}>Source</th>
+                  <th style={{ ...stickyTh, textAlign: "left", whiteSpace: "nowrap" }}>Source</th>
                   <th style={{ ...stickyTh, textAlign: "left" }}>Status</th>
                   {isSuperAdmin && <th style={{ ...stickyTh, textAlign: "left" }}>Created By</th>}
                   {isManagerOrAbove && <th style={{ ...stickyTh, textAlign: "left" }}>Actions</th>}
@@ -569,7 +595,13 @@ export default function ContactsPage() {
                   </tr>
                 )}
                 {paged.map((c, i) => (
-                  <tr key={c._id} style={{ borderBottom: "1px solid #f3f4f6", background: selected.has(c._id) ? "#f0fdf4" : i % 2 === 0 ? "#fff" : "#fafafa" }}>
+                  <tr
+                    key={c._id}
+                    style={{
+                      borderBottom: "1px solid #f3f4f6",
+                      background: selected.has(c._id) ? "#f0fdf4" : (isMobile ? "transparent" : (i % 2 === 0 ? "#fff" : "#fafafa")),
+                    }}
+                  >
                     {isSuperAdmin && (
                       <td style={td}>
                         <input type="checkbox" checked={selected.has(c._id)} onChange={() => toggleOne(c._id)} />
@@ -635,20 +667,18 @@ export default function ContactsPage() {
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────
-const pageWrap = { width: "100%", height: "100%", minHeight: 0, background: "#f3f4f6", padding: "28px 32px 20px", fontFamily: "'DM Sans', 'Segoe UI', sans-serif", overflow: "hidden", boxSizing: "border-box" };
-const contentShell = { width: "100%", height: "100%", minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden" };
-const toolbar = { display: "flex", alignItems: "center", gap: 10, marginBottom: 16, flexWrap: "wrap", flexShrink: 0 };
-const tableCard = { background: "#fff", borderRadius: 12, boxShadow: "0 1px 4px rgba(0,0,0,0.06)", flex: 1, minHeight: 0, overflow: "hidden" };
-const tableScroll = { height: "100%", overflowY: "auto", overflowX: "auto", scrollbarWidth: "none", msOverflowStyle: "none" };
-const stickyTh = { padding: "12px 16px", fontWeight: 600, fontSize: 13, color: "#0d9488", whiteSpace: "nowrap", background: "#f9fafb", position: "sticky", top: 0, zIndex: 2, textAlign: "left" };
-const td = { padding: "12px 16px", color: "#374151", fontSize: 14 };
-const paginationRow = { display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginTop: 16, flexShrink: 0 };
-const pageBtn = (disabled) => ({ background: "#fff", border: "1px solid #d1d5db", borderRadius: 6, padding: "4px 12px", cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.4 : 1, fontSize: 16 });
-const tabBtn = { background: "#fff", border: "1.5px solid #e5e7eb", borderRadius: 8, padding: "8px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", color: "#374151" };
 const inputStyle = { width: "100%", padding: "9px 12px", border: "1.5px solid #e5e7eb", borderRadius: 8, fontSize: 14, outline: "none", boxSizing: "border-box", color: "#1a2233", background: "#fff" };
 const labelStyle = { display: "block", fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 5 };
 const primaryBtn = { background: "#0d9488", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" };
 const secondaryBtn = { background: "#fff", color: "#374151", border: "1.5px solid #d1d5db", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer" };
-const closeBtn = { background: "none", border: "none", fontSize: 18, cursor: "pointer", color: "#6b7280", padding: "0 4px" };
+const tabBtn = { background: "#fff", border: "1.5px solid #e5e7eb", borderRadius: 8, padding: "8px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", color: "#374151" };
+const stickyTh = { padding: "12px 16px", fontWeight: 600, fontSize: 13, color: "#0d9488", whiteSpace: "nowrap", background: "#f9fafb", position: "sticky", top: 0, zIndex: 2, textAlign: "left" };
+const td = { padding: "12px 16px", color: "#374151", fontSize: 14 };
+const paginationRow = { display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginTop: 16, flexShrink: 0 };
+const pageBtn = (disabled) => ({ background: "#fff", border: "1px solid #d1d5db", borderRadius: 6, padding: "4px 12px", cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.4 : 1, fontSize: 16 });
+const contentShell = { width: "100%", height: "100%", minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden" };
+const tableCard = { background: "#fff", borderRadius: 12, boxShadow: "0 1px 4px rgba(0,0,0,0.06)", flex: 1, minHeight: 0, overflow: "hidden" };
+const tableScroll = { height: "100%", overflowY: "auto", overflowX: "auto", msOverflowStyle: "none", scrollbarWidth: "none", WebkitOverflowScrolling: "touch" };
 const overlay = { position: "fixed", inset: 0, background: "rgba(0,0,0,0.35)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 };
 const modalBox = { background: "#fff", borderRadius: 14, padding: "28px 32px", width: 440, maxWidth: "95vw", boxShadow: "0 8px 40px rgba(0,0,0,0.18)" };
+const closeBtn = { background: "none", border: "none", fontSize: 18, cursor: "pointer", color: "#6b7280", padding: "0 4px" };

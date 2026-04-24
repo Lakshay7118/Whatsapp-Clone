@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import API from "../utils/api";   // ✅ using your axios instance
+import API from "../utils/api";
 
 // ── Helper: get tag name safely ──────────────────────────────────────────────
 const getTagName = (tag) => tag?.name || tag?.tagName || "";
@@ -126,12 +126,21 @@ export default function TagsPage() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
+  // 📱 Mobile detection
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth <= 820);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
   // Fetch tags from backend
   const fetchTags = async () => {
     try {
       const res = await API.get("/tags");
       const data = res.data;
-      // Backend may return { tags: [...] } or direct array
       setTags(data.tags || (Array.isArray(data) ? data : []));
     } catch (err) {
       console.error(err);
@@ -192,24 +201,48 @@ export default function TagsPage() {
     }
   };
 
-  // Filter tags based on search (safe access)
+  // Filter tags based on search
   const filtered = tags.filter((t) => {
     const tagName = getTagName(t);
     return tagName.toLowerCase().includes(search.toLowerCase());
   });
 
+  // ── responsive style factories ──────────────────────────────────────────
+  const pageWrapStyle = (mobile) => ({
+    minHeight: "100vh",
+    background: "#f3f4f6",
+    padding: mobile ? "16px 12px" : "28px 32px",
+    fontFamily: "'DM Sans', 'Segoe UI', sans-serif",
+  });
+
+  const toolbarStyle = (mobile) => ({
+    display: "flex",
+    alignItems: mobile ? "stretch" : "center",
+    flexDirection: mobile ? "column" : "row",
+    gap: 10,
+    marginBottom: 16,
+    flexWrap: "wrap",
+  });
+
+  const searchInputStyle = (mobile) => ({
+    ...inputStyle,
+    width: mobile ? "100%" : 260,
+    paddingLeft: 36,
+  });
+
+  // ── Loading state ────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div style={pageWrap}>
+      <div style={pageWrapStyle(isMobile)}>
         <div style={{ textAlign: "center", padding: 40 }}>Loading tags...</div>
       </div>
     );
   }
 
   return (
-    <div style={pageWrap}>
+    <div style={pageWrapStyle(isMobile)}>
       {/* Back + Header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 22 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 22, flexWrap: "wrap" }}>
         <button onClick={() => router.push("/contacts")} style={backBtn}>← Back</button>
         <div>
           <h1 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: "#1a2233" }}>Tags</h1>
@@ -219,14 +252,14 @@ export default function TagsPage() {
         </div>
       </div>
 
-      {/* Toolbar */}
-      <div style={toolbar}>
-        <div style={{ position: "relative" }}>
+      {/* Toolbar — responsive */}
+      <div style={toolbarStyle(isMobile)}>
+        <div style={{ position: "relative", width: isMobile ? "100%" : "auto" }}>
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search tags…"
-            style={{ ...inputStyle, width: 260, paddingLeft: 36 }}
+            style={searchInputStyle(isMobile)}
           />
           <span
             style={{
@@ -242,14 +275,14 @@ export default function TagsPage() {
           </span>
         </div>
         <div style={{ flex: 1 }} />
-        <button onClick={() => setShowAddModal(true)} style={primaryBtn}>
+        <button onClick={() => setShowAddModal(true)} style={{ ...primaryBtn, width: isMobile ? "100%" : "auto" }}>
           + Add Tag
         </button>
       </div>
 
-      {/* Table */}
-      <div style={tableWrap}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+      {/* Table — responsive */}
+      <div style={{ ...tableWrap, overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14, minWidth: isMobile ? 500 : 0 }}>
           <thead>
             <tr style={{ background: "#f9fafb", borderBottom: "1px solid #e5e7eb" }}>
               {["Tag Name", "First Message", "Status", "Action"].map((h) => (
@@ -331,7 +364,7 @@ export default function TagsPage() {
 
                 {/* Action */}
                 <td style={{ ...td, textAlign: "center" }}>
-                  <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+                  <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
                     <button
                       onClick={() => toggleStatus(t._id, t.status)}
                       title={t.status === "Active" ? "Deactivate" : "Activate"}
@@ -382,44 +415,7 @@ export default function TagsPage() {
   );
 }
 
-// ── Styles (unchanged) ────────────────────────────────────────────────────────
-const pageWrap = {
-  minHeight: "100vh",
-  background: "#f3f4f6",
-  padding: "28px 32px",
-  fontFamily: "'DM Sans', 'Segoe UI', sans-serif",
-};
-
-const toolbar = {
-  display: "flex",
-  alignItems: "center",
-  gap: 10,
-  marginBottom: 16,
-  flexWrap: "wrap",
-};
-
-const tableWrap = {
-  background: "#fff",
-  borderRadius: 12,
-  boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-  overflow: "hidden",
-};
-
-const th = {
-  padding: "12px 16px",
-  fontWeight: 700,
-  fontSize: 13,
-  color: "#0d9488",
-  whiteSpace: "nowrap",
-};
-
-const td = {
-  padding: "13px 16px",
-  color: "#374151",
-  fontSize: 14,
-  verticalAlign: "middle",
-};
-
+// ── Styles (unchanged, just exported for use) ─────────────────────────────────
 const inputStyle = {
   width: "100%",
   padding: "9px 12px",
@@ -500,6 +496,28 @@ const closeBtn = {
   cursor: "pointer",
   color: "#6b7280",
   padding: "0 4px",
+};
+
+const th = {
+  padding: "12px 16px",
+  fontWeight: 700,
+  fontSize: 13,
+  color: "#0d9488",
+  whiteSpace: "nowrap",
+};
+
+const td = {
+  padding: "13px 16px",
+  color: "#374151",
+  fontSize: 14,
+  verticalAlign: "middle",
+};
+
+const tableWrap = {
+  background: "#fff",
+  borderRadius: 12,
+  boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+  overflow: "hidden",
 };
 
 const iconBtn = (color) => ({
