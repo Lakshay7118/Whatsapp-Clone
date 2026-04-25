@@ -10,12 +10,27 @@ export default function Topbar({
   onMenuClick,
   onLogout,
   title = "Dashboard",
+  hidden = false,
 }) {
   const topbarRef = useRef(null);
   const [searchValue, setSearchValue] = useState("");
-  const avatarInitial = userName?.charAt(0)?.toUpperCase() || "N";
+  const [hiddenForChat, setHiddenForChat] = useState(false);
+
+  // ── ALL HOOKS FIRST ──────────────────────────────────────────
+  useEffect(() => {
+    const handleOpen  = () => setHiddenForChat(true);
+    const handleClose = () => setHiddenForChat(false);
+    window.addEventListener("detailViewOpen",  handleOpen);
+    window.addEventListener("detailViewClose", handleClose);
+    return () => {
+      window.removeEventListener("detailViewOpen",  handleOpen);
+      window.removeEventListener("detailViewClose", handleClose);
+    };
+  }, []);
 
   useEffect(() => {
+    if (hidden || hiddenForChat) return; // skip animation if not visible
+    if (!topbarRef.current) return;
     const ctx = gsap.context(() => {
       gsap.fromTo(
         topbarRef.current,
@@ -24,12 +39,16 @@ export default function Topbar({
       );
     });
     return () => ctx.revert();
-  }, []);
+  }, [hidden, hiddenForChat]);
 
+  const avatarInitial = userName?.charAt(0)?.toUpperCase() || "N";
   const handleLogout = () => {
     if (onLogout) onLogout();
     else alert("Logout clicked");
   };
+
+  // ── EARLY RETURN AFTER ALL HOOKS ─────────────────────────────
+  if (hidden || hiddenForChat) return null;
 
   return (
     <header
@@ -104,7 +123,6 @@ export default function Topbar({
           boxSizing: "border-box",
         }}
       >
-        {/* Hamburger */}
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.92 }}
@@ -119,25 +137,12 @@ export default function Topbar({
           <Menu size={17} color="#374151" />
         </motion.button>
 
-        {/* Title */}
-        <span
-          style={{
-            fontSize: "15px", fontWeight: 700, color: "#111827",
-            flexShrink: 0,
-          }}
-        >
+        <span style={{ fontSize: "15px", fontWeight: 700, color: "#111827", flexShrink: 0 }}>
           {title}
         </span>
 
-        {/* Divider */}
-        <div
-          style={{
-            width: "1px", height: "22px",
-            background: "#e2e8f0", flexShrink: 0,
-          }}
-        />
+        <div style={{ width: "1px", height: "22px", background: "#e2e8f0", flexShrink: 0 }} />
 
-        {/* Search */}
         <div
           style={{
             display: "flex", alignItems: "center",
@@ -158,10 +163,8 @@ export default function Topbar({
           />
         </div>
 
-        {/* Spacer */}
         <div style={{ flex: 1 }} />
 
-        {/* Bell */}
         <motion.button
           whileHover={{ scale: 1.08 }}
           whileTap={{ scale: 0.92 }}
@@ -182,7 +185,6 @@ export default function Topbar({
           />
         </motion.button>
 
-        {/* User chip */}
         <div
           style={{
             display: "flex", alignItems: "center", gap: "8px",
@@ -205,7 +207,6 @@ export default function Topbar({
           </span>
         </div>
 
-        {/* Logout */}
         <motion.button
           whileHover={{ scale: 1.08 }}
           whileTap={{ scale: 0.92 }}

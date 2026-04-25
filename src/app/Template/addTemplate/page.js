@@ -162,6 +162,8 @@ export default function NewTemplatePage() {
     mediaType: "None",
   });
 
+  const [isMobile, setIsMobile] = useState(false);
+
   const [variableValues, setVariableValues] = useState({});
 
   const [ctaButtons, setCtaButtons] = useState([]);
@@ -183,6 +185,13 @@ export default function NewTemplatePage() {
   const handleChange = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
+
+  useEffect(() => {
+  const check = () => setIsMobile(window.innerWidth <= 820);
+  check();
+  window.addEventListener("resize", check);
+  return () => window.removeEventListener("resize", check);
+}, []);
 
   useEffect(() => {
     if (form.category !== "Marketing") {
@@ -636,32 +645,32 @@ setSubmitMessage(
 
   return (
     <div
-      style={{
-        minHeight: "100vh",
-        padding: "20px",
-        background: "#f6f8fb",
-      }}
-    >
+  style={{
+    minHeight: "100vh",
+    padding: isMobile ? "12px 10px 80px 10px" : "20px", // ✅ bottom padding for tabs
+    background: "#f6f8fb",
+  }}
+>
       <div className="container-fluid" style={{ maxWidth: "1450px" }}>
-        <div className="row g-4">
+        <div className="row g-4" style={{ alignItems: "flex-start" }}>
           <div className="col-12 col-xl-7">
             <div className="d-flex flex-column gap-3">
               {/* Header section – unchanged */}
               <div className="d-flex align-items-start gap-3 mb-1">
                 <div
-                  style={{
-                    width: "54px",
-                    height: "54px",
-                    borderRadius: "16px",
-                    background: "linear-gradient(135deg, #0f766e 0%, #115e59 100%)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "#fff",
-                    boxShadow: "0 14px 30px rgba(15, 118, 110, 0.22)",
-                    flexShrink: 0,
-                  }}
-                >
+  style={{
+    width: isMobile ? "42px" : "54px",
+    height: isMobile ? "42px" : "54px",
+    borderRadius: "16px",
+    background: "linear-gradient(135deg, #0f766e 0%, #115e59 100%)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    color: "#fff",
+    boxShadow: "0 14px 30px rgba(15, 118, 110, 0.22)",
+    flexShrink: 0,
+  }}
+>
                   <LayoutTemplate size={22} />
                 </div>
                 <div className="flex-grow-1">
@@ -1010,9 +1019,9 @@ setSubmitMessage(
           </div>
 
           {/* RIGHT COLUMN – STICKY PREVIEW */}
-          <div className="col-12 col-xl-5">
-            <div style={{ position: "relative", height: "100%" }}>
-              <div className="stickyPreview">
+          <div className="col-12 col-xl-5" style={{ position: "sticky", top: "20px", alignSelf: "flex-start" }}>
+  <div style={{ position: "relative" }}>
+    <div className="stickyPreview">
                 <div>
                   <div className="d-flex align-items-center justify-content-between mb-3">
                     <div><h4 style={{ margin: 0, fontWeight: 800, color: colors.text, fontSize: "17px" }}>Template Preview</h4><p style={{ margin: "5px 0 0", color: colors.textSoft, fontSize: "11px" }}>Live preview of your message and actions.</p></div>
@@ -1104,14 +1113,25 @@ setSubmitMessage(
       </div>
 
       <style>{`
-        .stickyPreview { position: sticky; top: 20px; align-self: flex-start; }
-        .col-xl-5 { position: relative; overflow: visible; }
-        @media (max-width: 1199px) { .stickyPreview { position: static; } }
-        .actionTitle { font-size: 11px; font-weight: 700; color: #0f172a; margin-bottom: 6px; }
-        .smallCount { font-size: 10px; color: #64748b; text-align: right; margin-top: 4px; }
-        .uploadBox { min-height: 46px; border-radius: 14px; border: 1px dashed #b9c7d6; background: #f8fafc; color: #0f172a; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; font-size: 12px; font-weight: 700; padding: 12px 14px; transition: 0.2s ease; }
-        .uploadBox:hover { border-color: #0f766e; background: #ffffff; }
-      `}</style>
+  .stickyPreview { position: static; background-color: white;
+    padding: 15px;
+    border-radius: 15px; }  /* let the column handle sticky */
+  .col-xl-5 { position: sticky !important; top: 20px !important; align-self: flex-start !important; }
+  @media (max-width: 1199px) { 
+    .col-xl-5 { position: static !important; }  /* disable on mobile/tablet */
+  }
+  .actionTitle { font-size: 11px; font-weight: 700; color: #0f172a; margin-bottom: 6px; }
+  .smallCount { font-size: 10px; color: #64748b; text-align: right; margin-top: 4px; }
+  .uploadBox { min-height: 46px; border-radius: 14px; border: 1px dashed #b9c7d6; background: #f8fafc; color: #0f172a; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; font-size: 12px; font-weight: 700; padding: 12px 14px; transition: 0.2s ease; }
+  .uploadBox:hover { border-color: #0f766e; background: #ffffff; }
+
+  @media (max-width: 820px) {
+    .container-fluid { padding-left: 0 !important; padding-right: 0 !important; }
+    .row { margin-left: 0 !important; margin-right: 0 !important; }
+    .col-12 { padding-left: 0 !important; padding-right: 0 !important; }
+    h1 { font-size: 20px !important; }
+  }
+`}</style>
     </div>
   );
 }

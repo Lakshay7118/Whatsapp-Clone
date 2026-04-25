@@ -386,13 +386,13 @@ export default function ContactsPage() {
 
   // ── Responsive style creators ──
   const pageWrapStyle = (mobile) => ({
-    width: "100%", height: "100%", minHeight: 0,
-    background: "#f3f4f6",
-    padding: mobile ? "16px 12px" : "28px 32px 20px",
-    fontFamily: "'DM Sans', 'Segoe UI', sans-serif",
-    overflow: "hidden",
-    boxSizing: "border-box",
-  });
+  width: "100%", height: "100%", minHeight: 0,
+  
+  padding: mobile ? "0px" : "0px", // ✅ 80px bottom for tabs
+  fontFamily: "'DM Sans', 'Segoe UI', sans-serif",
+  overflow: mobile ? "auto" : "hidden", // ✅ allow scroll on mobile
+  boxSizing: "border-box",
+});
 
   const toolbarWrapStyle = (mobile) => ({
     display: "flex",
@@ -418,8 +418,8 @@ export default function ContactsPage() {
   if (isSuperAdmin && adminView === "managers") {
     return (
       <div style={pageWrapStyle(isMobile)}>
-        <div style={contentShell}>
-          <div style={{ display: "flex", gap: 10, marginBottom: 20, flexShrink: 0, flexWrap: "wrap" }}>
+        <div style={contentShell(isMobile)}>
+          <div style={{ display: "flex",  marginBottom: 20, flexShrink: 0, flexWrap: "wrap" }}>
             <button onClick={() => setAdminView("managers")} style={{ ...tabBtn, background: "#0d9488", color: "#fff" }}>👥 Managers</button>
             <button onClick={() => { setAdminView("all"); setLoading(true); }} style={tabBtn}>🌐 All Contacts</button>
             <button onClick={() => { setAdminView("pending"); setLoading(true); }} style={{ ...tabBtn, position: "relative" }}>
@@ -453,7 +453,7 @@ export default function ContactsPage() {
   if (isSuperAdmin && adminView === "pending") {
     return (
       <div style={pageWrapStyle(isMobile)}>
-        <div style={contentShell}>
+        <div style={contentShell(isMobile)}>
           <div style={{ display: "flex", gap: 10, marginBottom: 20, flexShrink: 0, flexWrap: "wrap" }}>
             <button onClick={() => setAdminView("managers")} style={tabBtn}>👥 Managers</button>
             <button onClick={() => { setAdminView("all"); setLoading(true); }} style={tabBtn}>🌐 All Contacts</button>
@@ -483,8 +483,8 @@ export default function ContactsPage() {
                       <td style={td}>{c.name}</td>
                       <td style={td}>{c.mobile}</td>
                       <td style={td}>
-                        <div style={{ fontSize: 13 }}>{c.createdBy?.name || "—"}</div>
-                        <div style={{ fontSize: 11, color: "#9ca3af" }}>{c.createdBy?.role}</div>
+                        <div style={{ fontSize: 12 }}>{c.createdBy?.name || "—"}</div>
+                        <div style={{ fontSize: 12, color: "#9ca3af" }}>{c.createdBy?.role}</div>
                       </td>
                       <td style={td}><StatusBadge status="pending" /></td>
                       <td style={td}>
@@ -513,7 +513,7 @@ export default function ContactsPage() {
   // ════════════════════════════════════════
   return (
     <div style={pageWrapStyle(isMobile)}>
-      <div style={contentShell}>
+      <div style={contentShell(isMobile)}>
         {/* Admin Tabs */}
         {isSuperAdmin && (
           <div style={{ display: "flex", gap: 10, marginBottom: 20, flexShrink: 0, alignItems: "center", flexWrap: "wrap" }}>
@@ -567,84 +567,167 @@ export default function ContactsPage() {
         </div>
 
         {/* Table – responsive */}
-        <div style={tableCard}>
-          <div style={tableScroll}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14, minWidth: isMobile ? 600 : 0 }}>
-              <thead>
-                <tr style={{ borderBottom: "1px solid #e5e7eb" }}>
-                  {isSuperAdmin && (
-                    <th style={stickyTh}>
-                      <input type="checkbox" checked={selected.size === paged.length && paged.length > 0} onChange={toggleAll} />
-                    </th>
-                  )}
-                  <th style={{ ...stickyTh, textAlign: "left" }}>Name</th>
-                  <th style={{ ...stickyTh, textAlign: "left" }}>Mobile</th>
-                  <th style={{ ...stickyTh, textAlign: "left" }}>Tags</th>
-                  <th style={{ ...stickyTh, textAlign: "left", whiteSpace: "nowrap" }}>Source</th>
-                  <th style={{ ...stickyTh, textAlign: "left" }}>Status</th>
-                  {isSuperAdmin && <th style={{ ...stickyTh, textAlign: "left" }}>Created By</th>}
-                  {isManagerOrAbove && <th style={{ ...stickyTh, textAlign: "left" }}>Actions</th>}
-                </tr>
-              </thead>
-              <tbody>
-                {paged.length === 0 && (
-                  <tr>
-                    <td colSpan={8} style={{ textAlign: "center", padding: "48px 0", color: "#9ca3af", fontSize: 14 }}>
-                      No contacts found. Click "+ Add Contact" to get started.
-                    </td>
-                  </tr>
-                )}
-                {paged.map((c, i) => (
-                  <tr
-                    key={c._id}
-                    style={{
-                      borderBottom: "1px solid #f3f4f6",
-                      background: selected.has(c._id) ? "#f0fdf4" : (isMobile ? "transparent" : (i % 2 === 0 ? "#fff" : "#fafafa")),
-                    }}
-                  >
-                    {isSuperAdmin && (
-                      <td style={td}>
-                        <input type="checkbox" checked={selected.has(c._id)} onChange={() => toggleOne(c._id)} />
-                      </td>
-                    )}
-                    <td style={td}>{c.name}</td>
-                    <td style={td}>{c.mobile}</td>
-                    <td style={td}>
-                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                        {c.tags && c.tags.length > 0
-                          ? c.tags.map((tag, idx) => <TagBadge key={idx} label={getTagName(tag)} />)
-                          : <span style={{ color: "#9ca3af" }}>—</span>}
-                      </div>
-                    </td>
-                    <td style={td}>{c.source || "—"}</td>
-                    <td style={td}><StatusBadge status={c.status || "approved"} /></td>
-                    {isSuperAdmin && (
-                      <td style={{ ...td, fontSize: 12, color: "#6b7280" }}>
-                        {c.createdBy?.name || "—"}
-                        <br />
-                        <span style={{ color: "#9ca3af" }}>{c.createdBy?.role}</span>
-                      </td>
-                    )}
-                    {isManagerOrAbove && (
-                      <td style={td}>
-                        <div style={{ display: "flex", gap: 8 }}>
-                          <button onClick={() => setEditingContact(c)} style={{ background: "none", border: "none", cursor: "pointer", color: "#3b82f6" }} title="Edit">
-                            <FiEdit2 size={16} />
-                          </button>
-                          {isSuperAdmin && (
-                            <button onClick={() => deleteSingleContact(c._id, c.name)} style={{ background: "none", border: "none", cursor: "pointer", color: "#dc3545" }} title="Delete">
-                              <FiTrash2 size={16} />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+{isMobile ? (
+  // ── MOBILE CARD VIEW ──────────────────────────────────
+  <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 12 }}>
+    {paged.length === 0 && (
+      <div style={{ textAlign: "center", padding: "48px 0", color: "#9ca3af", fontSize: 14 }}>
+        No contacts found. Click "+ Add Contact" to get started.
+      </div>
+    )}
+    {paged.map((c) => (
+      <div
+        key={c._id}
+        style={{
+          background: "#fff",
+          borderRadius: 12,
+          padding: "14px 16px",
+          boxShadow: "0 1px 4px rgba(0,0,0,0.07)",
+          border: selected.has(c._id) ? "1.5px solid #0d9488" : "1.5px solid #e5e7eb",
+          display: "flex",
+          alignItems: "flex-start",
+          gap: 12,
+        }}
+      >
+        {/* Checkbox */}
+        {isSuperAdmin && (
+          <input
+            type="checkbox"
+            checked={selected.has(c._id)}
+            onChange={() => toggleOne(c._id)}
+            style={{ marginTop: 3, accentColor: "#0d9488", width: 16, height: 16, flexShrink: 0 }}
+          />
+        )}
+
+        {/* Avatar */}
+        <div style={{
+          width: 40, height: 40, borderRadius: "50%",
+          background: "#0d9488", color: "#fff",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontWeight: 700, fontSize: 16, flexShrink: 0,
+        }}>
+          {(c.name || "?")[0].toUpperCase()}
+        </div>
+
+        {/* Info */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 700, color: "#1a2233", fontSize: 15, marginBottom: 2 }}>
+            {c.name}
+          </div>
+          <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 6 }}>
+            {c.mobile}
+          </div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+            {c.tags && c.tags.length > 0
+              ? c.tags.map((tag, idx) => <TagBadge key={idx} label={getTagName(tag)} />)
+              : <span style={{ color: "#d1d5db", fontSize: 12 }}>No tag</span>}
+            <StatusBadge status={c.status || "approved"} />
           </div>
         </div>
+
+        {/* Actions */}
+        {isManagerOrAbove && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, flexShrink: 0 }}>
+            <button
+              onClick={() => setEditingContact(c)}
+              style={{ background: "#eff6ff", border: "none", borderRadius: 8, padding: "6px 8px", cursor: "pointer", color: "#3b82f6" }}
+            >
+              <FiEdit2 size={15} />
+            </button>
+            {isSuperAdmin && (
+              <button
+                onClick={() => deleteSingleContact(c._id, c.name)}
+                style={{ background: "#fef2f2", border: "none", borderRadius: 8, padding: "6px 8px", cursor: "pointer", color: "#dc3545" }}
+              >
+                <FiTrash2 size={15} />
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    ))}
+  </div>
+) : (
+  // ── DESKTOP TABLE VIEW ────────────────────────────────
+  <div style={tableCard(isMobile)}>
+    <div style={tableScroll(isMobile)}>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+        <thead>
+          <tr style={{ borderBottom: "1px solid #e5e7eb" }}>
+            {isSuperAdmin && (
+              <th style={stickyTh}>
+                <input type="checkbox" checked={selected.size === paged.length && paged.length > 0} onChange={toggleAll} />
+              </th>
+            )}
+            <th style={{ ...stickyTh, textAlign: "left" }}>Name</th>
+            <th style={{ ...stickyTh, textAlign: "left" }}>Mobile</th>
+            <th style={{ ...stickyTh, textAlign: "left" }}>Tags</th>
+            <th style={{ ...stickyTh, textAlign: "left", whiteSpace: "nowrap" }}>Source</th>
+            <th style={{ ...stickyTh, textAlign: "left" }}>Status</th>
+            {isSuperAdmin && <th style={{ ...stickyTh, textAlign: "left" }}>Created By</th>}
+            {isManagerOrAbove && <th style={{ ...stickyTh, textAlign: "left" }}>Actions</th>}
+          </tr>
+        </thead>
+        <tbody>
+          {paged.length === 0 && (
+            <tr>
+              <td colSpan={8} style={{ textAlign: "center", padding: "48px 0", color: "#9ca3af", fontSize: 14 }}>
+                No contacts found. Click "+ Add Contact" to get started.
+              </td>
+            </tr>
+          )}
+          {paged.map((c, i) => (
+            <tr
+              key={c._id}
+              style={{
+                borderBottom: "1px solid #f3f4f6",
+                background: selected.has(c._id) ? "#f0fdf4" : (i % 2 === 0 ? "#fff" : "#fafafa"),
+              }}
+            >
+              {isSuperAdmin && (
+                <td style={td}>
+                  <input type="checkbox" checked={selected.has(c._id)} onChange={() => toggleOne(c._id)} />
+                </td>
+              )}
+              <td style={td}>{c.name}</td>
+              <td style={td}>{c.mobile}</td>
+              <td style={td}>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {c.tags && c.tags.length > 0
+                    ? c.tags.map((tag, idx) => <TagBadge key={idx} label={getTagName(tag)} />)
+                    : <span style={{ color: "#9ca3af" }}>—</span>}
+                </div>
+              </td>
+              <td style={td}>{c.source || "—"}</td>
+              <td style={td}><StatusBadge status={c.status || "approved"} /></td>
+              {isSuperAdmin && (
+                <td style={{ ...td, fontSize: 12, color: "#6b7280" }}>
+                  {c.createdBy?.name || "—"}
+                  <br />
+                  <span style={{ color: "#9ca3af" }}>{c.createdBy?.role}</span>
+                </td>
+              )}
+              {isManagerOrAbove && (
+                <td style={td}>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button onClick={() => setEditingContact(c)} style={{ background: "none", border: "none", cursor: "pointer", color: "#3b82f6" }}>
+                      <FiEdit2 size={16} />
+                    </button>
+                    {isSuperAdmin && (
+                      <button onClick={() => deleteSingleContact(c._id, c.name)} style={{ background: "none", border: "none", cursor: "pointer", color: "#dc3545" }}>
+                        <FiTrash2 size={16} />
+                      </button>
+                    )}
+                  </div>
+                </td>
+              )}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+)}
 
         {/* Pagination */}
         <div style={paginationRow}>
@@ -676,9 +759,16 @@ const stickyTh = { padding: "12px 16px", fontWeight: 600, fontSize: 13, color: "
 const td = { padding: "12px 16px", color: "#374151", fontSize: 14 };
 const paginationRow = { display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginTop: 16, flexShrink: 0 };
 const pageBtn = (disabled) => ({ background: "#fff", border: "1px solid #d1d5db", borderRadius: 6, padding: "4px 12px", cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.4 : 1, fontSize: 16 });
-const contentShell = { width: "100%", height: "100%", minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden" };
-const tableCard = { background: "#fff", borderRadius: 12, boxShadow: "0 1px 4px rgba(0,0,0,0.06)", flex: 1, minHeight: 0, overflow: "hidden" };
-const tableScroll = { height: "100%", overflowY: "auto", overflowX: "auto", msOverflowStyle: "none", scrollbarWidth: "none", WebkitOverflowScrolling: "touch" };
+const contentShell = (mobile) => ({ 
+  width: "100%", 
+  height: mobile ? "auto" : "100%", 
+  minHeight: 0, 
+  display: "flex", 
+  flexDirection: "column", 
+  overflow: mobile ? "visible" : "hidden" 
+});
+const tableCard = (mobile) => ({ background: "#fff", borderRadius: 12, boxShadow: "0 1px 4px rgba(0,0,0,0.06)", flex: mobile ? "none" : 1, minHeight: 0, overflow: "hidden" });
+const tableScroll = (mobile) => ({ height: mobile ? "auto" : "100%", overflowY: "auto", overflowX: "auto", msOverflowStyle: "none", scrollbarWidth: "none", WebkitOverflowScrolling: "touch" });
 const overlay = { position: "fixed", inset: 0, background: "rgba(0,0,0,0.35)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 };
 const modalBox = { background: "#fff", borderRadius: 14, padding: "28px 32px", width: 440, maxWidth: "95vw", boxShadow: "0 8px 40px rgba(0,0,0,0.18)" };
 const closeBtn = { background: "none", border: "none", fontSize: 18, cursor: "pointer", color: "#6b7280", padding: "0 4px" };
