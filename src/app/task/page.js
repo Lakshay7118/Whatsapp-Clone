@@ -20,15 +20,15 @@ const enrichUser  = (u) => {
 const genId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
 const PRIORITY = {
-  low:    { label: "Low",    color: "#10b981", bg: "#ecfdf5" },
-  medium: { label: "Medium", color: "#f59e0b", bg: "#fffbeb" },
-  high:   { label: "High",   color: "#ef4444", bg: "#fef2f2" },
+  low:    { label: "Low",    color: "#10b981", bg: "#d1fae5" },
+  medium: { label: "Medium", color: "#f59e0b", bg: "#fef3c7" },
+  high:   { label: "High",   color: "#ef4444", bg: "#fee2e2" },
 };
 
 const STATUS = {
   pending:     { label: "Pending",     color: "#6b7280", bg: "#f3f4f6", icon: "⏳" },
   in_progress: { label: "In Progress", color: "#3b82f6", bg: "#eff6ff", icon: "🔄" },
-  completed:   { label: "Completed",   color: "#10b981", bg: "#ecfdf5", icon: "✅" },
+  completed:   { label: "Completed",   color: "#065f46", bg: "#d1fae5", icon: "✅" },
   cancelled:   { label: "Cancelled",   color: "#6b7280", bg: "#f3f4f6", icon: "❌" },
 };
 
@@ -118,14 +118,14 @@ function ApprovalBadge({ compact = false }) {
     <span style={{
       display: "inline-flex", alignItems: "center", gap: 4,
       padding: compact ? "2px 7px" : "3px 10px", borderRadius: 20,
-      background: "#fffbeb", border: "1.5px solid #f59e0b44",
-      fontSize: compact ? "0.65rem" : "0.72rem", fontWeight: 700, color: "#d97706",
+      background: "#fef3c7", border: "1.5px solid #fcd34d44",
+      fontSize: compact ? "0.65rem" : "0.72rem", fontWeight: 700, color: "#92400e",
       whiteSpace: "nowrap",
     }}>🕐 Pending Approval</span>
   );
 }
 
-/* ---------- UserDetailModal ---------- */
+/* ---------- UserDetailModal (unchanged logic, theme adapted) ---------- */
 function UserDetailModal({ user, allTasks, currentUser, userTaskStatuses, onClose }) {
   const u = enrichUser(user);
   if (!u) return null;
@@ -143,8 +143,8 @@ function UserDetailModal({ user, allTasks, currentUser, userTaskStatuses, onClos
   const completionRate = userTasks.length ? Math.round((byStatus.completed / userTasks.length) * 100) : 0;
 
   return (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 10000, display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(4px)" }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 20, width: "min(100%, 440px)", margin: 16, maxHeight: "85vh", overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 32px 80px rgba(0,0,0,.18)" }}>
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.35)", zIndex: 10000, display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(4px)" }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 16, width: "min(100%, 440px)", margin: 16, maxHeight: "85vh", overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 32px 80px rgba(0,0,0,.18)" }}>
         <div style={{ background: `linear-gradient(135deg, ${u.color}18, ${u.color}08)`, padding: "24px 20px 16px", borderBottom: "1px solid #f0f2f5" }}>
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
             <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
@@ -159,9 +159,9 @@ function UserDetailModal({ user, allTasks, currentUser, userTaskStatuses, onClos
         </div>
         <div style={{ padding: "16px 20px", display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, borderBottom: "1px solid #f0f2f5" }}>
           {[
-            { label: "Total", value: userTasks.length, color: "#6366f1", bg: "#eef2ff" },
-            { label: "Done",  value: byStatus.completed, color: "#10b981", bg: "#ecfdf5" },
-            { label: "Late",  value: overdueTasks.length, color: "#ef4444", bg: "#fef2f2" },
+            { label: "Total", value: userTasks.length, color: "#0d9488", bg: "#ccfbf1" },
+            { label: "Done",  value: byStatus.completed, color: "#10b981", bg: "#d1fae5" },
+            { label: "Late",  value: overdueTasks.length, color: "#ef4444", bg: "#fee2e2" },
           ].map(s => (
             <div key={s.label} style={{ textAlign: "center", padding: "12px 6px", background: s.bg, borderRadius: 10 }}>
               <div style={{ fontSize: "1.6rem", fontWeight: 800, color: s.color }}>{s.value}</div>
@@ -196,7 +196,7 @@ function UserTaskTabs({ userTasks, overdueTasks, effectiveStatus }) {
     const eff = effectiveStatus(t);
     const over = isOverdue(t.dueDate, eff);
     return (
-      <div key={t._id || t.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 10px", borderRadius: 9, marginBottom: 5, background: eff === "completed" ? "#f0fdf4" : over ? "#fef2f2" : "#f9fafb", border: `1.5px solid ${eff === "completed" ? "#bbf7d0" : over ? "#fecaca" : "#e5e7eb"}` }}>
+      <div key={t._id || t.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 10px", borderRadius: 9, marginBottom: 5, background: eff === "completed" ? "#d1fae5" : over ? "#fee2e2" : "#f9fafb", border: `1.5px solid ${eff === "completed" ? "#bbf7d0" : over ? "#fecaca" : "#e5e7eb"}` }}>
         <span style={{ fontSize: "0.9rem" }}>{STATUS[eff]?.icon}</span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: "0.82rem", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textDecoration: eff === "completed" ? "line-through" : "none", color: eff === "completed" ? "#6b7280" : "#111827" }}>{t.title}</div>
@@ -234,10 +234,10 @@ function FormDataSummary({ formData, task }) {
   });
   if (!items.length) return null;
   return (
-    <div style={{ marginTop: 5, padding: "5px 9px", background: "rgba(99,102,241,.08)", borderRadius: 7, borderLeft: "2px solid #6366f1" }}>
+    <div style={{ marginTop: 5, padding: "5px 9px", background: "rgba(13,148,136,.08)", borderRadius: 7, borderLeft: "2px solid #0d9488" }}>
       {items.map((item, i) => (
         <div key={i} style={{ fontSize: "0.72rem", color: "#374151", marginBottom: i < items.length - 1 ? 3 : 0 }}>
-          <span style={{ color: "#6366f1", fontWeight: 700 }}>{item.label}:</span> {item.value}
+          <span style={{ color: "#0d9488", fontWeight: 700 }}>{item.label}:</span> {item.value}
         </div>
       ))}
     </div>
@@ -250,13 +250,13 @@ function TaskFormElements({ task, values, onChange, onSubmit, readonly = false }
   const hasAny = quickReplies.length + inputFields.length + dropdownButtons.length + ctaButtons.length + checkboxes.length > 0;
   const [collapsed, setCollapsed] = useState(false);
   if (!hasAny) return null;
-  const inp = { width: "100%", padding: "7px 10px", borderRadius: 8, border: "1.5px solid #e5e7eb", fontSize: "0.83rem", outline: "none", color: "#111827", background: readonly ? "#f9fafb" : "#fff", boxSizing: "border-box" };
+  const inp = { width: "100%", padding: "9px 12px", borderRadius: 8, border: "1.5px solid #e5e7eb", fontSize: "0.84rem", outline: "none", color: "#1a2233", background: readonly ? "#f9fafb" : "#fff", boxSizing: "border-box" };
   const normalizeOptions = (raw) => typeof raw === "string" ? raw.split(/[,\n]+/).map(s => s.trim()).filter(Boolean) : Array.isArray(raw) ? raw.map(s => String(s).trim()).filter(Boolean) : [];
   return (
-    <div style={{ margin: "8px 12px", background: "#fff", borderRadius: 10, border: "1.5px solid #e5e7eb", overflow: "hidden", flexShrink: 0 }}>
+    <div style={{ margin: "8px 12px", background: "#fff", borderRadius: 12, border: "1.5px solid #e5e7eb", overflow: "hidden", flexShrink: 0 }}>
       <div onClick={() => setCollapsed(p => !p)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", cursor: "pointer", background: "#f9fafb", borderBottom: collapsed ? "none" : "1px solid #f0f0f0" }}>
-        <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#6366f1", textTransform: "uppercase", letterSpacing: "0.04em" }}>📝 Task Form {readonly && "(Submitted)"}</span>
-        <span style={{ fontSize: "0.6rem", color: "#6366f1", transform: collapsed ? "rotate(-90deg)" : "rotate(0)", transition: ".2s" }}>▼</span>
+        <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#0d9488", textTransform: "uppercase", letterSpacing: "0.04em" }}>📝 Task Form {readonly && "(Submitted)"}</span>
+        <span style={{ fontSize: "0.6rem", color: "#0d9488", transform: collapsed ? "rotate(-90deg)" : "rotate(0)", transition: ".2s" }}>▼</span>
       </div>
       {!collapsed && (
         <div style={{ padding: "10px 12px 12px" }}>
@@ -266,7 +266,7 @@ function TaskFormElements({ task, values, onChange, onSubmit, readonly = false }
               <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
                 {quickReplies.map(qr => {
                   const sel = values.quickReplySelected === qr.id;
-                  return <button key={qr.id} onClick={() => !readonly && onChange("quickReply", qr.id, qr.id)} style={{ padding: "4px 12px", borderRadius: 20, cursor: readonly ? "default" : "pointer", border: `1.5px solid ${sel ? "#6366f1" : "#e5e7eb"}`, background: sel ? "#eef2ff" : "#f9fafb", color: sel ? "#4f46e5" : "#374151", fontSize: "0.79rem", fontWeight: sel ? 700 : 500 }}>{qr.title}</button>;
+                  return <button key={qr.id} onClick={() => !readonly && onChange("quickReply", qr.id, qr.id)} style={{ padding: "4px 12px", borderRadius: 20, cursor: readonly ? "default" : "pointer", border: `1.5px solid ${sel ? "#0d9488" : "#e5e7eb"}`, background: sel ? "#ccfbf1" : "#f9fafb", color: sel ? "#0d9488" : "#374151", fontSize: "0.79rem", fontWeight: sel ? 700 : 500 }}>{qr.title}</button>;
                 })}
               </div>
             </div>
@@ -293,7 +293,7 @@ function TaskFormElements({ task, values, onChange, onSubmit, readonly = false }
                 <div style={{ fontSize: "0.68rem", color: "#6b7280", fontWeight: 600, marginBottom: 5 }}>{group.label || "Select options"}</div>
                 {normalizeOptions(group.options).map(opt => (
                   <label key={opt} style={{ display: "flex", alignItems: "center", gap: 7, cursor: readonly ? "default" : "pointer", marginBottom: 4 }}>
-                    <input type="checkbox" checked={selected.includes(opt)} onChange={e => !readonly && onChange("checkbox", group.id, opt, e.target.checked)} disabled={readonly} style={{ accentColor: "#6366f1", width: 14, height: 14 }} />
+                    <input type="checkbox" checked={selected.includes(opt)} onChange={e => !readonly && onChange("checkbox", group.id, opt, e.target.checked)} disabled={readonly} style={{ accentColor: "#0d9488", width: 14, height: 14 }} />
                     <span style={{ fontSize: "0.82rem", color: "#374151" }}>{opt}</span>
                   </label>
                 ))}
@@ -304,14 +304,14 @@ function TaskFormElements({ task, values, onChange, onSubmit, readonly = false }
             <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginTop: 4 }}>
               {ctaButtons.map(btn => (
                 <a key={btn.id} href={btn.btnType === "URL" ? btn.value : `tel:${btn.value}`} target={btn.btnType === "URL" ? "_blank" : undefined} rel="noreferrer"
-                  style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 8, textDecoration: "none", background: "#6366f1", color: "#fff", fontSize: "0.79rem", fontWeight: 600 }}>
+                  style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 8, textDecoration: "none", background: "#0d9488", color: "#fff", fontSize: "0.79rem", fontWeight: 600 }}>
                   {btn.btnType === "URL" ? <FiLink size={12} /> : <FiPhone size={12} />} {btn.title}
                 </a>
               ))}
             </div>
           )}
           {!readonly && (
-            <button onClick={onSubmit} style={{ marginTop: 12, padding: "8px 14px", background: "#6366f1", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: "0.83rem", cursor: "pointer", width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            <button onClick={onSubmit} style={{ marginTop: 12, padding: "8px 14px", background: "#0d9488", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: "0.83rem", cursor: "pointer", width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
               <FiSend size={13} /> Submit Response
             </button>
           )}
@@ -326,8 +326,8 @@ function FieldRow({ title, onRemove, children }) {
   return (
     <div style={{ border: "1.5px solid #e5e7eb", borderRadius: 10, padding: 11, position: "relative", background: "#f9fafb", marginBottom: 9 }}>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 7, alignItems: "center" }}>
-        <span style={{ fontSize: "0.67rem", fontWeight: 700, color: "#6366f1", textTransform: "uppercase" }}>{title}</span>
-        <button onClick={onRemove} style={{ background: "#fef2f2", border: "none", borderRadius: 5, cursor: "pointer", padding: "2px 5px", color: "#ef4444" }}><FiMinus size={11} /></button>
+        <span style={{ fontSize: "0.67rem", fontWeight: 700, color: "#0d9488", textTransform: "uppercase" }}>{title}</span>
+        <button onClick={onRemove} style={{ background: "#fee2e2", border: "none", borderRadius: 5, cursor: "pointer", padding: "2px 5px", color: "#ef4444" }}><FiMinus size={11} /></button>
       </div>
       {children}
     </div>
@@ -400,18 +400,18 @@ function CreateTaskModal({ onClose, onCreate, currentUser, users }) {
     onClose();
   };
 
-  const inp = { width: "100%", padding: "8px 11px", borderRadius: 8, border: "1.5px solid #e5e7eb", fontSize: "0.84rem", outline: "none", color: "#111827", background: "#fff", boxSizing: "border-box" };
+  const inp = { width: "100%", padding: "9px 12px", borderRadius: 8, border: "1.5px solid #e5e7eb", fontSize: "0.84rem", outline: "none", color: "#1a2233", background: "#fff", boxSizing: "border-box" };
   const lbl = { fontSize: "0.69rem", fontWeight: 700, color: "#6b7280", marginBottom: 4, display: "block", textTransform: "uppercase", letterSpacing: "0.04em" };
 
   return (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, backdropFilter: "blur(4px)" }}>
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.35)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, backdropFilter: "blur(4px)" }}>
       <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 16, width: "min(95%, 480px)", maxHeight: "90vh", overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 32px 80px rgba(0,0,0,.22)" }}>
         <div style={{ padding: "16px 18px 12px", borderBottom: "1px solid #f0f2f5", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <span style={{ fontWeight: 800, fontSize: "0.96rem", color: "#111827" }}>✨ Create New Task</span>
+          <span style={{ fontWeight: 800, fontSize: "0.96rem", color: "#1a2233" }}>✨ Create New Task</span>
           <button onClick={onClose} style={{ background: "#f3f4f6", border: "none", borderRadius: "50%", width: 30, height: 30, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#6b7280" }}><FiX size={14} /></button>
         </div>
         {needsApproval && (
-          <div style={{ margin: "10px 18px 0", padding: "9px 13px", background: "#fffbeb", border: "1.5px solid #f59e0b44", borderRadius: 9, display: "flex", gap: 9, alignItems: "flex-start" }}>
+          <div style={{ margin: "10px 18px 0", padding: "9px 13px", background: "#fef3c7", border: "1.5px solid #fcd34d44", borderRadius: 9, display: "flex", gap: 9, alignItems: "flex-start" }}>
             <span style={{ fontSize: "1rem" }}>⚠️</span>
             <div>
               <div style={{ fontSize: "0.79rem", fontWeight: 700, color: "#92400e" }}>Admin Approval Required</div>
@@ -421,7 +421,7 @@ function CreateTaskModal({ onClose, onCreate, currentUser, users }) {
         )}
         <div style={{ display: "flex", gap: 5, padding: "9px 18px", borderBottom: "1px solid #f0f2f5", background: "#f9fafb", marginTop: needsApproval ? 10 : 0 }}>
           {[["basic", "📋 Basic"], ["form", "🧩 Form"]].map(([id, label]) => (
-            <button key={id} onClick={() => setTab(id)} style={{ padding: "5px 14px", borderRadius: 20, border: "none", cursor: "pointer", fontSize: "0.77rem", fontWeight: 700, background: tab === id ? "#6366f1" : "#e5e7eb", color: tab === id ? "#fff" : "#6b7280" }}>{label}</button>
+            <button key={id} onClick={() => setTab(id)} style={{ padding: "5px 14px", borderRadius: 20, border: "1.5px solid #e5e7eb", cursor: "pointer", fontSize: "0.77rem", fontWeight: 700, background: tab === id ? "#0d9488" : "#e5e7eb", color: tab === id ? "#fff" : "#6b7280" }}>{label}</button>
           ))}
         </div>
         <div style={{ overflowY: "auto", padding: "14px 18px", flex: 1, display: "flex", flexDirection: "column", gap: 11 }}>
@@ -437,18 +437,18 @@ function CreateTaskModal({ onClose, onCreate, currentUser, users }) {
               {!_isUser && (
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9px 11px", background: "#f9fafb", borderRadius: 9, border: "1.5px solid #e5e7eb" }}>
                   <div>
-                    <div style={{ fontWeight: 700, fontSize: "0.86rem", color: "#111827" }}>Personal Task</div>
+                    <div style={{ fontWeight: 700, fontSize: "0.86rem", color: "#1a2233" }}>Personal Task</div>
                     <div style={{ fontSize: "0.72rem", color: "#6b7280" }}>Only visible to you</div>
                   </div>
-                  <div onClick={() => set("isPersonal", !form.isPersonal)} style={{ width: 40, height: 21, borderRadius: 999, cursor: "pointer", background: form.isPersonal ? "#6366f1" : "#d1d5db", position: "relative", transition: "background .2s" }}>
+                  <div onClick={() => set("isPersonal", !form.isPersonal)} style={{ width: 40, height: 21, borderRadius: 999, cursor: "pointer", background: form.isPersonal ? "#0d9488" : "#d1d5db", position: "relative", transition: "background .2s" }}>
                     <div style={{ position: "absolute", top: 2, width: 17, height: 17, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,.2)", left: form.isPersonal ? 21 : 2, transition: "left .2s" }} />
                   </div>
                 </div>
               )}
               {_isUser && (
-                <div style={{ padding: "9px 11px", background: "#eef2ff", borderRadius: 9, border: "1.5px solid #c7d2fe" }}>
-                  <div style={{ fontSize: "0.77rem", fontWeight: 600, color: "#4338ca" }}>🔒 Personal tasks only</div>
-                  <div style={{ fontSize: "0.67rem", color: "#6366f1", marginTop: 2 }}>Users can only create personal tasks for themselves.</div>
+                <div style={{ padding: "9px 11px", background: "#ccfbf1", borderRadius: 9, border: "1.5px solid #5eead4" }}>
+                  <div style={{ fontSize: "0.77rem", fontWeight: 600, color: "#0d9488" }}>🔒 Personal tasks only</div>
+                  <div style={{ fontSize: "0.67rem", color: "#0f766e", marginTop: 2 }}>Users can only create personal tasks for themselves.</div>
                 </div>
               )}
               {(_isAdmin || _isManager) && !form.isPersonal && (
@@ -456,14 +456,14 @@ function CreateTaskModal({ onClose, onCreate, currentUser, users }) {
                   <label style={lbl}>Assign To {_isManager && <span style={{ color: "#f59e0b", textTransform: "none", fontSize: "0.64rem" }}>⚠ requires admin approval</span>}</label>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 7 }}>
                     {[{ id: "all", label: "👥 All" }, { id: "user", label: "🙋 Users" }, { id: "manager", label: "💼 Managers" }, { id: "tag", label: "🔖 By Tag" }, { id: "manager_contacts", label: "📋 Manager's Contacts" }].map(f => (
-                      <button key={f.id} onClick={() => { setAssignFilter(f.id); setSelectedTag(""); setSelectedMgr(""); }} style={{ padding: "3px 11px", borderRadius: 999, border: "1.5px solid", fontSize: "0.71rem", fontWeight: 700, cursor: "pointer", borderColor: assignFilter === f.id ? "#6366f1" : "#e5e7eb", background: assignFilter === f.id ? "#eef2ff" : "#f9fafb", color: assignFilter === f.id ? "#4f46e5" : "#6b7280" }}>{f.label}</button>
+                      <button key={f.id} onClick={() => { setAssignFilter(f.id); setSelectedTag(""); setSelectedMgr(""); }} style={{ padding: "3px 11px", borderRadius: 999, border: "1.5px solid", fontSize: "0.71rem", fontWeight: 700, cursor: "pointer", borderColor: assignFilter === f.id ? "#0d9488" : "#e5e7eb", background: assignFilter === f.id ? "#ccfbf1" : "#f9fafb", color: assignFilter === f.id ? "#0d9488" : "#6b7280" }}>{f.label}</button>
                     ))}
                   </div>
                   {assignFilter === "tag" && <select value={selectedTag} onChange={e => setSelectedTag(e.target.value)} style={{ ...inp, marginBottom: 7, appearance: "auto" }}><option value="">— Select a tag —</option>{allTags.map(t => <option key={t._id} value={t._id}>{t.name || t._id}</option>)}</select>}
                   {assignFilter === "manager_contacts" && <select value={selectedMgr} onChange={e => setSelectedMgr(e.target.value)} style={{ ...inp, marginBottom: 7, appearance: "auto" }}><option value="">— Select a manager —</option>{allManagers.map(m => <option key={m._id} value={m._id}>{m.name}</option>)}</select>}
                   <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "0 9px", height: 33, borderRadius: 8, background: "#f3f4f6", marginBottom: 7 }}>
                     <FiSearch size={12} color="#9ca3af" />
-                    <input value={assignSearch} onChange={e => setAssignSearch(e.target.value)} placeholder="Search people…" style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: "0.81rem", color: "#111827" }} />
+                    <input value={assignSearch} onChange={e => setAssignSearch(e.target.value)} placeholder="Search people…" style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: "0.81rem", color: "#1a2233" }} />
                     {assignSearch && <button onClick={() => setAssignSearch("")} style={{ background: "none", border: "none", cursor: "pointer", color: "#9ca3af", padding: 0 }}><FiX size={11} /></button>}
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 3, border: "1.5px solid #e5e7eb", borderRadius: 9, padding: 7, maxHeight: 190, overflowY: "auto" }}>
@@ -475,20 +475,20 @@ function CreateTaskModal({ onClose, onCreate, currentUser, users }) {
                       const checked = id ? form.assignedTo.includes(id) : false;
                       const rowKey = contact?._id?.toString() || id || Math.random().toString();
                       return (
-                        <label key={rowKey} style={{ display: "flex", alignItems: "center", gap: 9, cursor: canAssign ? "pointer" : "not-allowed", padding: "5px 5px", borderRadius: 7, opacity: canAssign ? 1 : 0.45, background: checked ? "#eef2ff" : "transparent" }}>
-                          <input type="checkbox" checked={checked} disabled={!canAssign} onChange={() => canAssign && toggleAssign(id)} style={{ accentColor: "#6366f1" }} />
+                        <label key={rowKey} style={{ display: "flex", alignItems: "center", gap: 9, cursor: canAssign ? "pointer" : "not-allowed", padding: "5px 5px", borderRadius: 7, opacity: canAssign ? 1 : 0.45, background: checked ? "#ccfbf1" : "transparent" }}>
+                          <input type="checkbox" checked={checked} disabled={!canAssign} onChange={() => canAssign && toggleAssign(id)} style={{ accentColor: "#0d9488" }} />
                           <Avatar user={user || { name, id: "" }} size={28} />
                           <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: "0.85rem", fontWeight: 500, color: "#111827" }}>{name}</div>
+                            <div style={{ fontSize: "0.85rem", fontWeight: 500, color: "#1a2233" }}>{name}</div>
                             <div style={{ fontSize: "0.69rem", textTransform: "capitalize", color: canAssign ? "#667781" : "#ef4444" }}>{subtitle}{!canAssign && " ⚠ not registered"}</div>
                           </div>
-                          {checked && <span style={{ color: "#6366f1", fontSize: "0.74rem", fontWeight: 700 }}>✓</span>}
+                          {checked && <span style={{ color: "#0d9488", fontSize: "0.74rem", fontWeight: 700 }}>✓</span>}
                         </label>
                       );
                     })}
                   </div>
                   {form.assignedTo.length > 0 && (
-                    <div style={{ marginTop: 5, fontSize: "0.74rem", color: "#6366f1", fontWeight: 600 }}>
+                    <div style={{ marginTop: 5, fontSize: "0.74rem", color: "#0d9488", fontWeight: 600 }}>
                       {form.assignedTo.length} person{form.assignedTo.length > 1 ? "s" : ""} selected
                       <button onClick={() => set("assignedTo", [])} style={{ marginLeft: 9, background: "none", border: "none", cursor: "pointer", color: "#ef4444", fontSize: "0.71rem", fontWeight: 600 }}>Clear all</button>
                     </div>
@@ -501,7 +501,7 @@ function CreateTaskModal({ onClose, onCreate, currentUser, users }) {
             <div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 12 }}>
                 {[["+ Input Field", addInputField], ["+ Dropdown", addDropdown], ["+ Quick Reply", addQuickReply], ["+ CTA Button", addCtaButton], ["+ Checkbox", addCheckboxGroup]].map(([label, action]) => (
-                  <button key={label} onClick={action} style={{ padding: "4px 11px", borderRadius: 7, border: "1.5px dashed #6366f1", background: "#eef2ff", color: "#4f46e5", fontSize: "0.74rem", fontWeight: 700, cursor: "pointer" }}>{label}</button>
+                  <button key={label} onClick={action} style={{ padding: "4px 11px", borderRadius: 7, border: "1.5px dashed #0d9488", background: "#ccfbf1", color: "#0d9488", fontSize: "0.74rem", fontWeight: 700, cursor: "pointer" }}>{label}</button>
                 ))}
               </div>
               {form.inputFields.map(f => <FieldRow key={f.id} title="Input Field" onRemove={() => removeArr("inputFields", f.id)}><input placeholder="Label" value={f.label} onChange={e => patchArr("inputFields", f.id, "label", e.target.value)} style={{ ...inp, marginBottom: 5 }} /><input placeholder="Placeholder" value={f.placeholder} onChange={e => patchArr("inputFields", f.id, "placeholder", e.target.value)} style={inp} /></FieldRow>)}
@@ -513,8 +513,8 @@ function CreateTaskModal({ onClose, onCreate, currentUser, users }) {
           )}
         </div>
         <div style={{ padding: "11px 18px", borderTop: "1px solid #f0f2f5", display: "flex", gap: 9, justifyContent: "flex-end" }}>
-          <button onClick={onClose} style={{ padding: "8px 18px", borderRadius: 8, border: "1.5px solid #e5e7eb", background: "#fff", cursor: "pointer", fontSize: "0.86rem", color: "#6b7280", fontWeight: 600 }}>Cancel</button>
-          <button onClick={handleSubmit} style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: needsApproval ? "#f59e0b" : "#6366f1", color: "#fff", cursor: "pointer", fontSize: "0.86rem", fontWeight: 700 }}>{needsApproval ? "⚠ Submit for Approval" : "Create Task"}</button>
+          <button onClick={onClose} style={{ padding: "8px 18px", borderRadius: 8, border: "1.5px solid #d1d5db", background: "#fff", cursor: "pointer", fontSize: "0.86rem", color: "#374151", fontWeight: 600 }}>Cancel</button>
+          <button onClick={handleSubmit} style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: needsApproval ? "#f59e0b" : "#0d9488", color: "#fff", cursor: "pointer", fontSize: "0.86rem", fontWeight: 700 }}>{needsApproval ? "⚠ Submit for Approval" : "Create Task"}</button>
         </div>
       </div>
     </div>
@@ -526,11 +526,11 @@ function ApprovalPanel({ tasks, users, onApprove, onReject, onClose }) {
   const pending = tasks.filter(t => t.approvalStatus === "pending");
   const getUserName = (id) => { const uid = id?._id || id?.id || id; const u = users.find(u => u.id === uid?.toString()); return u?.name || "Unknown"; };
   return (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.4)", zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(4px)" }}>
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.35)", zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(4px)" }}>
       <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 16, width: "min(95%, 460px)", maxHeight: "80vh", display: "flex", flexDirection: "column", boxShadow: "0 32px 80px rgba(0,0,0,.18)", overflow: "hidden" }}>
         <div style={{ padding: "16px 18px", borderBottom: "1px solid #f0f2f5", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
-            <div style={{ fontWeight: 800, fontSize: "0.96rem", color: "#111827" }}>🛡 Approval Requests</div>
+            <div style={{ fontWeight: 800, fontSize: "0.96rem", color: "#1a2233" }}>🛡 Approval Requests</div>
             <div style={{ fontSize: "0.71rem", color: "#9ca3af", marginTop: 2 }}>{pending.length} pending</div>
           </div>
           <button onClick={onClose} style={{ background: "#f3f4f6", border: "none", borderRadius: "50%", width: 30, height: 30, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#6b7280" }}><FiX size={14} /></button>
@@ -540,10 +540,10 @@ function ApprovalPanel({ tasks, users, onApprove, onReject, onClose }) {
             const pCfg = PRIORITY[t.priority] || PRIORITY.medium;
             const assignees = (t.assignedTo || []).map(enrichUser).filter(Boolean);
             return (
-              <div key={t._id || t.id} style={{ border: "1.5px solid #f59e0b44", borderRadius: 12, padding: 14, background: "#fffbeb" }}>
+              <div key={t._id || t.id} style={{ border: "1.5px solid #fcd34d44", borderRadius: 12, padding: 14, background: "#fef3c7" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 9 }}>
                   <div>
-                    <div style={{ fontWeight: 700, fontSize: "0.9rem", color: "#111827" }}>{t.title}</div>
+                    <div style={{ fontWeight: 700, fontSize: "0.9rem", color: "#1a2233" }}>{t.title}</div>
                     {t.description && <div style={{ fontSize: "0.74rem", color: "#6b7280", marginTop: 2 }}>{t.description}</div>}
                   </div>
                   <span style={{ fontSize: "0.67rem", fontWeight: 700, background: pCfg.bg, color: pCfg.color, padding: "2px 8px", borderRadius: 20, flexShrink: 0, marginLeft: 8 }}>{pCfg.label}</span>
@@ -586,7 +586,7 @@ function ChatDrawer({ task, currentUser, allTasks, allUsers, onClose, onStatusCh
   return (
     <>
       <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.3)", zIndex: 800, backdropFilter: "blur(2px)" }} />
-      <div style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: "min(100%, 500px)", background: "#fff", zIndex: 900, display: "flex", flexDirection: "column", boxShadow: "-12px 0 48px rgba(0,0,0,.12)", animation: "slideInRight .25s ease" }}>
+      <div style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: "min(100%, 500px)", background: "#fff", zIndex: 900, display: "flex", flexDirection: "column", boxShadow: "-12px 0 48px rgba(0,0,0,.12)", animation: "slideInRight .25s ease", fontFamily: "'DM Sans', 'Segoe UI', sans-serif" }}>
 
         {/* ── Drawer Header ── */}
         <div style={{ padding: "12px 16px", borderBottom: "1px solid #f0f2f5", background: "#fff", flexShrink: 0 }}>
@@ -595,9 +595,9 @@ function ChatDrawer({ task, currentUser, allTasks, allUsers, onClose, onStatusCh
             <button onClick={onClose} style={{ background: "#f3f4f6", border: "none", borderRadius: "50%", width: 32, height: 32, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#6b7280", flexShrink: 0 }}><FiX size={15} /></button>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                <span style={{ fontSize: "0.95rem", fontWeight: 800, color: "#111827", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 220 }}>{task.isPersonal ? "🔒 " : ""}{task.title}</span>
+                <span style={{ fontSize: "0.95rem", fontWeight: 800, color: "#1a2233", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 220 }}>{task.isPersonal ? "🔒 " : ""}{task.title}</span>
                 <span style={{ fontSize: "0.67rem", fontWeight: 700, background: pCfg.bg, color: pCfg.color, padding: "2px 8px", borderRadius: 20, flexShrink: 0 }}>{pCfg.label}</span>
-                {overdue && <span style={{ fontSize: "0.67rem", fontWeight: 700, background: "#fef2f2", color: "#ef4444", padding: "2px 8px", borderRadius: 20, flexShrink: 0 }}>⚠ Overdue</span>}
+                {overdue && <span style={{ fontSize: "0.67rem", fontWeight: 700, background: "#fee2e2", color: "#ef4444", padding: "2px 8px", borderRadius: 20, flexShrink: 0 }}>⚠ Overdue</span>}
                 {isPending && <ApprovalBadge compact />}
               </div>
             </div>
@@ -612,14 +612,14 @@ function ChatDrawer({ task, currentUser, allTasks, allUsers, onClose, onStatusCh
               </span>
             )}
             {_isAdmin && (
-              <button onClick={() => onDelete(taskId)} style={{ marginLeft: "auto", background: "#fef2f2", border: "none", borderRadius: 7, cursor: "pointer", padding: "4px 10px", color: "#ef4444", display: "flex", alignItems: "center", gap: 4, fontSize: "0.72rem", fontWeight: 600, flexShrink: 0, whiteSpace: "nowrap" }}>
+              <button onClick={() => onDelete(taskId)} style={{ marginLeft: "auto", background: "#fee2e2", border: "none", borderRadius: 7, cursor: "pointer", padding: "4px 10px", color: "#ef4444", display: "flex", alignItems: "center", gap: 4, fontSize: "0.72rem", fontWeight: 600, flexShrink: 0, whiteSpace: "nowrap" }}>
                 <FiTrash2 size={11} /> Delete
               </button>
             )}
           </div>
 
           {isPending && !_isAdmin && (
-            <div style={{ marginTop: 8, marginLeft: 42, padding: "5px 10px", background: "#fffbeb", borderRadius: 7, border: "1px solid #f59e0b33", fontSize: "0.71rem", color: "#92400e", fontWeight: 600 }}>
+            <div style={{ marginTop: 8, marginLeft: 42, padding: "5px 10px", background: "#fef3c7", borderRadius: 7, border: "1px solid #fcd34d33", fontSize: "0.71rem", color: "#92400e", fontWeight: 600 }}>
               🔒 Awaiting admin approval — read only.
             </div>
           )}
@@ -627,7 +627,7 @@ function ChatDrawer({ task, currentUser, allTasks, allUsers, onClose, onStatusCh
           {/* Tab switcher */}
           <div style={{ display: "flex", gap: 4, marginTop: 10, background: "#f3f4f6", borderRadius: 9, padding: 3 }}>
             {[["chat", "💬 Chat"], ["details", "📋 Details"]].map(([id, label]) => (
-              <button key={id} onClick={() => setActiveTab(id)} style={{ flex: 1, padding: "5px 0", borderRadius: 7, border: "none", cursor: "pointer", fontSize: "0.77rem", fontWeight: 700, background: activeTab === id ? "#fff" : "transparent", color: activeTab === id ? "#4f46e5" : "#9ca3af", boxShadow: activeTab === id ? "0 1px 4px rgba(0,0,0,.08)" : "none" }}>{label}</button>
+              <button key={id} onClick={() => setActiveTab(id)} style={{ flex: 1, padding: "5px 0", borderRadius: 7, border: "none", cursor: "pointer", fontSize: "0.77rem", fontWeight: 700, background: activeTab === id ? "#fff" : "transparent", color: activeTab === id ? "#0d9488" : "#9ca3af", boxShadow: activeTab === id ? "0 1px 4px rgba(0,0,0,.08)" : "none" }}>{label}</button>
             ))}
           </div>
         </div>
@@ -636,8 +636,8 @@ function ChatDrawer({ task, currentUser, allTasks, allUsers, onClose, onStatusCh
         {activeTab === "chat" && (
           <>
             {task.description && (
-              <div style={{ margin: "8px 12px 0", padding: "8px 12px", background: "#f0f9ff", borderRadius: 9, borderLeft: "3px solid #3b82f6", flexShrink: 0 }}>
-                <div style={{ fontSize: "0.65rem", fontWeight: 700, color: "#3b82f6", textTransform: "uppercase", marginBottom: 2, letterSpacing: "0.04em" }}>Description</div>
+              <div style={{ margin: "8px 12px 0", padding: "8px 12px", background: "#ccfbf1", borderRadius: 9, borderLeft: "3px solid #0d9488", flexShrink: 0 }}>
+                <div style={{ fontSize: "0.65rem", fontWeight: 700, color: "#0d9488", textTransform: "uppercase", marginBottom: 2, letterSpacing: "0.04em" }}>Description</div>
                 <div style={{ fontSize: "0.83rem", color: "#374151", lineHeight: 1.55 }}>{task.description}</div>
               </div>
             )}
@@ -655,7 +655,7 @@ function ChatDrawer({ task, currentUser, allTasks, allUsers, onClose, onStatusCh
                     {!isMine && <Avatar user={sender} size={28} />}
                     <div style={{ maxWidth: "72%" }}>
                       {!isMine && <div style={{ fontSize: "0.69rem", color: sender?.color || "#6b7280", fontWeight: 700, marginBottom: 2 }}>{sender?.name || "Unknown"}</div>}
-                      <div style={{ padding: "7px 11px", borderRadius: isMine ? "13px 13px 2px 13px" : "13px 13px 13px 2px", background: isMine ? "#eef2ff" : "#fff", border: isMine ? "1px solid #c7d2fe" : "1px solid #e5e7eb", fontSize: "0.85rem", color: "#111827", lineHeight: 1.5, boxShadow: "0 1px 3px rgba(0,0,0,.05)" }}>
+                      <div style={{ padding: "7px 11px", borderRadius: isMine ? "13px 13px 2px 13px" : "13px 13px 13px 2px", background: isMine ? "#ccfbf1" : "#fff", border: isMine ? "1px solid #5eead4" : "1px solid #e5e7eb", fontSize: "0.85rem", color: "#1a2233", lineHeight: 1.5, boxShadow: "0 1px 3px rgba(0,0,0,.05)" }}>
                         {resp.message && <div>{resp.message}</div>}
                         <FormDataSummary formData={resp.formData} task={task} />
                       </div>
@@ -670,8 +670,8 @@ function ChatDrawer({ task, currentUser, allTasks, allUsers, onClose, onStatusCh
               <input value={responseInput} onChange={e => setResponseInput(e.target.value)} onKeyDown={e => e.key === "Enter" && !e.shiftKey && !isPending && onSubmit()}
                 placeholder={isPending && !_isAdmin ? "Task pending approval — chat locked" : "Write a response…"}
                 disabled={isPending && !_isAdmin}
-                style={{ flex: 1, height: 38, borderRadius: 20, border: "1.5px solid #e5e7eb", padding: "0 13px", fontSize: "0.87rem", outline: "none", color: "#111827", background: isPending && !_isAdmin ? "#f9fafb" : "#fff" }} />
-              <button onClick={onSubmit} disabled={saving || (isPending && !_isAdmin)} style={{ width: 38, height: 38, borderRadius: "50%", border: "none", background: saving || (isPending && !_isAdmin) ? "#c7d2fe" : "#6366f1", color: "#fff", cursor: saving || (isPending && !_isAdmin) ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                style={{ flex: 1, height: 38, borderRadius: 20, border: "1.5px solid #e5e7eb", padding: "0 13px", fontSize: "0.87rem", outline: "none", color: "#1a2233", background: isPending && !_isAdmin ? "#f9fafb" : "#fff" }} />
+              <button onClick={onSubmit} disabled={saving || (isPending && !_isAdmin)} style={{ width: 38, height: 38, borderRadius: "50%", border: "none", background: saving || (isPending && !_isAdmin) ? "#a7f3d0" : "#0d9488", color: "#fff", cursor: saving || (isPending && !_isAdmin) ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <FiSend size={14} />
               </button>
             </div>
@@ -692,11 +692,11 @@ function ChatDrawer({ task, currentUser, allTasks, allUsers, onClose, onStatusCh
                     return (
                       <div key={u.id} onClick={() => setViewingUser(u)}
                         style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 11px", borderRadius: 9, border: "1.5px solid #e5e7eb", cursor: "pointer", background: "#fff" }}
-                        onMouseEnter={e => { e.currentTarget.style.background = "#eef2ff"; e.currentTarget.style.borderColor = "#c7d2fe"; }}
+                        onMouseEnter={e => { e.currentTarget.style.background = "#ccfbf1"; e.currentTarget.style.borderColor = "#5eead4"; }}
                         onMouseLeave={e => { e.currentTarget.style.background = "#fff"; e.currentTarget.style.borderColor = "#e5e7eb"; }}>
                         <Avatar user={u} size={34} />
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: "0.86rem", fontWeight: 700, color: "#111827" }}>{u.name}</div>
+                          <div style={{ fontSize: "0.86rem", fontWeight: 700, color: "#1a2233" }}>{u.name}</div>
                           <div style={{ fontSize: "0.7rem", color: "#9ca3af", textTransform: "capitalize" }}>{u.role}</div>
                           <div style={{ marginTop: 4, display: "flex", alignItems: "center", gap: 7 }}>
                             <div style={{ flex: 1, height: 4, background: "#e5e7eb", borderRadius: 999, overflow: "hidden" }}>
@@ -722,7 +722,7 @@ function ChatDrawer({ task, currentUser, allTasks, allUsers, onClose, onStatusCh
             ].filter(Boolean).map(({ icon, label, val }) => (
               <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 13px", background: "#f9fafb", borderRadius: 9, border: "1px solid #e5e7eb" }}>
                 <span style={{ fontSize: "0.79rem", color: "#6b7280", fontWeight: 600 }}>{icon} {label}</span>
-                <span style={{ fontSize: "0.81rem", color: "#111827", fontWeight: 700 }}>{val}</span>
+                <span style={{ fontSize: "0.81rem", color: "#1a2233", fontWeight: 700 }}>{val}</span>
               </div>
             ))}
           </div>
@@ -734,7 +734,7 @@ function ChatDrawer({ task, currentUser, allTasks, allUsers, onClose, onStatusCh
   );
 }
 
-/* ---------- MAIN PAGE ---------- */
+/* ── MAIN PAGE ── */
 export default function TaskPage() {
   const [isLoading, setIsLoading]           = useState(true);
   const [saving, setSaving]                 = useState(false);
@@ -756,12 +756,14 @@ export default function TaskPage() {
   const [userTaskStatuses, setUserTaskStatuses] = useState([]);
   const notifRef = useRef(null);
 
+  // -- auth --
   useEffect(() => {
     const userStr = localStorage.getItem("user");
     if (userStr) { try { setCurrentUser(enrichUser(JSON.parse(userStr))); } catch {} }
     else { API.get("/users/me").then(res => { if (res.data.success) setCurrentUser(enrichUser(res.data.data)); }).catch(() => {}); }
   }, []);
 
+  // -- fetch tasks, notifications, user statuses --
   useEffect(() => {
     if (!currentUser) return;
     (async () => {
@@ -777,9 +779,11 @@ export default function TaskPage() {
 
   useEffect(() => { API.get("/users").then(res => { if (res.data.success) setUsers(res.data.data.map(enrichUser)); }).catch(() => {}); }, []);
 
+  // -- dispatch events for layout --
   useEffect(() => { if (selectedTask) window.dispatchEvent(new CustomEvent("detailViewOpen")); else window.dispatchEvent(new CustomEvent("detailViewClose")); }, [selectedTask]);
   useEffect(() => () => window.dispatchEvent(new CustomEvent("detailViewClose")), []);
 
+  // -- close notif panel on outside click --
   useEffect(() => {
     const fn = (e) => { if (notifRef.current && !notifRef.current.contains(e.target)) setShowNotifPanel(false); };
     document.addEventListener("mousedown", fn);
@@ -883,9 +887,9 @@ export default function TaskPage() {
   }, [tasks, currentUser, filter, search, sortKey, sortDir, userTaskStatuses]);
 
   const handleSort = (key) => { if (sortKey === key) setSortDir(p => p === "asc" ? "desc" : "asc"); else { setSortKey(key); setSortDir("asc"); } };
-  const SortIcon = ({ col }) => { if (sortKey !== col) return <span style={{ color: "#d1d5db", fontSize: "0.6rem" }}>↕</span>; return <span style={{ color: "#6366f1", fontSize: "0.6rem" }}>{sortDir === "asc" ? "↑" : "↓"}</span>; };
+  const SortIcon = ({ col }) => { if (sortKey !== col) return <span style={{ color: "#d1d5db", fontSize: "0.6rem" }}>↕</span>; return <span style={{ color: "#0d9488", fontSize: "0.6rem" }}>{sortDir === "asc" ? "↑" : "↓"}</span>; };
 
-  if (!currentUser) return <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "80vh", color: "#6b7280" }}>Loading…</div>;
+  if (!currentUser) return <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "80vh", color: "#6b7280", fontFamily: "'DM Sans', 'Segoe UI', sans-serif" }}>Loading…</div>;
 
   const _isAdmin = isAdmin(currentUser);
 
@@ -900,6 +904,7 @@ export default function TaskPage() {
           top: 70px; left: 88px; right: 0; bottom: 0;
           overflow: hidden;
           background: #f3f4f6;
+          font-family: 'DM Sans', 'Segoe UI', sans-serif;
         }
 
         /* ── Header — single compact row ── */
@@ -910,9 +915,10 @@ export default function TaskPage() {
           padding: 0 16px;
           height: 52px;
           background: #fff;
-          border-bottom: 1px solid #e5e7eb;
+          border: 1px solid #e5e7eb;
+          border-radius: 12px;
           flex-shrink: 0;
-          border-radius: 10px;
+          margin-bottom: 12px;
         }
 
         /* left: icon + title + task count + filter pills */
@@ -966,7 +972,7 @@ export default function TaskPage() {
           border: none;
           outline: none;
           font-size: 0.8rem;
-          color: #111827;
+          color: #1a2233;
           min-width: 0;
         }
 
@@ -990,30 +996,29 @@ export default function TaskPage() {
           .mobile-card-view   { display: flex; }
         }
 
-        .tr-hover:hover td { background: #f5f5ff !important; }
+        .tr-hover:hover td { background: #f0fdf4 !important; }
 
         .user-stats-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
         @media (max-width: 480px) { .user-stats-grid { grid-template-columns: repeat(2,1fr); } }
       `}</style>
 
       {error && (
-        <div style={{ position: "fixed", top: 80, left: "50%", transform: "translateX(-50%)", background: "#fef2f2", color: "#dc2626", padding: "9px 18px", borderRadius: 9, fontSize: "0.84rem", fontWeight: 600, zIndex: 99999, boxShadow: "0 4px 12px rgba(0,0,0,.1)", display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ position: "fixed", top: 80, left: "50%", transform: "translateX(-50%)", background: "#fee2e2", color: "#991b1b", padding: "9px 18px", borderRadius: 9, fontSize: "0.84rem", fontWeight: 600, zIndex: 99999, boxShadow: "0 4px 12px rgba(0,0,0,.1)", display: "flex", alignItems: "center", gap: 8 }}>
           {error}
-          <button onClick={() => setError("")} style={{ background: "none", border: "none", cursor: "pointer", color: "#dc2626" }}><FiX size={13} /></button>
+          <button onClick={() => setError("")} style={{ background: "none", border: "none", cursor: "pointer", color: "#991b1b" }}><FiX size={13} /></button>
         </div>
       )}
 
       <div className="task-shell2">
-        <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
-          <div style={{ padding: "10px 20px", }}>
+        <div style={{ height: "100%", display: "flex", flexDirection: "column", padding: "16px 20px" }}>
           {/* ── Compact single-row header ── */}
           <div className="task-header">
             <div className="task-header-left">
               {/* Icon + title */}
               <div style={{ display: "flex", alignItems: "center", gap: 7, flexShrink: 0 }}>
-                <div style={{ width: 28, height: 28, borderRadius: 7, background: "#eef2ff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.9rem" }}>✅</div>
+                <div style={{ width: 28, height: 28, borderRadius: 7, background: "#ccfbf1", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.9rem" }}>✅</div>
                 <div className="task-title-block">
-                  <span style={{ fontWeight: 800, fontSize: "0.9rem", color: "#111827", lineHeight: 1.2 }}>Task Manager</span>
+                  <span style={{ fontWeight: 800, fontSize: "0.9rem", color: "#1a2233", lineHeight: 1.2 }}>Task Manager</span>
                   <span style={{ fontSize: "0.63rem", color: "#9ca3af" }}>{visibleTasks.length} task{visibleTasks.length !== 1 ? "s" : ""}</span>
                 </div>
               </div>
@@ -1021,7 +1026,7 @@ export default function TaskPage() {
               {/* Filter pills */}
               <div className="task-filter-pills">
                 {[["all", "All"], ["pending", "⏳ Pending"], ["in_progress", "🔄 In Progress"], ["completed", "✅ Done"]].map(([id, label]) => (
-                  <button key={id} onClick={() => setFilter(id)} style={{ padding: "3px 11px", borderRadius: 20, border: "1.5px solid", fontSize: "0.71rem", fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0, borderColor: filter === id ? "#6366f1" : "#e5e7eb", background: filter === id ? "#eef2ff" : "#f9fafb", color: filter === id ? "#4f46e5" : "#6b7280" }}>{label}</button>
+                  <button key={id} onClick={() => setFilter(id)} style={{ padding: "3px 11px", borderRadius: 20, border: "1.5px solid", fontSize: "0.71rem", fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0, borderColor: filter === id ? "#0d9488" : "#e5e7eb", background: filter === id ? "#0d9488" : "#f9fafb", color: filter === id ? "#fff" : "#6b7280" }}>{label}</button>
                 ))}
               </div>
             </div>
@@ -1036,31 +1041,29 @@ export default function TaskPage() {
 
               {/* Approvals button */}
               {_isAdmin && pendingApprovals.length > 0 && (
-                <button onClick={() => setShowApprovals(true)} style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 16, border: "1.5px solid #f59e0b44", background: "#fffbeb", color: "#d97706", fontSize: "0.76rem", fontWeight: 700, cursor: "pointer" }}>
+                <button onClick={() => setShowApprovals(true)} style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 16, border: "1.5px solid #fcd34d44", background: "#fef3c7", color: "#92400e", fontSize: "0.76rem", fontWeight: 700, cursor: "pointer" }}>
                   <FiShield size={12} /> Approvals
                   <span style={{ background: "#ef4444", color: "#fff", borderRadius: "50%", width: 16, height: 16, fontSize: "0.58rem", fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>{pendingApprovals.length}</span>
                 </button>
               )}
 
-              
-
               {/* New Task button */}
-              <button onClick={() => setShowCreate(true)} style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 14px", borderRadius: 16, border: "none", background: "#6366f1", color: "#fff", fontSize: "0.8rem", fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
+              <button onClick={() => setShowCreate(true)} style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 14px", borderRadius: 16, border: "none", background: "#0d9488", color: "#fff", fontSize: "0.8rem", fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
                 <FiPlus size={13} /> New Task
               </button>
 
-                {/* Notifications */}
+              {/* Notifications */}
               <div ref={notifRef} style={{ position: "relative" }}>
-                <button onClick={() => setShowNotifPanel(p => !p)} style={{ width: 32, height: 32, borderRadius: "50%", border: "none", background: showNotifPanel ? "#eef2ff" : "#f3f4f6", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#6b7280", position: "relative" }}>
+                <button onClick={() => setShowNotifPanel(p => !p)} style={{ width: 32, height: 32, borderRadius: "50%", border: "none", background: showNotifPanel ? "#ccfbf1" : "#f3f4f6", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#6b7280", position: "relative" }}>
                   <FiBell size={15} />
                   {unreadCount > 0 && <div style={{ position: "absolute", top: 2, right: 2, width: 14, height: 14, borderRadius: "50%", background: "#ef4444", color: "#fff", fontSize: "0.52rem", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>{unreadCount}</div>}
                 </button>
                 {showNotifPanel && (
                   <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, background: "#fff", borderRadius: 12, boxShadow: "0 8px 32px rgba(0,0,0,.14)", border: "1px solid #e5e7eb", width: 300, maxWidth: "90vw", maxHeight: 360, overflow: "hidden", display: "flex", flexDirection: "column", zIndex: 999 }}>
                     <div style={{ padding: "10px 13px", borderBottom: "1px solid #f3f4f6", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span style={{ fontWeight: 700, fontSize: "0.88rem", color: "#111827" }}>Notifications</span>
+                      <span style={{ fontWeight: 700, fontSize: "0.88rem", color: "#1a2233" }}>Notifications</span>
                       <div style={{ display: "flex", gap: 7 }}>
-                        {notifications.some(n => !n.read) && <button onClick={() => handleReadNotif("all")} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "0.71rem", color: "#6366f1", fontWeight: 600 }}>Mark all read</button>}
+                        {notifications.some(n => !n.read) && <button onClick={() => handleReadNotif("all")} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "0.71rem", color: "#0d9488", fontWeight: 600 }}>Mark all read</button>}
                         <button onClick={() => setShowNotifPanel(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#9ca3af" }}><FiX size={13} /></button>
                       </div>
                     </div>
@@ -1072,10 +1075,10 @@ export default function TaskPage() {
                           <div style={{ display: "flex", gap: 9, alignItems: "flex-start" }}>
                             <span style={{ fontSize: "1rem" }}>{n.type === "task_assigned" ? "📋" : n.type === "response_received" ? "💬" : "⏰"}</span>
                             <div style={{ flex: 1 }}>
-                              <div style={{ fontSize: "0.81rem", color: "#111827", fontWeight: n.read ? 400 : 600 }}>{n.message}</div>
+                              <div style={{ fontSize: "0.81rem", color: "#1a2233", fontWeight: n.read ? 400 : 600 }}>{n.message}</div>
                               <div style={{ fontSize: "0.67rem", color: "#9ca3af", marginTop: 2 }}>{fmt(n.createdAt || n.timestamp)}</div>
                             </div>
-                            {!n.read && <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#6366f1", marginTop: 4, flexShrink: 0 }} />}
+                            {!n.read && <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#0d9488", marginTop: 4, flexShrink: 0 }} />}
                           </div>
                         </div>
                       ))}
@@ -1086,9 +1089,9 @@ export default function TaskPage() {
 
             </div>
           </div>
-              </div>
+
           {/* ── Task list ── */}
-          <div style={{ flex: 1, padding: "14px 16px", overflowY: "auto" }}>
+          <div style={{ flex: 1, overflowY: "auto" }}>
             {isLoading ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
                 {[...Array(6)].map((_, i) => <div key={i} style={{ height: 50, background: "#fff", borderRadius: 9, opacity: 0.7 }} />)}
@@ -1098,7 +1101,7 @@ export default function TaskPage() {
                 <div style={{ fontSize: "2.5rem" }}>📋</div>
                 <div style={{ fontSize: "0.96rem", fontWeight: 700, color: "#374151" }}>No tasks found</div>
                 <div style={{ fontSize: "0.83rem", color: "#9ca3af" }}>{search ? "Try a different search" : "Create your first task"}</div>
-                {!search && <button onClick={() => setShowCreate(true)} style={{ marginTop: 7, padding: "8px 18px", borderRadius: 9, border: "none", background: "#6366f1", color: "#fff", fontSize: "0.84rem", fontWeight: 700, cursor: "pointer" }}>+ Create Task</button>}
+                {!search && <button onClick={() => setShowCreate(true)} style={{ marginTop: 7, padding: "8px 18px", borderRadius: 9, border: "none", background: "#0d9488", color: "#fff", fontSize: "0.84rem", fontWeight: 700, cursor: "pointer" }}>+ Create Task</button>}
               </div>
             ) : (
               <>
@@ -1109,12 +1112,12 @@ export default function TaskPage() {
                       <thead>
                         <tr style={{ borderBottom: "2px solid #e5e7eb", background: "#f9fafb" }}>
                           {[["title", "Task"], ["priority", "Priority"], ["status", "Status"], ["dueDate", "Due"]].map(([key, label]) => (
-                            <th key={key} onClick={() => handleSort(key)} style={{ padding: "9px 13px", textAlign: "left", fontSize: "0.68rem", fontWeight: 700, color: "#6b7280", textTransform: "uppercase", cursor: "pointer", whiteSpace: "nowrap", userSelect: "none" }}>
+                            <th key={key} onClick={() => handleSort(key)} style={{ padding: "12px 16px", textAlign: "left", fontSize: "0.68rem", fontWeight: 700, color: "#0d9488", textTransform: "uppercase", cursor: "pointer", whiteSpace: "nowrap", userSelect: "none" }}>
                               {label} <SortIcon col={key} />
                             </th>
                           ))}
-                          <th style={{ padding: "9px 13px", textAlign: "left", fontSize: "0.68rem", fontWeight: 700, color: "#6b7280", textTransform: "uppercase" }}>Assigned</th>
-                          <th style={{ padding: "9px 13px", textAlign: "left", fontSize: "0.68rem", fontWeight: 700, color: "#6b7280", textTransform: "uppercase" }}>💬</th>
+                          <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "0.68rem", fontWeight: 700, color: "#0d9488", textTransform: "uppercase" }}>Assigned</th>
+                          <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "0.68rem", fontWeight: 700, color: "#0d9488", textTransform: "uppercase" }}>💬</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1128,37 +1131,37 @@ export default function TaskPage() {
                           const effectiveStatus = _isAdmin ? task.status : (myStatusRec ? myStatusRec.status : task.status);
                           return (
                             <tr key={task._id || task.id} className="tr-hover" onClick={() => setSelectedTask(task)}
-                              style={{ borderBottom: "1px solid #f3f4f6", background: selected ? "#eef2ff" : isPending ? "#fffbeb" : "transparent", borderLeft: selected ? "3px solid #6366f1" : isPending ? "3px solid #f59e0b" : "3px solid transparent", cursor: "pointer" }}>
-                              <td style={{ padding: "11px 13px", maxWidth: 260 }}>
+                              style={{ borderBottom: "1px solid #f3f4f6", background: selected ? "#f0fdf4" : isPending ? "#fef3c7" : "transparent", borderLeft: selected ? "3px solid #0d9488" : isPending ? "3px solid #f59e0b" : "3px solid transparent", cursor: "pointer" }}>
+                              <td style={{ padding: "12px 16px", maxWidth: 260 }}>
                                 <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                                  <span style={{ fontSize: "0.86rem", fontWeight: 600, color: "#111827", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 200, textDecoration: effectiveStatus === "completed" ? "line-through" : "none" }}>
+                                  <span style={{ fontSize: "0.86rem", fontWeight: 600, color: "#1a2233", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 200, textDecoration: effectiveStatus === "completed" ? "line-through" : "none" }}>
                                     {task.isPersonal && <span style={{ marginRight: 3, fontSize: "0.74rem" }}>🔒</span>}{task.title}
                                   </span>
                                   {isPending && <ApprovalBadge compact />}
                                 </div>
                                 {task.description && <div style={{ fontSize: "0.71rem", color: "#9ca3af", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 210, marginTop: 1 }}>{task.description}</div>}
                               </td>
-                              <td style={{ padding: "11px 13px" }}>
+                              <td style={{ padding: "12px 16px" }}>
                                 <div style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 9px", borderRadius: 20, background: pCfg.bg }}>
                                   <div style={{ width: 5, height: 5, borderRadius: "50%", background: pCfg.color }} />
                                   <span style={{ fontSize: "0.71rem", fontWeight: 700, color: pCfg.color }}>{pCfg.label}</span>
                                 </div>
                               </td>
-                              <td style={{ padding: "11px 13px" }} onClick={e => e.stopPropagation()}>
+                              <td style={{ padding: "12px 16px" }} onClick={e => e.stopPropagation()}>
                                 <StatusPill status={effectiveStatus} onChange={s => handleStatusChange(task._id || task.id, s)} readonly={isPending && !_isAdmin} />
                               </td>
-                              <td style={{ padding: "11px 13px", whiteSpace: "nowrap" }}>
+                              <td style={{ padding: "12px 16px", whiteSpace: "nowrap" }}>
                                 <span style={{ fontSize: "0.79rem", fontWeight: overdue ? 700 : 500, color: overdue ? "#ef4444" : "#374151" }}>{overdue && "⚠ "}{fmtDate(task.dueDate)}</span>
                               </td>
-                              <td style={{ padding: "11px 13px" }}>
+                              <td style={{ padding: "12px 16px" }}>
                                 <div style={{ display: "flex", alignItems: "center" }}>
                                   {assignees.slice(0, 4).map((u, i) => <div key={u.id} style={{ marginLeft: i > 0 ? -7 : 0, zIndex: 4 - i }}><Avatar user={u} size={26} /></div>)}
                                   {assignees.length > 4 && <div style={{ width: 26, height: 26, borderRadius: "50%", background: "#e5e7eb", color: "#6b7280", fontSize: "0.58rem", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", marginLeft: -7, border: "2px solid #fff" }}>+{assignees.length - 4}</div>}
                                   {assignees.length === 0 && <span style={{ fontSize: "0.74rem", color: "#d1d5db" }}>—</span>}
                                 </div>
                               </td>
-                              <td style={{ padding: "11px 13px" }}>
-                                <span style={{ fontSize: "0.8rem", fontWeight: 600, color: task.responses?.length > 0 ? "#6366f1" : "#d1d5db" }}>💬 {task.responses?.length || 0}</span>
+                              <td style={{ padding: "12px 16px" }}>
+                                <span style={{ fontSize: "0.8rem", fontWeight: 600, color: task.responses?.length > 0 ? "#0d9488" : "#d1d5db" }}>💬 {task.responses?.length || 0}</span>
                               </td>
                             </tr>
                           );
@@ -1179,9 +1182,9 @@ export default function TaskPage() {
                     const effectiveStatus = _isAdmin ? task.status : (myStatusRec ? myStatusRec.status : task.status);
                     return (
                       <div key={task._id || task.id} onClick={() => setSelectedTask(task)}
-                        style={{ background: "#fff", borderRadius: 12, border: "1.5px solid", borderColor: isPending ? "#f59e0b44" : "#e5e7eb", padding: 14, display: "flex", flexDirection: "column", gap: 9, boxShadow: "0 1px 3px rgba(0,0,0,.05)", cursor: "pointer" }}>
+                        style={{ background: "#fff", borderRadius: 12, border: "1.5px solid", borderColor: isPending ? "#fcd34d44" : "#e5e7eb", padding: 14, display: "flex", flexDirection: "column", gap: 9, boxShadow: "0 1px 3px rgba(0,0,0,.05)", cursor: "pointer" }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                          <div style={{ fontWeight: 600, fontSize: "0.92rem", color: "#111827", textDecoration: effectiveStatus === "completed" ? "line-through" : "none", maxWidth: "75%" }}>
+                          <div style={{ fontWeight: 600, fontSize: "0.92rem", color: "#1a2233", textDecoration: effectiveStatus === "completed" ? "line-through" : "none", maxWidth: "75%" }}>
                             {task.isPersonal && "🔒 "}{task.title}
                           </div>
                           <span style={{ fontSize: "0.67rem", fontWeight: 700, background: pCfg.bg, color: pCfg.color, padding: "2px 8px", borderRadius: 20 }}>{pCfg.label}</span>
@@ -1195,7 +1198,7 @@ export default function TaskPage() {
                             {assignees.slice(0, 3).map(u => <Avatar key={u.id} user={u} size={22} />)}
                             {assignees.length > 3 && <span style={{ fontSize: "0.63rem", color: "#6b7280" }}>+{assignees.length - 3}</span>}
                           </div>
-                          <div style={{ fontSize: "0.77rem", fontWeight: 600, color: task.responses?.length > 0 ? "#6366f1" : "#d1d5db" }}>💬 {task.responses?.length || 0}</div>
+                          <div style={{ fontSize: "0.77rem", fontWeight: 600, color: task.responses?.length > 0 ? "#0d9488" : "#d1d5db" }}>💬 {task.responses?.length || 0}</div>
                         </div>
                         {isPending && <ApprovalBadge compact />}
                         {overdue && <div style={{ fontSize: "0.69rem", color: "#ef4444", fontWeight: 600 }}>⚠ Overdue</div>}

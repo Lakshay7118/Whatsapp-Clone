@@ -1,7 +1,6 @@
 "use client";
 import { getSocket } from "../lib/socket";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { usePathname } from "next/navigation";
 import { createPortal } from "react-dom";
 import { gsap } from "gsap";
 import { AnimatePresence, motion } from "framer-motion";
@@ -272,7 +271,6 @@ const popupVariants = {
 ───────────────────────────────────────────── */
 export default function LiveChatPage() {
 
-
   // ── 1. ALL useState ──────────────────────────
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("active");
@@ -302,9 +300,7 @@ export default function LiveChatPage() {
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [templates, setTemplates] = useState([]);
   const [showContactInfo, setShowContactInfo] = useState(false);
-
-  const [showMobileInfoModal, setShowMobileInfoModal] = useState(false);
-
+  
   
 
   useEffect(() => {
@@ -471,11 +467,50 @@ if (String(msg.chatId) === String(selectedChatRef.current?._id)) return;
 
   s.on("messagesSeen", handleGlobalMessagesSeen);
 
-  return () => {
-    s.off("newMessage", handleGlobalNewMessage);
-    s.off("messageDelivered", handleMessageDelivered);
-    s.off("messagesSeen", handleGlobalMessagesSeen);
-  };
+// ✅ ADD THIS — listens for campaign-created chats
+const handleChatUpdated = ({ chatId, isNewChat, lastMessage, participants }) => {
+  const s = getSocket();
+
+  // Always join the room
+  s.emit("joinChat", chatId);
+
+  if (isNewChat) {
+    // New chat from campaign — add to sidebar
+    setChatList(prev => {
+      const exists = prev.find(c => String(c._id) === String(chatId));
+      if (exists) return prev;
+      return [
+        {
+          _id: chatId,
+          participants,
+          lastMessage,
+          status: "active",
+          unread: 1,
+          name: participants.find(p => p !== currentUserRef.current?.phone) || "Unknown",
+        },
+        ...prev,
+      ];
+    });
+  } else {
+    // Existing chat — update lastMessage + unread
+    setChatList(prev =>
+      prev.map(chat =>
+        String(chat._id) === String(chatId)
+          ? { ...chat, lastMessage, unread: (chat.unread || 0) + 1 }
+          : chat
+      )
+    );
+  }
+};
+
+s.on("chatUpdated", handleChatUpdated);
+
+return () => {
+  s.off("newMessage", handleGlobalNewMessage);
+  s.off("messageDelivered", handleMessageDelivered);
+  s.off("messagesSeen", handleGlobalMessagesSeen);
+  s.off("chatUpdated", handleChatUpdated);  // ✅ cleanup
+};
 }, []);
 
 // ✅ Fix — only approved templates
@@ -1263,9 +1298,6 @@ const deleteForEveryone = async () => {
             overflow: hidden;
             background: #f0f2f5;
           }
-            .sticky-chat-shell.no-topbar {
-  top: 0 !important;
-}
           .scroll-hidden {
             overflow-y: auto; overflow-x: hidden;
             -ms-overflow-style: none; scrollbar-width: none;
@@ -1346,65 +1378,10 @@ const deleteForEveryone = async () => {
             .attach-sheet { width: 220px; }
             .emoji-panel  { width: 250px; }
           }
-
-          /* ── Mobile global adjustments ── */
-@media (max-width: 820px) {
-  /* Smaller chat list items */
-  .chat-item .text-truncate:first-child {
-    font-size: 0.9rem !important;
-  }
-  .chat-item .text-truncate:last-child {
-    font-size: 0.78rem !important;
-  }
-  .chat-item .d-flex > div:last-child {
-    font-size: 0.72rem !important;
-  }
-
-  /* Message bubbles */
-  .chat-bg [style*="font-size: 0.9rem"] {
-    font-size: 0.82rem !important;
-  }
-  .msg-enter {
-    padding: 0 4px !important;
-  }
-
-  /* Input bar */
-  .composer-action-btn {
-    width: 36px !important;
-    height: 36px !important;
-  }
-  .form-control[style*="height: 42px"] {
-    height: 36px !important;
-    font-size: 0.9rem !important;
-  }
-  .send-btn {
-    width: 36px !important;
-    height: 36px !important;
-  }
-
-  /* Tabs */
-  .tab-pill {
-    font-size: 0.72rem !important;
-    padding: 6px 12px !important;
-  }
-
-  /* General spacing */
-  .px-3 {
-    padding-left: 0.5rem !important;
-    padding-right: 0.5rem !important;
-  }
-  .py-3 {
-    padding-top: 0.5rem !important;
-    padding-bottom: 0.5rem !important;
-  }
-  .gap-3 {
-    gap: 10px !important;
-  }
-}
         `}</style>
       <style>{shimmerCSS}</style>
 
-      <div ref={pageRef} className={`sticky-chat-shell ${isMobile && mobileChatOpen ? "no-topbar" : ""}`} style={{ padding: "0 10px" }}>
+      <div ref={pageRef} className="sticky-chat-shell" style={{ padding: "0 10px" }}>
         <input ref={imageInputRef} type="file" accept="image/*" hidden onChange={handleImagePick} />
         <input
           ref={fileInputRef}
@@ -1628,13 +1605,7 @@ const deleteForEveryone = async () => {
                           <HeaderIcon icon={<FiPhone size={18} />} />
                           <button
                             type="button"
-                            onClick={() => {
-  if (isMobile) {
-    setShowMobileInfoModal(true);
-  } else {
-    setShowContactInfo(p => !p);
-  }
-}}
+                            onClick={() => setShowContactInfo(p => !p)}
                             className="icon-btn btn border-0 rounded-circle d-flex align-items-center justify-content-center"
                             style={{
                               width: 38,
@@ -2206,117 +2177,6 @@ const deleteForEveryone = async () => {
           </div>
         </div>
       )}
-
-      {/* ─── MOBILE CONTACT INFO MODAL ─────────────────────────── */}
-<AnimatePresence>
-  {isMobile && showMobileInfoModal && (
-    <motion.div
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        width: "100%",
-        height: "100%",
-        background: "#fff",
-        zIndex: 1100,
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
-      }}
-      initial={{ y: "100%" }}
-      animate={{ y: 0 }}
-      exit={{ y: "100%" }}
-      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-    >
-      {/* Header */}
-      <div
-        className="d-flex align-items-center justify-content-between px-3 border-bottom flex-shrink-0"
-        style={{ height: 56, background: "#f0f2f5" }}
-      >
-        <button
-          type="button"
-          onClick={() => setShowMobileInfoModal(false)}
-          style={{
-            background: "none",
-            border: "none",
-            color: "#54656f",
-            display: "flex",
-            alignItems: "center",
-            gap: 2,
-          }}
-        >
-          <FiArrowLeft size={16} />
-          <span style={{ fontWeight: 400, fontSize: "0.875rem" }}>Back</span>
-        </button>
-        <span style={{ fontWeight: 600, color: "#111b21" }}>
-          {selectedChat?.isGroup ? "Group Info" : "Contact Info"}
-        </span>
-        <div style={{ width: 30 }} />{/* spacer */}
-      </div>
-
-      {/* Scrollable content – replica of the right panel */}
-      <div className="flex-grow-1 scroll-hidden" style={{ background: "#f7f8fa" }}>
-        <div className="bg-white text-center px-3 py-4" style={{ borderBottom: "10px solid #f0f2f5" }}>
-          <div
-            className="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3 fw-bold"
-            style={{ width: 92, height: 92, background: "#dfe5e7", color: "#54656f", fontSize: "1.8rem" }}
-          >
-            {selectedChat?.name?.charAt(0) || "U"}
-          </div>
-          <div style={{ fontSize: "1.08rem", fontWeight: 500, color: "#111b21" }}>
-            {selectedChat?.name}
-          </div>
-          {!selectedChat?.isGroup && (
-            <div style={{ fontSize: "0.84rem", color: "#667781", marginTop: 4 }}>
-              {selectedChat?.phone}
-            </div>
-          )}
-        </div>
-
-        {selectedChat?.isGroup ? (
-          <DetailCard
-            icon={<FiUsers size={16} />}
-            title="Members"
-            customContent={<div>{selectedChat.participants?.join(", ")}</div>}
-          />
-        ) : (
-          <>
-            <DetailCard
-              icon={<FiInfo size={16} />}
-              title="Basic Info"
-              items={[
-                { label: "Phone", value: selectedChat?.phone },
-                { label: "Email", value: selectedChat?.email },
-                { label: "City", value: selectedChat?.city },
-                { label: "Status", value: selectedChat?.lastSeen },
-              ]}
-            />
-            <DetailCard
-              icon={<FiTag size={16} />}
-              title="Lead Tag"
-              items={[
-                {
-                  label: "Tag",
-                  value: tags.find(t => t._id === selectedChat.tag)?.name || selectedChat.tag || "No tag",
-                },
-              ]}
-            />
-            <DetailCard
-              icon={<FiMessageSquare size={16} />}
-              title="Notes"
-              customContent={
-                <div style={{ fontSize: "0.9rem", color: "#3b4a54", lineHeight: 1.6 }}>
-                  {selectedChat.notes}
-                </div>
-              }
-            />
-          </>
-        )}
-      </div>
-    </motion.div>
-  )}
-</AnimatePresence>
-
 
     </>
   );

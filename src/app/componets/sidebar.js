@@ -38,7 +38,68 @@ const allNavItems = [
 ];
 
 // ---------- Mobile Bottom Tabs ----------
+function MobileBottomBar({ userRole, currentPath, onNavigate, visible }) {
+  const tabs = allNavItems.filter(
+    (item) =>
+      ["live-chat", "task", "contacts"].includes(item.id) &&
+      (!item.allowedRoles || item.allowedRoles.includes(userRole))
+  );
 
+  if (!visible || tabs.length === 0) return null;
+
+  return (
+    <nav
+      style={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        gap: "8px",
+        position: "fixed",
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: "64px",
+        background: "rgba(255, 255, 255, 0.96)",
+        backdropFilter: "blur(12px)",
+        borderTop: "1px solid rgba(0,0,0,0.08)",
+        padding: "0 16px",
+        paddingBottom: "env(safe-area-inset-bottom, 0px)",
+        zIndex: 999,
+      }}
+    >
+      {tabs.map((item) => {
+        const Icon = item.icon;
+        const active = currentPath === item.path;
+        return (
+          <button
+            key={item.id}
+            onClick={() => onNavigate(item.path)}
+            style={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "2px",
+              padding: "6px 4px",
+              border: "none",
+              background: "transparent",
+              color: active ? "#0b535d" : "#6b7280",
+              cursor: "pointer",
+              borderRadius: "12px",
+              transition: "0.15s",
+            }}
+          >
+            <Icon size={22} strokeWidth={active ? 2.5 : 2} />
+            <span style={{ fontSize: "11px", fontWeight: active ? 700 : 500, lineHeight: 1 }}>
+              {item.label}
+            </span>
+          </button>
+        );
+      })}
+    </nav>
+  );
+}
 
 // ---------- Main Sidebar component ----------
 export default function Sidebar({ isOpen, setIsOpen }) {
@@ -48,7 +109,31 @@ export default function Sidebar({ isOpen, setIsOpen }) {
   const [hoveredIcon,     setHoveredIcon]     = useState(null);
   const [userRole,        setUserRole]        = useState("");
 
+  // ── Hide bottom bar when a chat or task detail is open ──────────────
+  // LiveChat page fires:  window.dispatchEvent(new CustomEvent("detailViewOpen"))
+  // LiveChat page fires:  window.dispatchEvent(new CustomEvent("detailViewClose"))
+  // Task page does the same. See code snippets at bottom of this file.
+  const [detailOpen, setDetailOpen] = useState(false);
 
+  useEffect(() => {
+    const onOpen  = () => setDetailOpen(true);
+    const onClose = () => setDetailOpen(false);
+
+    window.addEventListener("detailViewOpen",  onOpen);
+    window.addEventListener("detailViewClose", onClose);
+
+    // Reset when the user navigates away from live-chat or task
+    return () => {
+      window.removeEventListener("detailViewOpen",  onOpen);
+      window.removeEventListener("detailViewClose", onClose);
+    };
+  }, []);
+
+  // Also reset detailOpen whenever the route changes
+  // (e.g. user navigates from /live-chat → /contacts)
+  useEffect(() => {
+    setDetailOpen(false);
+  }, [pathname]);
 
   // ── User role from localStorage ──────────────────────────────────────
   useEffect(() => {
@@ -219,7 +304,16 @@ export default function Sidebar({ isOpen, setIsOpen }) {
         <SidebarContent />
       </motion.div>
 
-      
+      {/* ===== MOBILE BOTTOM TAB BAR ===== */}
+      {/* Hidden when a chat or task detail is open (detailOpen = true) */}
+      <div className="block md:hidden">
+        <MobileBottomBar
+          userRole={userRole}
+          currentPath={pathname}
+          onNavigate={(path) => { router.push(path); setIsOpen(false); }}
+          visible={!detailOpen}
+        />
+      </div>
     </>
   );
 }
