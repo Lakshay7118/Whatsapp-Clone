@@ -44,11 +44,9 @@ export default function Sidebar({ isOpen, setIsOpen }) {
 
   const [hoveredIcon,     setHoveredIcon]     = useState(null);
   const [userRole,        setUserRole]        = useState("");
+  const [userName,        setUserName]        = useState("");   // 👈 added
 
   // ── Hide bottom bar when a chat or task detail is open ──────────────
-  // LiveChat page fires:  window.dispatchEvent(new CustomEvent("detailViewOpen"))
-  // LiveChat page fires:  window.dispatchEvent(new CustomEvent("detailViewClose"))
-  // Task page does the same. See code snippets at bottom of this file.
   const [detailOpen, setDetailOpen] = useState(false);
 
   useEffect(() => {
@@ -58,20 +56,31 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     window.addEventListener("detailViewOpen",  onOpen);
     window.addEventListener("detailViewClose", onClose);
 
-    // Reset when the user navigates away from live-chat or task
     return () => {
       window.removeEventListener("detailViewOpen",  onOpen);
       window.removeEventListener("detailViewClose", onClose);
     };
   }, []);
 
-  // Also reset detailOpen whenever the route changes
-  // (e.g. user navigates from /live-chat → /contacts)
   useEffect(() => {
     setDetailOpen(false);
   }, [pathname]);
 
-  // ── User role from localStorage ──────────────────────────────────────
+  // ── Read user data from localStorage ──────────────────────────────
+  useEffect(() => {
+    try {
+      const userStr = localStorage.getItem("user");
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        setUserName(user.name || user.phone || "");
+        setUserRole(user.role || "");
+      }
+    } catch (e) {
+      // fail silently
+    }
+  }, []);
+
+  // ── Fallback for role (if stored separately) ─────────────────────
   useEffect(() => {
     try {
       const role = localStorage.getItem("role");
@@ -83,12 +92,12 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     }
   }, []);
 
-  // ── Sidebar items filtered by role ──────────────────────────────────
+  // ── Sidebar items filtered by role ───────────────────────────────
   const sidebarItems = allNavItems.filter(
     (item) => !item.allowedRoles || item.allowedRoles.includes(userRole)
   );
 
-  // ── Refs for GSAP entrance animation ─────────────────────────────────
+  // ── Refs for GSAP entrance animation ──────────────────────────────
   const sidebarRef = useRef(null);
   const logoRef    = useRef(null);
   const itemRefs   = useRef([]);
@@ -104,7 +113,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     return () => ctx.revert();
   }, []);
 
-  // ── Shared sidebar markup ─────────────────────────────────────────────
+  // ── Shared sidebar markup ──────────────────────────────────────────
   const SidebarContent = () => (
     <aside
       ref={sidebarRef}
@@ -213,7 +222,8 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             boxShadow: "0 6px 18px rgba(0,0,0,0.16)", cursor: "pointer",
           }}
         >
-          K
+          {/* 👇 changed from "K" to logged‑in user's first letter */}
+          {userName ? userName.charAt(0).toUpperCase() : "?"}
         </motion.div>
       </div>
     </aside>

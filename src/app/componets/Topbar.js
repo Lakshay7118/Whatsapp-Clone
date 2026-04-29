@@ -6,16 +6,44 @@ import { motion } from "framer-motion";
 import { Menu, Search, LogOut, Bell } from "lucide-react";
 
 export default function Topbar({
-  userName = "Nishant",
   onMenuClick,
   onLogout,
   title = "Dashboard",
   hidden = false,
 }) {
   if (hidden) return null;
+
   const topbarRef = useRef(null);
   const [searchValue, setSearchValue] = useState("");
-  const avatarInitial = userName?.charAt(0)?.toUpperCase() || "N";
+  const [userName, setUserName] = useState("");
+
+  // ✅ Read user from localStorage
+  useEffect(() => {
+    try {
+      const userStr = localStorage.getItem("user");
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        setUserName(user.name || user.phone || "");
+      }
+    } catch (e) {}
+  }, []);
+
+  // ✅ Also listen for login event so topbar updates without refresh
+  useEffect(() => {
+    const handleLoginChange = () => {
+      try {
+        const userStr = localStorage.getItem("user");
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          setUserName(user.name || user.phone || "");
+        }
+      } catch (e) {}
+    };
+    window.addEventListener("loginStatusChanged", handleLoginChange);
+    return () => window.removeEventListener("loginStatusChanged", handleLoginChange);
+  }, []);
+
+  const avatarInitial = userName?.charAt(0)?.toUpperCase() || "?";
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -34,7 +62,6 @@ export default function Topbar({
   };
 
   return (
-    
     <header
       ref={topbarRef}
       style={{ width: "100%", marginBottom: "14px", boxSizing: "border-box" }}
@@ -123,22 +150,12 @@ export default function Topbar({
         </motion.button>
 
         {/* Title */}
-        <span
-          style={{
-            fontSize: "15px", fontWeight: 700, color: "#111827",
-            flexShrink: 0,
-          }}
-        >
+        <span style={{ fontSize: "15px", fontWeight: 700, color: "#111827", flexShrink: 0 }}>
           {title}
         </span>
 
         {/* Divider */}
-        <div
-          style={{
-            width: "1px", height: "22px",
-            background: "#e2e8f0", flexShrink: 0,
-          }}
-        />
+        <div style={{ width: "1px", height: "22px", background: "#e2e8f0", flexShrink: 0 }} />
 
         {/* Search */}
         <div
@@ -161,7 +178,6 @@ export default function Topbar({
           />
         </div>
 
-        {/* Spacer */}
         <div style={{ flex: 1 }} />
 
         {/* Bell */}
@@ -176,16 +192,14 @@ export default function Topbar({
           }}
         >
           <Bell size={16} color="#374151" />
-          <span
-            style={{
-              position: "absolute", top: "7px", right: "7px",
-              width: "7px", height: "7px", borderRadius: "50%",
-              background: "#ef4444", border: "2px solid #fff",
-            }}
-          />
+          <span style={{
+            position: "absolute", top: "7px", right: "7px",
+            width: "7px", height: "7px", borderRadius: "50%",
+            background: "#ef4444", border: "2px solid #fff",
+          }} />
         </motion.button>
 
-        {/* User chip */}
+        {/* ✅ User chip — real name from localStorage */}
         <div
           style={{
             display: "flex", alignItems: "center", gap: "8px",
@@ -204,7 +218,7 @@ export default function Topbar({
             {avatarInitial}
           </div>
           <span style={{ fontSize: "13px", fontWeight: 600, color: "#111827" }}>
-            {userName}
+            {userName || "User"}
           </span>
         </div>
 
