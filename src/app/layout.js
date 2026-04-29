@@ -8,7 +8,6 @@ import Topbar from "./componets/Topbar";
 import BottomTabs from "./componets/BottomTabs";
 import "bootstrap/dist/css/bootstrap.min.css";
 
-// ---------- helpers (same as your Task page) ----------
 const PALETTE = [
   "#6366f1","#f43f5e","#f59e0b","#10b981","#3b82f6",
   "#8b5cf6","#ec4899","#06b6d4"
@@ -19,26 +18,20 @@ const userInitial = (name = "") => (name || "?").trim().charAt(0).toUpperCase();
 const enrichUser  = (u) => {
   if (!u) return null;
   const id = u._id?.toString?.() || u.id || "";
-  return {
-    ...u,
-    id,
-    initial: userInitial(u.name),
-    color: userColor(id),
-  };
+  return { ...u, id, initial: userInitial(u.name), color: userColor(id) };
 };
 
 export default function RootLayout({ children }) {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [isLoggedIn, setIsLoggedIn]     = useState(false);
+  const [activeTab, setActiveTab]       = useState("dashboard");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-  const [chatOpen, setChatOpen] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);   // <-- ✨ NEW
+  const [isMobile, setIsMobile]         = useState(false);
+  const [chatOpen, setChatOpen]         = useState(false);
+  const [currentUser, setCurrentUser]   = useState(null);
 
   const pathname = usePathname();
-  const router = useRouter();
+  const router   = useRouter();
 
-  // ---------- Login check and user extraction ----------
   const checkLoginStatus = () => {
     const user = localStorage.getItem("user");
     if (!user) {
@@ -48,7 +41,7 @@ export default function RootLayout({ children }) {
     } else {
       try {
         const parsed = JSON.parse(user);
-        setCurrentUser(enrichUser(parsed));   // <-- enrich with colour & initial
+        setCurrentUser(enrichUser(parsed));
       } catch {
         setCurrentUser({ name: "User", initial: "?", color: "#6b7280" });
       }
@@ -79,7 +72,6 @@ export default function RootLayout({ children }) {
     return () => clearInterval(interval);
   }, [pathname]);
 
-  // ---------- mobile / chat listeners ----------
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth <= 820);
     check();
@@ -87,23 +79,33 @@ export default function RootLayout({ children }) {
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  useEffect(() => {
-    const onOpen  = () => setChatOpen(true);
-    const onClose = () => setChatOpen(false);
-    window.addEventListener("detailViewOpen",  onOpen);
-    window.addEventListener("detailViewClose", onClose);
-    return () => {
-      window.removeEventListener("detailViewOpen",  onOpen);
-      window.removeEventListener("detailViewClose", onClose);
-    };
-  }, []);
+  // ✅ Single source of truth for chat open/close
+
+
+useEffect(() => {
+  const onOpen  = () => {
+    console.log("detailViewOpen fired"); // ✅ add this to confirm event fires
+    setChatOpen(true);
+  };
+  const onClose = () => {
+    console.log("detailViewClose fired");
+    setChatOpen(false);
+  };
+  window.addEventListener("detailViewOpen",  onOpen);
+  window.addEventListener("detailViewClose", onClose);
+  return () => {
+    window.removeEventListener("detailViewOpen",  onOpen);
+    window.removeEventListener("detailViewClose", onClose);
+  };
+}, []);
 
   useEffect(() => {
     const segment = pathname?.split("/")[1] || "dashboard";
     setActiveTab(segment);
   }, [pathname]);
 
-  const hideTopbar = isMobile && chatOpen;
+  // ✅ Both Topbar and BottomTabs use this same value
+  const hideChrome = isMobile && chatOpen;
 
   const handleLogout = () => {
     localStorage.removeItem("user");
@@ -114,19 +116,18 @@ export default function RootLayout({ children }) {
   };
 
   const titleMap = {
-    dashboard:     "Dashboard",
-    "live-chat":   "Live Chat",
-    history:       "History",
-    contacts:      "Contacts",
-    campaigns:     "Campaigns",
-    "ads-manager": "Ads Manager",
-    flows:         "Flows",
-    manage:        "Manage",
-    developer:     "Developer",
-    "all-projects":"All Projects",
+    dashboard:      "Dashboard",
+    "live-chat":    "Live Chat",
+    history:        "History",
+    contacts:       "Contacts",
+    campaigns:      "Campaigns",
+    "ads-manager":  "Ads Manager",
+    flows:          "Flows",
+    manage:         "Manage",
+    developer:      "Developer",
+    "all-projects": "All Projects",
   };
 
-  // 🔴 NOT LOGGED IN
   if (!isLoggedIn) {
     return (
       <html lang="en">
@@ -134,8 +135,7 @@ export default function RootLayout({ children }) {
           style={{
             margin: 0,
             background: "#eef3f7",
-            fontFamily:
-              "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+            fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
             overflowY: "auto",
           }}
         >
@@ -145,15 +145,13 @@ export default function RootLayout({ children }) {
     );
   }
 
-  // 🟢 LOGGED IN
   return (
     <html lang="en">
       <body
         style={{
           margin: 0,
           background: "#eef3f7",
-          fontFamily:
-            "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+          fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
           overflowY: "auto",
         }}
       >
@@ -190,11 +188,10 @@ export default function RootLayout({ children }) {
             boxSizing: "border-box",
           }}
         >
-          {/* ✨ Pass the real user object instead of hardcoded "Nishant" */}
           <Topbar
-            hidden={hideTopbar}
+            hidden={hideChrome}
             title={titleMap[activeTab] || "Dashboard"}
-            user={currentUser}                     // <-- NEW
+            user={currentUser}
             onMenuClick={() => setIsSidebarOpen((prev) => !prev)}
             onLogout={handleLogout}
           />
@@ -212,7 +209,8 @@ export default function RootLayout({ children }) {
           </div>
         </main>
 
-        <BottomTabs />
+        {/* ✅ hidden prop keeps BottomTabs in sync with Topbar */}
+        <BottomTabs hidden={hideChrome} />
       </body>
     </html>
   );

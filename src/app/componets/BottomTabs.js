@@ -2,22 +2,21 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { MessageSquare, CheckSquare, Users, LayoutDashboard, Settings } from "lucide-react";
+import { MessageSquare, CheckSquare, Users, Settings } from "lucide-react";
 
 const tabs = [
-  { id: "live-chat", label: "Live Chat",  icon: MessageSquare,  path: "/live-chat"  },
-  { id: "contacts",  label: "Contacts",   icon: Users,          path: "/contacts"   },
-  { id: "task",      label: "Task",       icon: CheckSquare,    path: "/task"       },
-  { id: "settings",  label: "Settings",   icon: Settings,       path: "/Settings"   },
+  { id: "live-chat", label: "Live Chat", icon: MessageSquare, path: "/live-chat" },
+  { id: "contacts",  label: "Contacts",  icon: Users,         path: "/contacts"  },
+  { id: "task",      label: "Task",      icon: CheckSquare,   path: "/task"      },
+  { id: "settings",  label: "Settings",  icon: Settings,      path: "/Settings"  },
 ];
 
-export default function BottomTabs() {
+export default function BottomTabs({ hidden = false }) {
+  if (hidden) return null;
   const router   = useRouter();
   const pathname = usePathname();
-  const [visible,  setVisible]  = useState(true);
-  const [isMobile, setIsMobile] = useState(false); // ✅ ADD THIS
+  const [isMobile, setIsMobile] = useState(false);
 
-  // ✅ Detect mobile
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth <= 820);
     check();
@@ -25,20 +24,7 @@ export default function BottomTabs() {
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  // Hide when chat is open
-  useEffect(() => {
-    const handleOpen  = () => setVisible(false);
-    const handleClose = () => setVisible(true);
-    window.addEventListener("detailViewOpen",  handleOpen);
-    window.addEventListener("detailViewClose", handleClose);
-    return () => {
-      window.removeEventListener("detailViewOpen",  handleOpen);
-      window.removeEventListener("detailViewClose", handleClose);
-    };
-  }, []);
-
-  // ✅ Don't render on desktop at all
-  if (!isMobile || !visible) return null;
+  if (!isMobile || hidden) return null;
 
   return (
     <nav

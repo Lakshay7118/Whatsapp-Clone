@@ -264,9 +264,9 @@ export default function LaunchCampaignPage() {
         : [],
       templateId: form.selectedTemplateId,
       recurrence: form.recurrence,
-      scheduledDateTime: form.recurrence.type === "one-time"
-        ? new Date(`${form.scheduledDate}T${form.scheduledTime}`).toISOString()
-        : null,
+      scheduledDateTime: (form.scheduledDate && form.scheduledTime)
+  ? `${form.scheduledDate}T${form.scheduledTime}:00+05:30`
+  : null,
       variableValues: Object.fromEntries(
         Object.entries(variableMappings).map(([key, mapping]) => [
           key,

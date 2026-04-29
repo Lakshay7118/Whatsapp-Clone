@@ -10,7 +10,9 @@ export default function Topbar({
   onMenuClick,
   onLogout,
   title = "Dashboard",
+  hidden = false,
 }) {
+  if (hidden) return null;
   const topbarRef = useRef(null);
   const [searchValue, setSearchValue] = useState("");
   const avatarInitial = userName?.charAt(0)?.toUpperCase() || "N";
@@ -32,6 +34,7 @@ export default function Topbar({
   };
 
   return (
+    
     <header
       ref={topbarRef}
       style={{ width: "100%", marginBottom: "14px", boxSizing: "border-box" }}

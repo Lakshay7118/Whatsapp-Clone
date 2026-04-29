@@ -255,9 +255,6 @@ const attachmentItems = [
   { id: "camera", label: "Camera", icon: FiCamera, color: "#ec4899" },
   { id: "audio", label: "Audio", icon: FiHeadphones, color: "#f97316" },
   { id: "contact", label: "Contact", icon: FiUser, color: "#0ea5e9" },
-  { id: "poll", label: "Poll", icon: FiMessageSquare, color: "#f59e0b" },
-  { id: "event", label: "Event", icon: FiCalendar, color: "#ef4444" },
-  { id: "sticker", label: "New sticker", icon: FiPlus, color: "#10b981" },
 ];
 
 const popupVariants = {
@@ -300,6 +297,7 @@ export default function LiveChatPage() {
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [templates, setTemplates] = useState([]);
   const [showContactInfo, setShowContactInfo] = useState(false);
+  const [showMobileContactInfo, setShowMobileContactInfo] = useState(false);
   
   
 
@@ -320,6 +318,7 @@ export default function LiveChatPage() {
   const emojiWrapRef = useRef(null);
   const currentUserRef = useRef(null);
   const selectedChatRef = useRef(null);
+  const documentInputRef = useRef(null);
 useEffect(() => {
   selectedChatRef.current = selectedChat;
 }, [selectedChat]);
@@ -380,58 +379,42 @@ useEffect(() => {
   }
 
   // 🔥 Global handler — updates left panel preview for ALL chats
-  const handleGlobalNewMessage = (msg) => {
-  // ❌ prevent duplicate in open chat
-  // ✅ always fresh value
-if (String(msg.chatId) === String(selectedChatRef.current?._id)) return;
-    // Update messages state so lastMessageText() reflects new msg
-    setMessages(prev => {
-      const chatId = msg.chatId;
-      const currentMsgs = prev[chatId] || [];
-      if (
-  currentMsgs.some(
-    m =>
-      m.id === msg._id ||
-      (
-        m.text === msg.text &&
-        Math.abs(new Date(m.createdAt) - new Date(msg.createdAt)) < 3000
-      )
-  )
-) return prev;
-      const isSentByMe = String(msg.sender) === String(currentUserRef.current?.phone);
-      return {
-        ...prev,
-        [chatId]: [
-          ...currentMsgs,
-          {
-            id: msg._id,
-            sender: msg.sender,
-            type: isSentByMe ? "sent" : "received",
-            messageType: msg.messageType || "text",
-            text: msg.text || "",
-            templateMeta: msg.templateMeta || null,
-            createdAt: msg.createdAt,
-            time: new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-            delivered: !isSentByMe,
-            seen: false,
-            fileName: msg.fileName,
-            url: msg.fileUrl,
-            isDeleted: false,
-          },
-        ],
-      };
-    });
+const handleGlobalNewMessage = (msg) => {
+  if (String(msg.chatId) === String(selectedChatRef.current?._id)) return;
 
-    // Update unread count on left panel for non-selected chats
-    setChatList(prev =>
-      prev.map(chat =>
-        String(chat._id) === String(msg.chatId) &&
-        String(msg.sender) !== String(currentUserRef.current?.phone)
-          ? { ...chat, unread: (chat.unread || 0) + 1 }
-          : chat
-      )
-    );
-  };
+  setMessages(prev => {
+    const chatId = msg.chatId;
+    const currentMsgs = prev[chatId] || [];
+    if (currentMsgs.some(m => m.id === msg._id || (m.text === msg.text && Math.abs(new Date(m.createdAt) - new Date(msg.createdAt)) < 3000))) return prev;
+    const isSentByMe = String(msg.sender) === String(currentUserRef.current?.phone);
+    return {
+      ...prev,
+      [chatId]: [...currentMsgs, {
+        id: msg._id, sender: msg.sender,
+        type: isSentByMe ? "sent" : "received",
+        messageType: msg.messageType || "text",
+        text: msg.text || "", templateMeta: msg.templateMeta || null,
+        createdAt: msg.createdAt,
+        time: new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        delivered: !isSentByMe, seen: false,
+        fileName: msg.fileName, url: msg.fileUrl, isDeleted: false,
+      }],
+    };
+  });
+
+  // ✅ CHANGED: move to top + update unread
+  setChatList(prev => {
+    const chat = prev.find(c => String(c._id) === String(msg.chatId));
+    if (!chat) return prev;
+    const isByMe = String(msg.sender) === String(currentUserRef.current?.phone);
+    const updated = {
+      ...chat,
+      unread: isByMe ? chat.unread : (chat.unread || 0) + 1,
+      updatedAt: new Date().toISOString(),
+    };
+    return [updated, ...prev.filter(c => String(c._id) !== String(msg.chatId))];
+  });
+};
 
   s.on("newMessage", handleGlobalNewMessage);
 
@@ -470,29 +453,29 @@ if (String(msg.chatId) === String(selectedChatRef.current?._id)) return;
 // ✅ ADD THIS — listens for campaign-created chats
 const handleChatUpdated = ({ chatId, isNewChat, lastMessage, participants }) => {
   const s = getSocket();
-
-  // Always join the room
   s.emit("joinChat", chatId);
 
   if (isNewChat) {
-    // New chat from campaign — add to sidebar
     setChatList(prev => {
       const exists = prev.find(c => String(c._id) === String(chatId));
       if (exists) return prev;
+      const otherPhone = participants?.find(p => p !== currentUserRef.current?.phone) || "Unknown";
+      // ✅ FIX: try to resolve name from contacts
+      const matchedContact = contacts.find(c => c.mobile === otherPhone);
       return [
         {
           _id: chatId,
           participants,
           lastMessage,
-          status: "active",
+          status: "active", // ✅ always set status
           unread: 1,
-          name: participants.find(p => p !== currentUserRef.current?.phone) || "Unknown",
+          name: matchedContact?.name || otherPhone,
+          phone: otherPhone,
         },
         ...prev,
       ];
     });
   } else {
-    // Existing chat — update lastMessage + unread
     setChatList(prev =>
       prev.map(chat =>
         String(chat._id) === String(chatId)
@@ -502,7 +485,6 @@ const handleChatUpdated = ({ chatId, isNewChat, lastMessage, participants }) => 
     );
   }
 };
-
 s.on("chatUpdated", handleChatUpdated);
 
 return () => {
@@ -626,49 +608,24 @@ useEffect(() => {
 
   // 🔥 rest of your socket code stays SAME...
 
-  const handleNewMessage = (msg) => {
-    if (String(msg.chatId) !== String(chatId)) return;
+ const handleNewMessage = (msg) => {
+  if (String(msg.chatId) !== String(chatId)) return;
 
-    const isSentByMe =
-      String(msg.sender) === String(currentUserRef.current?.phone);
+  const isSentByMe =
+    String(msg.sender) === String(currentUserRef.current?.phone);
 
-    setMessages(prev => {
-      const currentMsgs = prev[chatId] || [];
+  setMessages(prev => {
+    const currentMsgs = prev[chatId] || [];
 
-      const tempIndex = currentMsgs.findIndex(m =>
-        m.id && String(m.id).startsWith("tmp-") &&
-        m.text === msg.text &&
-        Math.abs(new Date(m.createdAt) - new Date(msg.createdAt)) < 5000
-      );
+    const tempIndex = currentMsgs.findIndex(m =>
+      m.id && String(m.id).startsWith("tmp-") &&
+      m.text === msg.text &&
+      Math.abs(new Date(m.createdAt) - new Date(msg.createdAt)) < 5000
+    );
 
-      if (tempIndex !== -1) {
-        const updatedMsgs = [...currentMsgs];
-
-        updatedMsgs[tempIndex] = {
-          id: msg._id,
-          sender: msg.sender,
-          type: isSentByMe ? "sent" : "received",
-          messageType: msg.messageType || "text",
-          text: msg.text || "",
-          templateMeta: msg.templateMeta || null,
-          createdAt: msg.createdAt,
-          time: new Date(msg.createdAt).toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-          delivered: true,  // ✅ backend already processed it
-          seen: false,
-          fileName: msg.fileName,
-          url: msg.fileUrl,
-          isDeleted: false,
-        };
-
-        return { ...prev, [chatId]: updatedMsgs };
-      }
-
-      if (currentMsgs.some(m => m.id === msg._id)) return prev;
-
-      const newMsg = {
+    if (tempIndex !== -1) {
+      const updatedMsgs = [...currentMsgs];
+      updatedMsgs[tempIndex] = {
         id: msg._id,
         sender: msg.sender,
         type: isSentByMe ? "sent" : "received",
@@ -680,16 +637,49 @@ useEffect(() => {
           hour: "2-digit",
           minute: "2-digit",
         }),
-        delivered: !isSentByMe,
+        delivered: true,
         seen: false,
         fileName: msg.fileName,
         url: msg.fileUrl,
         isDeleted: false,
       };
+      return { ...prev, [chatId]: updatedMsgs };
+    }
 
-      return { ...prev, [chatId]: [...currentMsgs, newMsg] };
-    });
-  };
+    if (currentMsgs.some(m => m.id === msg._id)) return prev;
+
+    const newMsg = {
+      id: msg._id,
+      sender: msg.sender,
+      type: isSentByMe ? "sent" : "received",
+      messageType: msg.messageType || "text",
+      text: msg.text || "",
+      templateMeta: msg.templateMeta || null,
+      createdAt: msg.createdAt,
+      time: new Date(msg.createdAt).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      delivered: !isSentByMe,
+      seen: false,
+      fileName: msg.fileName,
+      url: msg.fileUrl,
+      isDeleted: false,
+    };
+
+    return { ...prev, [chatId]: [...currentMsgs, newMsg] };
+  });
+
+  // ✅ ADDED: move this chat to top
+  setChatList(prev => {
+    const chat = prev.find(c => String(c._id) === String(msg.chatId));
+    if (!chat) return prev;
+    return [
+      { ...chat, updatedAt: new Date().toISOString() },
+      ...prev.filter(c => String(c._id) !== String(msg.chatId)),
+    ];
+  });
+};
 
   // ✅ TYPING INDICATOR
   const handleUserTyping = ({ chatId: tChatId }) => {
@@ -753,19 +743,24 @@ useEffect(() => {
     ).slice(0, 5);
   }, [search, contacts, showContacts]);
 
-  const filteredChats = useMemo(() => {
-    if (!Array.isArray(chatList)) return [];
-    return chatList
-      .filter((c) => c.status === activeTab)
-      .filter((c) => {
-        const v = search.toLowerCase();
-        return (
-          (c.name || "").toLowerCase().includes(v) ||
-          (c.phone || "").toLowerCase().includes(v) ||
-          (c.email || "").toLowerCase().includes(v)
-        );
-      });
-  }, [activeTab, chatList, search]);
+  // Find your filteredChats useMemo and change the filter:
+const filteredChats = useMemo(() => {
+  if (!Array.isArray(chatList)) return [];
+  return chatList
+    .filter((c) => {
+      // ✅ FIX: treat missing/undefined status as "active"
+      const chatStatus = c.status || "active";
+      return chatStatus === activeTab;
+    })
+    .filter((c) => {
+      const v = search.toLowerCase();
+      return (
+        (c.name || "").toLowerCase().includes(v) ||
+        (c.phone || "").toLowerCase().includes(v) ||
+        (c.email || "").toLowerCase().includes(v)
+      );
+    });
+}, [activeTab, chatList, search]);
 
   useLayoutEffect(() => {
     if (isLoading) return;
@@ -781,18 +776,19 @@ useEffect(() => {
   // ── 6. Handlers ───────────────────────────────
   const getTimeNow = () =>
     new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-
-  const handleSelectChat = (chat) => {
-    setSelectedChat(chat);
-    if (isMobile) setMobileChatOpen(true);
-     window.dispatchEvent(new CustomEvent("detailViewOpen"));
-    setShowEmojiPicker(false);
-    setAttachmentMenuOpen(false);
-    setPendingAttachment(null);
-    setChatList((prev) =>
-      prev.map((item) => item._id === chat._id ? { ...item, unread: 0 } : item)
-    );
-  };
+const handleSelectChat = (chat) => {
+  setSelectedChat(chat);
+  setShowEmojiPicker(false);
+  setAttachmentMenuOpen(false);
+  setPendingAttachment(null);
+  setChatList((prev) =>
+    prev.map((item) => item._id === chat._id ? { ...item, unread: 0 } : item)
+  );
+  if (isMobile) {
+    setMobileChatOpen(true);
+    window.dispatchEvent(new Event("detailViewOpen")); // ✅ ADD THIS
+  }
+};
 
 const handleDeleteChat = async (chatId) => {
   if (!confirm("Delete this chat for yourself? The other person will still see it.")) return;
@@ -946,26 +942,51 @@ const deleteForEveryone = async () => {
   };
 
   const startChatWithContact = async (contact) => {
-    const user = JSON.parse(localStorage.getItem("user"));
-    if (!contact.mobile) return;
-    try {
-      const res = await API.post("/chats", {
-        senderPhone: user.phone,
-        receiverPhone: contact.mobile,
-      });
-      const chat = res.data;
-      if (!chat._id) throw new Error("Chat creation failed");
-      getSocket().emit("joinChat", chat._id); // ✅
-      setChatList(prev => (Array.isArray(prev) ? [chat, ...prev] : [chat]));
-      setSelectedChat(chat);
-      setShowContacts(false);
-      if (isMobile) setMobileChatOpen(true);
-      setSearch("");
-    } catch (err) {
-      console.error(err);
-      alert("Could not create chat with this contact.");
+  const user = JSON.parse(localStorage.getItem("user"));
+  if (!contact.mobile) return;
+  try {
+    const res = await API.post("/chats", {
+      senderPhone: user.phone,
+      receiverPhone: contact.mobile,
+    });
+    
+    // ✅ FIX: normalize the chat — backend may return different shape
+    const rawChat = res.data;
+    const chat = {
+      ...rawChat,
+      name: rawChat.name || contact.name || rawChat.groupName || contact.mobile,
+      phone: rawChat.phone || contact.mobile,
+      status: rawChat.status || "active", // ✅ ensure status exists
+    };
+    
+    if (!chat._id) throw new Error("Chat creation failed");
+    
+    getSocket().emit("joinChat", chat._id);
+    
+    // ✅ FIX: don't add duplicate, just update if exists
+    setChatList(prev => {
+      if (!Array.isArray(prev)) return [chat];
+      const exists = prev.find(c => c._id === chat._id);
+      if (exists) {
+        // update name in case it was missing before
+        return prev.map(c => c._id === chat._id ? { ...c, name: chat.name, phone: chat.phone } : c);
+      }
+      return [chat, ...prev];
+    });
+    
+    setSelectedChat(chat);
+    setShowContacts(false);
+    setSearch("");
+    
+    if (isMobile) {
+      setMobileChatOpen(true);
+      window.dispatchEvent(new Event("detailViewOpen"));
     }
-  };
+  } catch (err) {
+    console.error(err);
+    alert("Could not create chat with this contact.");
+  }
+};
 
   const deleteContact = async (contactId, contactName) => {
     if (!confirm(`Delete "${contactName}" from contacts?`)) return;
@@ -983,6 +1004,10 @@ const deleteForEveryone = async () => {
   };
 
   const createGroup = async () => {
+    if (isMobile) {
+  setMobileChatOpen(true);
+  window.dispatchEvent(new Event("detailViewOpen")); // ✅ ADD THIS
+}
     if (!groupName.trim() || selectedContactsForGroup.length === 0) {
       alert("Please enter a group name and select at least one contact");
       return;
@@ -1017,45 +1042,55 @@ const deleteForEveryone = async () => {
   };
 
   const handleSearchUser = async () => {
-    const user = JSON.parse(localStorage.getItem("user"));
-    if (!search.trim()) return;
+  const user = JSON.parse(localStorage.getItem("user"));
+  if (!search.trim()) return;
 
-    let receiverPhone = search.trim();
-    const matchedContact = contacts.find(
-      (c) =>
-        c.name?.toLowerCase() === search.trim().toLowerCase() ||
-        c.mobile === search.trim()
-    );
-    if (matchedContact) {
-      receiverPhone = matchedContact.mobile;
-    }
+  let receiverPhone = search.trim();
+  const matchedContact = contacts.find(
+    (c) =>
+      c.name?.toLowerCase() === search.trim().toLowerCase() ||
+      c.mobile === search.trim()
+  );
+  if (matchedContact) receiverPhone = matchedContact.mobile;
 
-    if (!/^[0-9+\-\s()]+$/.test(receiverPhone)) {
-      alert("Please enter a valid phone number or contact name");
-      return;
-    }
+  if (!/^[0-9+\-\s()]+$/.test(receiverPhone)) {
+    alert("Please enter a valid phone number or contact name");
+    return;
+  }
 
-    try {
-      const res = await API.post("/chats", {
-        senderPhone: user.phone,
-        receiverPhone: receiverPhone,
-      });
-      const chat = res.data;
-      if (!chat._id) throw new Error("Chat creation failed");
-      getSocket().emit("joinChat", chat._id); // ✅
+  try {
+    const res = await API.post("/chats", {
+      senderPhone: user.phone,
+      receiverPhone,
+    });
+    
+    const rawChat = res.data;
+    // ✅ FIX: normalize name + status
+    const chat = {
+      ...rawChat,
+      name: rawChat.name || matchedContact?.name || receiverPhone,
+      phone: rawChat.phone || receiverPhone,
+      status: rawChat.status || "active",
+    };
+    
+    if (!chat._id) throw new Error("Chat creation failed");
+    getSocket().emit("joinChat", chat._id);
 
-      setChatList((prev) => {
-        if (!Array.isArray(prev)) return [chat];
-        const exists = prev.find((c) => c._id === chat._id);
-        return exists ? prev : [chat, ...prev];
-      });
-      setSelectedChat(chat);
-      setSearch("");
-    } catch (err) {
-      console.error(err);
-      alert("User not found or error creating chat. Make sure the phone number exists.");
-    }
-  };
+    setChatList((prev) => {
+      if (!Array.isArray(prev)) return [chat];
+      const exists = prev.find((c) => c._id === chat._id);
+      // ✅ FIX: if exists, update it; don't add duplicate
+      if (exists) return prev.map(c => c._id === chat._id ? { ...c, name: chat.name } : c);
+      return [chat, ...prev];
+    });
+    
+    setSelectedChat(chat);
+    setSearch("");
+  } catch (err) {
+    console.error(err);
+    alert("User not found or error creating chat.");
+  }
+};
 
   const uploadFile = async (file) => {
     const formData = new FormData();
@@ -1068,83 +1103,93 @@ const deleteForEveryone = async () => {
   };
 
   const handleSend = async () => {
-    if (!selectedChat || (!input.trim() && !pendingAttachment)) return;
-    const chatId = selectedChat._id;
-    const user = JSON.parse(localStorage.getItem("user"));
+  if (!selectedChat || (!input.trim() && !pendingAttachment)) return;
+  const chatId = selectedChat._id;
+  const user = JSON.parse(localStorage.getItem("user"));
 
-    const sendMessage = async (textToSend, attachmentData = null) => {
-      let messageData = {
-        chatId,
-        sender: user.phone,
-        text: textToSend || "",
-        messageType: "text",
-      };
-      if (attachmentData) {
-        messageData = {
-          ...messageData,
-          messageType: attachmentData.messageType,
-          fileUrl: attachmentData.fileUrl,
-          fileName: attachmentData.fileName,
-          fileSize: attachmentData.fileSize,
-          text: "",
-        };
-      }
-      await API.post("/messages", messageData).catch(console.error);
+  const sendMessage = async (textToSend, attachmentData = null) => {
+    let messageData = {
+      chatId,
+      sender: user.phone,
+      text: textToSend || "",
+      messageType: "text",
     };
-
-    if (pendingAttachment) {
-      const pa = pendingAttachment;
-      setPendingAttachment(null);
-      if (pa.url && pa.url.startsWith("blob:")) {
-        try {
-          const blob = await fetch(pa.url).then(r => r.blob());
-          const file = new File([blob], pa.fileName, { type: blob.type });
-          const uploadData = await uploadFile(file);
-          await sendMessage("", {
-            messageType: uploadData.messageType,
-            fileUrl: uploadData.fileUrl,
-            fileName: uploadData.fileName,
-            fileSize: uploadData.fileSize,
-          });
-        } catch (err) {
-          console.error("Upload failed", err);
-          alert("Failed to upload file");
-        }
-      } else {
-        await sendMessage("", {
-          messageType: pa.kind,
-          fileUrl: pa.url,
-          fileName: pa.fileName,
-          fileSize: pa.fileSize,
-        });
-      }
+    if (attachmentData) {
+      messageData = {
+        ...messageData,
+        messageType: attachmentData.messageType,
+        fileUrl: attachmentData.fileUrl,
+        fileName: attachmentData.fileName,
+        fileSize: attachmentData.fileSize,
+        text: "",
+      };
     }
-
-    if (input.trim()) {
-      const text = input.trim();
-      setInput("");
-      setMessages(prev => ({
-        ...prev,
-        [chatId]: [
-          ...(prev[chatId] || []),
-          {
-            id: `tmp-${Date.now()}`,
-            type: "sent",
-            messageType: "text",
-            text,
-            time: getTimeNow(),
-            createdAt: new Date().toISOString(),
-            delivered: false,
-            seen: false,
-          },
-        ],
-      }));
-      await sendMessage(text);
-    }
-
-    setShowEmojiPicker(false);
-    setAttachmentMenuOpen(false);
+    await API.post("/messages", messageData).catch(console.error);
   };
+
+  if (pendingAttachment) {
+    const pa = pendingAttachment;
+    setPendingAttachment(null);
+    if (pa.url && pa.url.startsWith("blob:")) {
+      try {
+        const blob = await fetch(pa.url).then(r => r.blob());
+        const file = new File([blob], pa.fileName, { type: blob.type });
+        const uploadData = await uploadFile(file);
+        await sendMessage("", {
+          messageType: uploadData.messageType,
+          fileUrl: uploadData.fileUrl,
+          fileName: uploadData.fileName,
+          fileSize: uploadData.fileSize,
+        });
+      } catch (err) {
+        console.error("Upload failed", err);
+        alert("Failed to upload file");
+      }
+    } else {
+      await sendMessage("", {
+        messageType: pa.kind,
+        fileUrl: pa.url,
+        fileName: pa.fileName,
+        fileSize: pa.fileSize,
+      });
+    }
+  }
+
+  if (input.trim()) {
+    const text = input.trim();
+    setInput("");
+    setMessages(prev => ({
+      ...prev,
+      [chatId]: [
+        ...(prev[chatId] || []),
+        {
+          id: `tmp-${Date.now()}`,
+          type: "sent",
+          messageType: "text",
+          text,
+          time: getTimeNow(),
+          createdAt: new Date().toISOString(),
+          delivered: false,
+          seen: false,
+        },
+      ],
+    }));
+    await sendMessage(text);
+  }
+
+  setShowEmojiPicker(false);
+  setAttachmentMenuOpen(false);
+
+  // ✅ ADDED: move this chat to top after sending
+  setChatList(prev => {
+    const chat = prev.find(c => String(c._id) === String(chatId));
+    if (!chat) return prev;
+    return [
+      { ...chat, updatedAt: new Date().toISOString() },
+      ...prev.filter(c => String(c._id) !== String(chatId)),
+    ];
+  });
+};
 
   const sendTemplate = async (template) => {
     const user = JSON.parse(localStorage.getItem("user"));
@@ -1257,14 +1302,18 @@ const deleteForEveryone = async () => {
   };
 
   const handleAttachmentAction = (type) => {
-
-    if (type === "photos") {
-      fileInputRef.current?.click(); // ✅ video + image dono
-    }
-
-    if (type === "document") { fileInputRef.current?.click(); return; }
+  if (type === "photos") {
+    fileInputRef.current?.click();
     setAttachmentMenuOpen(false);
-  };
+    return;
+  }
+  if (type === "document") {
+    documentInputRef.current?.click();
+    setAttachmentMenuOpen(false);
+    return;
+  }
+  setAttachmentMenuOpen(false);
+};
 
   const handleInputChange = (e) => {
     setInput(e.target.value);
@@ -1374,22 +1423,43 @@ const deleteForEveryone = async () => {
             to   { opacity: 1; transform: translateY(0)  scale(1); }
           }
           @media (max-width: 820px) {
-            .sticky-chat-shell { top: 60px; left: 0; }
-            .attach-sheet { width: 220px; }
-            .emoji-panel  { width: 250px; }
-          }
+  .sticky-chat-shell { top: 60px; left: 0; bottom: 62px; }
+  .attach-sheet { width: 220px; }
+  .emoji-panel  { width: 250px; }
+  
+  /* Smaller fonts in chat on mobile */
+  .msg-enter .bubble-text { font-size: 0.82rem !important; }
+  .chat-item { font-size: 0.88rem !important; }
+}
+            @media (max-width: 820px) {
+  .sticky-chat-shell.chat-active {
+    top: 0;         /* topbar is gone */
+    bottom: 0;      /* bottom tabs are also hidden when chat open */
+  }
+}
         `}</style>
       <style>{shimmerCSS}</style>
 
-      <div ref={pageRef} className="sticky-chat-shell" style={{ padding: "0 10px" }}>
+      <div
+  ref={pageRef}
+  className={`sticky-chat-shell${isMobile && mobileChatOpen ? " chat-active" : ""}`}
+  style={{ padding: "0 10px" }}
+>
         <input ref={imageInputRef} type="file" accept="image/*" hidden onChange={handleImagePick} />
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="video/*,image/*"  // 🔥 yeh add karna hai
-          hidden
-          onChange={handleFilePick}
-        />
+<input
+  ref={fileInputRef}
+  type="file"
+  accept="video/*,image/*"
+  hidden
+  onChange={handleFilePick}
+/>
+<input
+  ref={documentInputRef}
+  type="file"
+  accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.ppt,.pptx"
+  hidden
+  onChange={handleFilePick}
+/>
 
         <div style={{ display: "flex", width: "100%", height: "100%" }}>
           {isLoading ? (
@@ -1579,16 +1649,18 @@ const deleteForEveryone = async () => {
                       <div className="d-flex align-items-center justify-content-between px-3 border-bottom flex-shrink-0" style={{ height: 59, background: "#f0f2f5" }}>
                         <div className="d-flex align-items-center gap-3 overflow-hidden">
                           {isMobile && (
-                            <button type="button" className="btn btn-sm border-0 shadow-none p-1" onClick={() => {
+                            <button type="button" className="btn btn-sm border-0 shadow-none p-1" // Find the back button in the center panel header and update onClick:
+onClick={() => {
   setMobileChatOpen(false);
-  window.dispatchEvent(new CustomEvent("detailViewClose")); // ← add this
-}} style={{ color: "#54656f" }}>
+  setSelectedChat(null);
+  window.dispatchEvent(new Event("detailViewClose")); // ✅ ADD THIS
+}}style={{ color: "#54656f" }}>
                               <FiArrowLeft size={20} />
                             </button>
                           )}
                           <div
                             className="d-flex align-items-center gap-3 overflow-hidden"
-                            onClick={() => !isMobile && setShowContactInfo(p => !p)}
+                            onClick={() => isMobile ? setShowMobileContactInfo(true) : setShowContactInfo(p => !p)}
                             style={{ cursor: isMobile ? "default" : "pointer", minWidth: 0 }}
                           >
                             <div className="rounded-circle d-flex align-items-center justify-content-center fw-bold flex-shrink-0" style={{ width: 40, height: 40, background: "#dfe5e7", color: "#54656f" }}>
@@ -1605,7 +1677,7 @@ const deleteForEveryone = async () => {
                           <HeaderIcon icon={<FiPhone size={18} />} />
                           <button
                             type="button"
-                            onClick={() => setShowContactInfo(p => !p)}
+                            onClick={() => isMobile ? setShowMobileContactInfo(true) : setShowContactInfo(p => !p)}
                             className="icon-btn btn border-0 rounded-circle d-flex align-items-center justify-content-center"
                             style={{
                               width: 38,
@@ -1768,29 +1840,54 @@ const deleteForEveryone = async () => {
                                     </motion.button>
                                   );
                                 })}
+                                {/* Emoji section inside + menu — mobile only */}
+{isMobile && (
+  <div style={{ padding: "8px 4px 4px" }}>
+    <div style={{ fontSize: "0.75rem", color: "#9ca3af", fontWeight: 600, marginBottom: 6, paddingLeft: 8 }}>EMOJI</div>
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 4, padding: "0 4px" }}>
+      {emojiList.map((emoji) => (
+        <button
+          key={emoji}
+          type="button"
+          onClick={() => { setInput((p) => p + emoji); setAttachmentMenuOpen(false); }}
+          style={{
+            width: 36, height: 36, border: "none",
+            background: "transparent", borderRadius: 8,
+            fontSize: "1.1rem", cursor: "pointer",
+          }}
+        >
+          {emoji}
+        </button>
+      ))}
+    </div>
+  </div>
+)}
                               </motion.div>
                             )}
                           </AnimatePresence>
                         </div>
 
-                        <div ref={emojiWrapRef} className="position-relative">
-                          <motion.button type="button" onClick={() => { setShowEmojiPicker((p) => !p); setAttachmentMenuOpen(false); }} className={`composer-action-btn ${showEmojiPicker ? "active" : ""}`} whileTap={{ scale: 0.9 }}>
-                            <motion.div animate={{ rotate: showEmojiPicker ? -8 : 0, scale: showEmojiPicker ? 1.05 : 1 }} transition={{ duration: 0.18, ease: "easeOut" }}><FiSmile size={21} /></motion.div>
-                          </motion.button>
-                          <AnimatePresence>
-                            {showEmojiPicker && (
-                              <motion.div variants={popupVariants} initial="hidden" animate="visible" exit="exit" className="emoji-panel">
-                                <div className="row g-2">
-                                  {emojiList.map((emoji, index) => (
-                                    <div className="col-2" key={emoji}>
-                                      <motion.button type="button" onClick={() => setInput((p) => p + emoji)} className="emoji-chip" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.16, delay: index * 0.008 }} whileTap={{ scale: 0.9 }}>{emoji}</motion.button>
-                                    </div>
-                                  ))}
-                                </div>
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                        </div>
+                        {/* Emoji button — desktop only */}
+{!isMobile && (
+  <div ref={emojiWrapRef} className="position-relative">
+    <motion.button type="button" onClick={() => { setShowEmojiPicker((p) => !p); setAttachmentMenuOpen(false); }} className={`composer-action-btn ${showEmojiPicker ? "active" : ""}`} whileTap={{ scale: 0.9 }}>
+      <motion.div animate={{ rotate: showEmojiPicker ? -8 : 0, scale: showEmojiPicker ? 1.05 : 1 }} transition={{ duration: 0.18, ease: "easeOut" }}><FiSmile size={21} /></motion.div>
+    </motion.button>
+    <AnimatePresence>
+      {showEmojiPicker && (
+        <motion.div variants={popupVariants} initial="hidden" animate="visible" exit="exit" className="emoji-panel">
+          <div className="row g-2">
+            {emojiList.map((emoji, index) => (
+              <div className="col-2" key={emoji}>
+                <motion.button type="button" onClick={() => setInput((p) => p + emoji)} className="emoji-chip" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.16, delay: index * 0.008 }} whileTap={{ scale: 0.9 }}>{emoji}</motion.button>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  </div>
+)}
 
                         <input type="text" value={input} onChange={handleInputChange} onKeyDown={(e) => e.key === "Enter" && handleSend()} placeholder="Type a message" className="form-control border-0 shadow-none" style={{ height: 42, borderRadius: 24, background: "#ffffff", paddingLeft: 16, paddingRight: 16 }} />
                         <button
@@ -1808,6 +1905,95 @@ const deleteForEveryone = async () => {
                         </button>
                         <button type="button" onClick={handleSend} className="send-btn btn border-0 rounded-circle d-flex align-items-center justify-content-center" style={{ width: 42, height: 42, background: "#00a884", color: "#ffffff", flexShrink: 0 }}><FiSend size={18} /></button>
                       </div>
+
+                      {/* Mobile Contact Info Bottom Sheet */}
+{isMobile && showMobileContactInfo && (
+  <div
+    onClick={() => setShowMobileContactInfo(false)}
+    style={{
+      position: "fixed", inset: 0,
+      background: "rgba(0,0,0,0.45)",
+      zIndex: 2000,
+      display: "flex",
+      alignItems: "flex-end",
+    }}
+  >
+    <div
+      onClick={e => e.stopPropagation()}
+      style={{
+        background: "#fff",
+        borderRadius: "16px 16px 0 0",
+        width: "100%",
+        maxHeight: "85vh",
+        overflowY: "auto",
+        paddingBottom: 24,
+      }}
+    >
+      {/* Handle bar */}
+      <div style={{ display: "flex", justifyContent: "center", padding: "12px 0 4px" }}>
+        <div style={{ width: 40, height: 4, borderRadius: 2, background: "#dfe5e7" }} />
+      </div>
+
+      {/* Header */}
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "8px 16px 12px", borderBottom: "1px solid #f0f2f5",
+      }}>
+        <span style={{ fontWeight: 600, fontSize: "1rem", color: "#111b21" }}>
+          {selectedChat?.isGroup ? "Group Info" : "Contact Info"}
+        </span>
+        <button
+          onClick={() => setShowMobileContactInfo(false)}
+          style={{ background: "none", border: "none", cursor: "pointer", color: "#54656f" }}
+        >
+          <FiX size={20} />
+        </button>
+      </div>
+
+      {/* Avatar + name */}
+      <div style={{ textAlign: "center", padding: "24px 16px 16px", borderBottom: "8px solid #f0f2f5" }}>
+        <div style={{
+          width: 80, height: 80, borderRadius: "50%",
+          background: "#dfe5e7", color: "#54656f",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: "1.8rem", fontWeight: 700, margin: "0 auto 12px",
+        }}>
+          {selectedChat?.name?.charAt(0) || "U"}
+        </div>
+        <div style={{ fontSize: "1.08rem", fontWeight: 500, color: "#111b21" }}>
+          {selectedChat?.name}
+        </div>
+        {!selectedChat?.isGroup && (
+          <div style={{ fontSize: "0.84rem", color: "#667781", marginTop: 4 }}>
+            {selectedChat?.phone}
+          </div>
+        )}
+      </div>
+
+      {/* Info sections */}
+      <div style={{ padding: "0 0 8px" }}>
+        {selectedChat?.isGroup ? (
+          <DetailCard icon={<FiUsers size={16} />} title="Members"
+            customContent={<div>{selectedChat.participants?.join(", ")}</div>} />
+        ) : (
+          <>
+            <DetailCard icon={<FiInfo size={16} />} title="Basic Info"
+              items={[
+                { label: "Phone", value: selectedChat?.phone },
+                { label: "Email", value: selectedChat?.email },
+                { label: "City", value: selectedChat?.city },
+                { label: "Status", value: selectedChat?.lastSeen },
+              ]} />
+            <DetailCard icon={<FiTag size={16} />} title="Lead Tag"
+              items={[{ label: "Tag", value: tags.find(t => t._id === selectedChat?.tag)?.name || selectedChat?.tag || "No tag" }]} />
+            <DetailCard icon={<FiMessageSquare size={16} />} title="Notes"
+              customContent={<div style={{ fontSize: "0.9rem", color: "#3b4a54", lineHeight: 1.6 }}>{selectedChat?.notes}</div>} />
+          </>
+        )}
+      </div>
+    </div>
+  </div>
+)}
                     </>
                   )}
                 </div>
@@ -2139,16 +2325,16 @@ const deleteForEveryone = async () => {
           onClick={() => setShowTemplateModal(false)}
         >
           <div
-            style={{
-              background: "#fff",
-              borderRadius: 12,
-              width: "400px",
-              maxHeight: "70vh",
-              overflowY: "auto",
-              padding: 16,
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
+  style={{
+    background: "#fff",
+    borderRadius: 12,
+    width: isMobile ? "70vw" : "400px",
+    maxHeight: "70vh",
+    overflowY: "auto",
+    padding: 16,
+  }}
+  onClick={(e) => e.stopPropagation()}
+>
             <h5>Select Template</h5>
 
             {templates.length === 0 ? (
@@ -2203,6 +2389,14 @@ function MessageBubble({
   const bubbleRef = useRef(null);
   const [previewMedia, setPreviewMedia] = useState(null);
   const [copiedIndex, setCopiedIndex] = useState(null);
+
+  const [isMobileView, setIsMobileView] = useState(false);
+useEffect(() => {
+  const check = () => setIsMobileView(window.innerWidth <= 820);
+  check();
+  window.addEventListener("resize", check);
+  return () => window.removeEventListener("resize", check);
+}, []); 
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -2805,10 +2999,10 @@ function MessageBubble({
 
     // ─── TEXT MESSAGE ──────────────────────────────────────────
     return (
-      <div style={{ fontSize: "0.9rem", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
-        {msg.text}
-      </div>
-    );
+  <div style={{ fontSize: isMine ? (window.innerWidth <= 820 ? "0.82rem" : "0.9rem") : (window.innerWidth <= 820 ? "0.82rem" : "0.9rem"), lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
+    {msg.text}
+  </div>
+);
   };
 
   return (

@@ -21,6 +21,7 @@ import {
   Plus,
   X,
   Save,
+  Repeat,
 } from "lucide-react";
 import API from "../utils/api";
 
@@ -83,8 +84,8 @@ const pageStyles = {
     margin: 0,
   },
   launchBtn: {
-    minWidth: "190px",
-    height: "46px",
+    minWidth: "160px",
+    height: "42px",
     border: "none",
     borderRadius: "999px",
     color: "#fff",
@@ -131,8 +132,8 @@ const pageStyles = {
     cursor: "pointer",
   },
   filterPill: {
-    height: "38px",
-    padding: "0 16px",
+    height: "36px",
+    padding: "0 14px",
     borderRadius: "999px",
     border: "1px solid #dbe3eb",
     background: "#fff",
@@ -140,6 +141,7 @@ const pageStyles = {
     fontSize: "12px",
     fontWeight: 700,
     cursor: "pointer",
+    whiteSpace: "nowrap",
   },
   filterPillActive: {
     color: "#fff",
@@ -148,242 +150,106 @@ const pageStyles = {
       "linear-gradient(135deg, #0f5f64 0%, #14808a 60%, #22c55e 100%)",
     boxShadow: "0 10px 20px rgba(15,95,100,0.16)",
   },
-  tableWrap: {
-    background: "rgba(255,255,255,0.96)",
-    border: "1px solid rgba(15,23,42,0.05)",
-    boxShadow: "0 16px 40px rgba(15,23,42,0.08)",
-    borderRadius: "24px",
-    overflow: "hidden",
-  },
-  tableHeader: {
-    background: "linear-gradient(180deg, #fbfdff 0%, #f8fafc 100%)",
-    borderBottom: "1px solid #e5e7eb",
-    fontSize: "12px",
-    fontWeight: 800,
-    color: "#64748b",
-    letterSpacing: "0.02em",
-    textTransform: "uppercase",
-  },
-  row: {
-    borderBottom: "1px solid #eef2f7",
-    transition: "0.2s ease",
-  },
-  badgeBase: {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: "28px",
-    padding: "6px 12px",
-    borderRadius: "999px",
-    fontSize: "11px",
-    fontWeight: 800,
-    border: "1px solid transparent",
-  },
-  metricChip: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "6px",
-    padding: "6px 10px",
-    borderRadius: "999px",
-    background: "#f8fafc",
-    border: "1px solid #e5e7eb",
-    fontSize: "11px",
-    fontWeight: 700,
-    color: "#475569",
-  },
-  actionBtn: {
-    background: "transparent",
-    border: "none",
-    borderRadius: "8px",
-    padding: "6px",
-    cursor: "pointer",
-    color: "#64748b",
-    transition: "all 0.2s",
-  },
-  approvalBadge: {
-    background: "#fef3c7",
-    color: "#92400e",
-    borderRadius: "6px",
-    padding: "2px 8px",
-    fontSize: "11px",
-    fontWeight: 700,
-  },
-  rejectedBadge: {
-    background: "#fee2e2",
-    color: "#991b1b",
-    borderRadius: "6px",
-    padding: "2px 8px",
-    fontSize: "11px",
-    fontWeight: 700,
-  },
-  modalOverlay: {
-    position: "fixed",
-    inset: 0,
-    zIndex: 1000,
-    background: "rgba(15,23,42,0.55)",
-    backdropFilter: "blur(4px)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 16,
-  },
-  modalContent: {
-    background: "#fff",
-    borderRadius: 24,
-    width: 700,
-    maxWidth: "90vw",
-    maxHeight: "90vh",
-    overflowY: "auto",
-    padding: 24,
-    boxShadow: "0 24px 60px rgba(15,23,42,0.18)",
-  },
-  modalHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 800,
-    color: "#0f172a",
-    margin: 0,
-  },
-  closeBtn: {
-    border: "1px solid #e2e8f0",
-    borderRadius: 10,
-    width: 36,
-    height: 36,
-    background: "#f8fafc",
-    cursor: "pointer",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  formControl: {
-    width: "100%",
-    padding: "10px 14px",
-    borderRadius: 12,
-    border: "1px solid #dbe5ee",
-    fontSize: 14,
-  },
-  warningBox: {
-    background: "#fef3c7",
-    border: "1px solid #fcd34d",
-    borderRadius: 8,
-    padding: "10px 14px",
-    marginBottom: 16,
-    fontSize: 13,
-    color: "#92400e",
-  },
-  label: {
-    fontSize: 12,
-    fontWeight: 700,
-    color: "#0f172a",
-    marginBottom: 6,
-    display: "block",
-  },
-  textarea: {
-    width: "100%",
-    padding: "10px 14px",
-    borderRadius: 12,
-    border: "1px solid #dbe5ee",
-    fontSize: 14,
-    resize: "vertical",
-  },
-  checkboxGroup: {
-    maxHeight: 150,
-    overflowY: "auto",
-    border: "1px solid #dbe5ee",
-    borderRadius: 12,
-    padding: "10px 14px",
-    display: "flex",
-    flexDirection: "column",
-    gap: 8,
-  },
 };
 
-/* ---------- helpers ---------- */
-function getStatusStyle(status) {
-  const s = status?.toLowerCase() || "";
-  if (s === "running" || s === "active") {
-    return {
-      background: "rgba(34,197,94,0.12)",
-      color: "#16a34a",
-      borderColor: "rgba(34,197,94,0.18)",
-    };
-  }
-  if (s === "scheduled") {
-    return {
-      background: "rgba(245,158,11,0.12)",
-      color: "#d97706",
-      borderColor: "rgba(245,158,11,0.18)",
-    };
-  }
-  if (s === "paused") {
-    return {
-      background: "rgba(148,163,184,0.14)",
-      color: "#64748b",
-      borderColor: "rgba(148,163,184,0.18)",
-    };
-  }
-  if (s === "draft") {
-    return {
-      background: "rgba(148,163,184,0.14)",
-      color: "#64748b",
-      borderColor: "rgba(148,163,184,0.18)",
-    };
-  }
-  return {
-    background: "rgba(15,23,42,0.08)",
-    color: "#334155",
-    borderColor: "rgba(15,23,42,0.12)",
-  };
+/* ---------- Helpers ---------- */
+
+// Normalize any ID to string (handles ObjectId objects or plain strings)
+const toStr = (id) => {
+  if (!id) return "";
+  if (typeof id === "object") return (id._id || id).toString();
+  return id.toString();
+};
+
+function formatDateTime(dateStr) {
+  if (!dateStr) return { date: "—", time: "" };
+  const d = new Date(dateStr);
+  if (isNaN(d)) return { date: "—", time: "" };
+  const date = d.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    timeZone: "Asia/Kolkata",
+  });
+  const time = d.toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: "Asia/Kolkata",
+  });
+  return { date, time };
 }
 
-function getTypeStyle(type) {
-  if (type === "Broadcast") {
-    return {
-      background: "rgba(239,68,68,0.1)",
-      color: "#dc2626",
-      borderColor: "rgba(239,68,68,0.14)",
-    };
+function getAudienceLabel(campaign) {
+  const type = campaign.audienceType;
+  if (type === "tags") {
+    const count = campaign.tagIds?.length || 0;
+    return { icon: "🏷️", label: `${count} tag${count !== 1 ? "s" : ""}`, color: "#7c3aed", bg: "#ede9fe" };
   }
-  if (type === "API") {
-    return {
-      background: "rgba(59,130,246,0.1)",
-      color: "#2563eb",
-      borderColor: "rgba(59,130,246,0.14)",
-    };
+  if (type === "contact") {
+    const count = campaign.contactIds?.length || 0;
+    return { icon: "👤", label: `${count} contact${count !== 1 ? "s" : ""}`, color: "#0369a1", bg: "#e0f2fe" };
   }
-  if (type === "Scheduled") {
-    return {
-      background: "rgba(245,158,11,0.12)",
-      color: "#d97706",
-      borderColor: "rgba(245,158,11,0.16)",
-    };
+  if (type === "group") {
+    const count = campaign.groupIds?.length || 0;
+    return { icon: "👥", label: `${count} group${count !== 1 ? "s" : ""}`, color: "#0f766e", bg: "#ccfbf1" };
   }
-  return {
-    background: "rgba(100,116,139,0.1)",
-    color: "#475569",
-    borderColor: "rgba(100,116,139,0.14)",
-  };
+  if (type === "manual") {
+    const count = campaign.manualNumbers?.length || 0;
+    return { icon: "📱", label: `${count} number${count !== 1 ? "s" : ""}`, color: "#b45309", bg: "#fef3c7" };
+  }
+  return { icon: "—", label: "Unknown", color: "#64748b", bg: "#f1f5f9" };
+}
+
+function getRecurrenceLabel(recurrence) {
+  if (!recurrence || recurrence.type === "one-time") return null;
+  const map = { daily: "Daily", weekly: "Weekly", monthly: "Monthly", hourly: "Hourly" };
+  const label = map[recurrence.type] || recurrence.type;
+  const interval = recurrence.interval > 1 ? ` ×${recurrence.interval}` : "";
+  return label + interval;
+}
+
+function statusStyle(status) {
+  const s = (status || "").toLowerCase();
+  if (s === "scheduled") return { bg: "#fef3c7", color: "#92400e", dot: "#f59e0b" };
+  if (s === "sent")      return { bg: "#dcfce7", color: "#166534", dot: "#22c55e" };
+  if (s === "paused")    return { bg: "#f1f5f9", color: "#475569", dot: "#94a3b8" };
+  if (s === "draft")     return { bg: "#f8fafc", color: "#64748b", dot: "#cbd5e1" };
+  if (s === "cancelled") return { bg: "#fee2e2", color: "#991b1b", dot: "#ef4444" };
+  if (s === "failed")    return { bg: "#fee2e2", color: "#991b1b", dot: "#ef4444" };
+  if (s === "active" || s === "running") return { bg: "#dcfce7", color: "#166534", dot: "#22c55e" };
+  return { bg: "#f1f5f9", color: "#475569", dot: "#94a3b8" };
+}
+
+function ApprovalBadge({ status }) {
+  if (!status || status === "approved") {
+    return (
+      <span style={{ background: "#dcfce7", color: "#166534", borderRadius: 6, padding: "3px 8px", fontSize: 11, fontWeight: 700 }}>
+        ✓ Approved
+      </span>
+    );
+  }
+  if (status === "pending_approval") {
+    return (
+      <span style={{ background: "#fef3c7", color: "#92400e", borderRadius: 6, padding: "3px 8px", fontSize: 11, fontWeight: 700, whiteSpace: "nowrap" }}>
+        ⏳ Pending
+      </span>
+    );
+  }
+  if (status === "rejected") {
+    return (
+      <span style={{ background: "#fee2e2", color: "#991b1b", borderRadius: 6, padding: "3px 8px", fontSize: 11, fontWeight: 700, whiteSpace: "nowrap" }}>
+        ✕ Rejected
+      </span>
+    );
+  }
+  return null;
 }
 
 /* ---------- Skeleton components ---------- */
 function SkeletonLine({ width = "100%", height = 14, radius = 8 }) {
   return (
-    <div
-      style={{
-        width,
-        height,
-        borderRadius: radius,
-        background:
-          "linear-gradient(90deg, #eef2f7 0%, #f8fafc 50%, #eef2f7 100%)",
-        backgroundSize: "200% 100%",
-        animation: "pulse 1.2s ease-in-out infinite",
-      }}
-    />
+    <div style={{ width, height, borderRadius: radius, background: "linear-gradient(90deg, #eef2f7 0%, #f8fafc 50%, #eef2f7 100%)", backgroundSize: "200% 100%", animation: "pulse 1.2s ease-in-out infinite" }} />
   );
 }
 
@@ -393,9 +259,7 @@ function HeaderSkeleton() {
       <div className="d-flex flex-column flex-lg-row justify-content-between gap-3 align-items-start align-items-lg-center">
         <div className="w-100">
           <SkeletonLine width={180} height={24} radius={8} />
-          <div className="mt-2">
-            <SkeletonLine width={260} height={14} radius={6} />
-          </div>
+          <div className="mt-2"><SkeletonLine width={260} height={14} radius={6} /></div>
         </div>
         <SkeletonLine width={170} height={44} radius={999} />
       </div>
@@ -410,12 +274,8 @@ function StatsSkeleton() {
         <div key={item} className="col-6 col-xl-3">
           <div style={pageStyles.statCard}>
             <SkeletonLine width={90} height={13} />
-            <div className="mt-3">
-              <SkeletonLine width={70} height={24} />
-            </div>
-            <div className="mt-2">
-              <SkeletonLine width={120} height={12} />
-            </div>
+            <div className="mt-3"><SkeletonLine width={70} height={24} /></div>
+            <div className="mt-2"><SkeletonLine width={120} height={12} /></div>
           </div>
         </div>
       ))}
@@ -427,38 +287,12 @@ function SearchFilterSkeleton() {
   return (
     <div style={pageStyles.toolbarCard}>
       <div className="d-flex flex-column flex-lg-row gap-3 justify-content-between align-items-stretch align-items-lg-center">
-        <div
-          className="rounded-4"
-          style={{
-            width: "100%",
-            height: 46,
-            background:
-              "linear-gradient(90deg, #eef2f7 0%, #f8fafc 50%, #eef2f7 100%)",
-          }}
-        />
-        <div
-          className="rounded-pill"
-          style={{
-            width: 120,
-            height: 44,
-            background:
-              "linear-gradient(90deg, #eef2f7 0%, #f8fafc 50%, #eef2f7 100%)",
-          }}
-        />
+        <div className="rounded-4" style={{ width: "100%", height: 46, background: "linear-gradient(90deg, #eef2f7 0%, #f8fafc 50%, #eef2f7 100%)" }} />
+        <div className="rounded-pill" style={{ width: 120, height: 44, background: "linear-gradient(90deg, #eef2f7 0%, #f8fafc 50%, #eef2f7 100%)" }} />
       </div>
-
       <div className="d-flex flex-wrap gap-2 mt-3">
-        {[1, 2, 3, 4].map((item) => (
-          <div
-            key={item}
-            className="rounded-pill"
-            style={{
-              width: 98,
-              height: 38,
-              background:
-                "linear-gradient(90deg, #eef2f7 0%, #f8fafc 50%, #eef2f7 100%)",
-            }}
-          />
+        {[1, 2, 3, 4, 5].map((item) => (
+          <div key={item} className="rounded-pill" style={{ width: 90, height: 36, background: "linear-gradient(90deg, #eef2f7 0%, #f8fafc 50%, #eef2f7 100%)" }} />
         ))}
       </div>
     </div>
@@ -468,28 +302,11 @@ function SearchFilterSkeleton() {
 /* ---------- Stat Card ---------- */
 function StatCard({ icon: Icon, label, value, subtext }) {
   return (
-    <div style={pageStyles.statCard} className="stat-card-mobile">
-      <div style={pageStyles.statIcon} className="stat-icon-mobile">
-        <Icon size={18} />
-      </div>
-      <div style={{ fontSize: "12px", fontWeight: 700, color: "#64748b" }} className="stat-label-mobile">
-        {label}
-      </div>
-      <div
-        style={{
-          fontSize: "24px",
-          fontWeight: 800,
-          color: "#0f172a",
-          lineHeight: 1.2,
-          marginTop: "6px",
-        }}
-        className="stat-value-mobile"
-      >
-        {value}
-      </div>
-      <div style={{ fontSize: "12px", color: "#94a3b8", marginTop: "6px" }} className="stat-subtext-mobile">
-        {subtext}
-      </div>
+    <div style={pageStyles.statCard}>
+      <div style={pageStyles.statIcon}><Icon size={18} /></div>
+      <div style={{ fontSize: "11px", fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.04em" }}>{label}</div>
+      <div style={{ fontSize: "24px", fontWeight: 800, color: "#0f172a", lineHeight: 1.2, marginTop: "6px" }}>{value}</div>
+      <div style={{ fontSize: "11px", color: "#94a3b8", marginTop: "6px" }}>{subtext}</div>
     </div>
   );
 }
@@ -512,9 +329,7 @@ function PendingApprovalsPanel({ onApprove, onReject }) {
       setPending((prev) => prev.filter((c) => c._id !== id));
       onApprove(id);
       alert("✅ Campaign approved!");
-    } catch (err) {
-      alert("Failed to approve");
-    }
+    } catch (err) { alert("Failed to approve"); }
   };
 
   const handleReject = async (id) => {
@@ -523,177 +338,46 @@ function PendingApprovalsPanel({ onApprove, onReject }) {
       setPending((prev) => prev.filter((c) => c._id !== id));
       onReject(id);
       alert("❌ Campaign rejected.");
-    } catch (err) {
-      alert("Failed to reject");
-    }
+    } catch (err) { alert("Failed to reject"); }
   };
 
-  if (loading)
-    return (
-      <div style={{ textAlign: "center", padding: 40 }}>
-        Loading pending approvals...
-      </div>
-    );
+  if (loading) return <div style={{ textAlign: "center", padding: 40 }}>Loading pending approvals...</div>;
 
   return (
-    <div
-      style={{
-        background: "#fff",
-        borderRadius: 16,
-        boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-        overflow: "hidden",
-      }}
-    >
-      <div
-        style={{
-          padding: "16px 20px",
-          borderBottom: "1px solid #f1f5f9",
-          fontWeight: 800,
-          fontSize: 15,
-          color: "#0f172a",
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-        }}
-      >
+    <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 1px 4px rgba(0,0,0,0.06)", overflow: "hidden" }}>
+      <div style={{ padding: "16px 20px", borderBottom: "1px solid #f1f5f9", fontWeight: 800, fontSize: 15, color: "#0f172a", display: "flex", alignItems: "center", gap: 10 }}>
         <Bell size={18} color="#f59e0b" />
         Pending Campaign Approvals
-        <span
-          style={{
-            background: "#fee2e2",
-            color: "#991b1b",
-            borderRadius: 999,
-            padding: "2px 8px",
-            fontSize: 12,
-            fontWeight: 700,
-          }}
-        >
-          {pending.length}
-        </span>
+        <span style={{ background: "#fee2e2", color: "#991b1b", borderRadius: 999, padding: "2px 8px", fontSize: 12, fontWeight: 700 }}>{pending.length}</span>
       </div>
-
       {pending.length === 0 ? (
-        <div
-          style={{
-            textAlign: "center",
-            padding: "48px 20px",
-            color: "#9ca3af",
-            fontSize: 14,
-          }}
-        >
-          🎉 No pending approvals
-        </div>
+        <div style={{ textAlign: "center", padding: "48px 20px", color: "#9ca3af", fontSize: 14 }}>🎉 No pending approvals</div>
       ) : (
         <div style={{ overflowX: "auto" }}>
-          <table
-            style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}
-          >
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14, minWidth: 600 }}>
             <thead>
               <tr style={{ background: "#f9fafb" }}>
-                {[
-                  "Campaign Name",
-                  "Type",
-                  "Submitted By",
-                  "Role",
-                  "Date",
-                  "Actions",
-                ].map((h) => (
-                  <th
-                    key={h}
-                    style={{
-                      padding: "12px 16px",
-                      fontWeight: 700,
-                      fontSize: 12,
-                      color: "#0d9488",
-                      textAlign: "left",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {h}
-                  </th>
+                {["Campaign Name", "Submitted By", "Role", "Date", "Actions"].map((h) => (
+                  <th key={h} style={{ padding: "12px 16px", fontWeight: 700, fontSize: 12, color: "#0d9488", textAlign: "left", whiteSpace: "nowrap" }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {pending.map((c) => (
                 <tr key={c._id} style={{ borderBottom: "1px solid #f3f4f6" }}>
-                  <td
-                    style={{ padding: "12px 16px", color: "#374151", fontSize: 14 }}
-                  >
-                    {c.campaignName}
+                  <td style={{ padding: "12px 16px", color: "#374151", fontSize: 13, fontWeight: 600 }}>{c.campaignName}</td>
+                  <td style={{ padding: "12px 16px", color: "#374151", fontSize: 13 }}>{c.createdBy?.name || "—"}</td>
+                  <td style={{ padding: "12px 16px" }}>
+                    <span style={{ background: "#e0f2fe", color: "#0369a1", borderRadius: 6, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>{c.createdBy?.role}</span>
                   </td>
-                  <td
-                    style={{ padding: "12px 16px", color: "#374151", fontSize: 14 }}
-                  >
-                    {c.messageType}
-                  </td>
-                  <td
-                    style={{ padding: "12px 16px", color: "#374151", fontSize: 14 }}
-                  >
-                    {c.createdBy?.name || "—"}
-                  </td>
-                  <td
-                    style={{ padding: "12px 16px", color: "#374151", fontSize: 14 }}
-                  >
-                    <span
-                      style={{
-                        background: "#e0f2fe",
-                        color: "#0369a1",
-                        borderRadius: 6,
-                        padding: "2px 8px",
-                        fontSize: 12,
-                        fontWeight: 700,
-                      }}
-                    >
-                      {c.createdBy?.role}
-                    </span>
-                  </td>
-                  <td
-                    style={{ padding: "12px 16px", color: "#374151", fontSize: 14 }}
-                  >
-                    {c.createdAt
-                      ? new Date(c.createdAt).toLocaleDateString()
-                      : "—"}
-                  </td>
-                  <td
-                    style={{ padding: "12px 16px", color: "#374151", fontSize: 14 }}
-                  >
+                  <td style={{ padding: "12px 16px", color: "#374151", fontSize: 13 }}>{c.createdAt ? new Date(c.createdAt).toLocaleDateString("en-IN") : "—"}</td>
+                  <td style={{ padding: "12px 16px" }}>
                     <div style={{ display: "flex", gap: 8 }}>
-                      <button
-                        onClick={() => handleApprove(c._id)}
-                        style={{
-                          background: "#d1fae5",
-                          color: "#065f46",
-                          border: "none",
-                          borderRadius: 8,
-                          padding: "6px 14px",
-                          cursor: "pointer",
-                          fontWeight: 700,
-                          fontSize: 13,
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 6,
-                        }}
-                      >
-                        <CheckCircle size={14} /> Approve
+                      <button onClick={() => handleApprove(c._id)} style={{ background: "#d1fae5", color: "#065f46", border: "none", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontWeight: 700, fontSize: 12, display: "flex", alignItems: "center", gap: 6 }}>
+                        <CheckCircle size={13} /> Approve
                       </button>
-                      <button
-                        onClick={() => handleReject(c._id)}
-                        style={{
-                          background: "#fee2e2",
-                          color: "#991b1b",
-                          border: "none",
-                          borderRadius: 8,
-                          padding: "6px 14px",
-                          cursor: "pointer",
-                          fontWeight: 700,
-                          fontSize: 13,
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 6,
-                        }}
-                      >
-                        <XCircle size={14} /> Reject
+                      <button onClick={() => handleReject(c._id)} style={{ background: "#fee2e2", color: "#991b1b", border: "none", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontWeight: 700, fontSize: 12, display: "flex", alignItems: "center", gap: 6 }}>
+                        <XCircle size={13} /> Reject
                       </button>
                     </div>
                   </td>
@@ -712,6 +396,7 @@ function EditCampaignModal({ campaignId, onClose, onUpdate, isSuperAdmin }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [activeSection, setActiveSection] = useState("basics");
   const [form, setForm] = useState({
     campaignName: "",
     messageType: "Pre-approved template message",
@@ -722,7 +407,7 @@ function EditCampaignModal({ campaignId, onClose, onUpdate, isSuperAdmin }) {
     manualNumbers: "",
     templateId: "",
     scheduledDateTime: "",
-    recurrence: { type: "one-time" },
+    recurrence: { type: "one-time", interval: 1 },
     messagePreview: "",
   });
 
@@ -735,379 +420,398 @@ function EditCampaignModal({ campaignId, onClose, onUpdate, isSuperAdmin }) {
     if (!campaignId) return;
     const fetchData = async () => {
       try {
-        const [campaignRes, templatesRes, tagsRes, contactsRes, groupsRes] =
-          await Promise.all([
-            API.get(`/campaigns/${campaignId}`),
-            API.get("/templates"),
-            API.get("/tags"),
-            API.get("/contacts"),
-            API.get("/groups"),
-          ]);
+        const [campaignRes, templatesRes, tagsRes, contactsRes, groupsRes] = await Promise.all([
+          API.get(`/campaigns/${campaignId}`),
+          API.get("/templates"),
+          API.get("/tags"),
+          API.get("/contacts"),
+          API.get("/groups"),
+        ]);
 
         if (campaignRes.data.success) {
           const c = campaignRes.data.campaign;
+
+          // ✅ FIX: Normalize all IDs to plain strings
+          // contactIds/tagIds/groupIds may come as ObjectId objects or strings
+          const normalizeIds = (arr) =>
+            (arr || []).map((id) =>
+              typeof id === "object" ? (id._id || id).toString() : id.toString()
+            );
+
+          // ✅ FIX: Convert scheduledDateTime to local datetime-local format (IST)
+          let scheduledDTLocal = "";
+          if (c.scheduledDateTime) {
+            const d = new Date(c.scheduledDateTime);
+            // Convert UTC → IST for datetime-local input
+            const IST_OFFSET = 5.5 * 60 * 60 * 1000;
+            const istDate = new Date(d.getTime() + IST_OFFSET);
+            scheduledDTLocal = istDate.toISOString().slice(0, 16);
+          }
+
           setForm({
             campaignName: c.campaignName || "",
             messageType: c.messageType || "Pre-approved template message",
             audienceType: c.audienceType || "tags",
-            tagIds: c.tagIds || [],
-            contactIds: c.contactIds || [],
-            groupIds: c.groupIds || [],
+            tagIds: normalizeIds(c.tagIds),
+            contactIds: normalizeIds(c.contactIds),
+            groupIds: normalizeIds(c.groupIds),
             manualNumbers: (c.manualNumbers || []).join("\n"),
-            templateId: c.templateId || "",
-            scheduledDateTime: c.scheduledDateTime
-              ? new Date(c.scheduledDateTime).toISOString().slice(0, 16)
+            templateId: c.templateId?._id
+              ? c.templateId._id.toString()
+              : c.templateId
+              ? c.templateId.toString()
               : "",
-            recurrence: c.recurrence || { type: "one-time" },
+            scheduledDateTime: scheduledDTLocal,
+            recurrence: c.recurrence || { type: "one-time", interval: 1 },
             messagePreview: c.messagePreview || "",
           });
         }
 
         setTemplates(templatesRes.data.templates || []);
         setTags(tagsRes.data.tags || []);
-        setContacts(contactsRes.data.contacts || []);
-        setGroups(groupsRes.data.groups || []);
+        // ✅ Normalize contacts from API too
+        const rawContacts = contactsRes.data;
+        setContacts(Array.isArray(rawContacts) ? rawContacts : rawContacts.contacts || []);
+        const rawGroups = groupsRes.data;
+        setGroups(Array.isArray(rawGroups) ? rawGroups : rawGroups.groups || []);
       } catch (err) {
         setError(err.response?.data?.error || "Failed to load campaign");
       } finally {
         setLoading(false);
       }
     };
-
     fetchData();
   }, [campaignId]);
 
-  const handleChange = (field, value) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
-  };
+  const handleChange = (field, value) => setForm((prev) => ({ ...prev, [field]: value }));
 
+  // ✅ FIX: Use string comparison for checkboxes
   const handleArrayToggle = (field, id, checked) => {
+    const idStr = id.toString();
     setForm((prev) => {
-      const arr = prev[field] || [];
-      if (checked) return { ...prev, [field]: [...arr, id] };
-      return { ...prev, [field]: arr.filter((v) => v !== id) };
+      const arr = (prev[field] || []).map(String);
+      if (checked) return { ...prev, [field]: [...arr, idStr] };
+      return { ...prev, [field]: arr.filter((v) => v !== idStr) };
     });
   };
+
+  const isChecked = (field, id) =>
+    form[field].map(String).includes(id.toString());
 
   const handleSubmit = async () => {
     setSaving(true);
     setError("");
-
     try {
       const payload = {
         ...form,
         manualNumbers: form.manualNumbers
-          ? form.manualNumbers.split("\n").filter((n) => n.trim() !== "")
+          ? form.manualNumbers.split("\n").map((n) => n.trim()).filter(Boolean)
           : [],
+        // ✅ Send with IST offset so backend stores correct UTC
         scheduledDateTime: form.scheduledDateTime
-          ? new Date(form.scheduledDateTime).toISOString()
+          ? `${form.scheduledDateTime}:00+05:30`
           : null,
       };
-
       const res = await API.put(`/campaigns/${campaignId}`, payload);
-
       if (res.data.success) {
-        if (res.data.pendingApproval) {
-          alert("✅ Campaign updated! Sent to admin for approval.");
-        }
+        if (res.data.pendingApproval) alert("✅ Campaign updated! Sent to admin for approval.");
         onUpdate(res.data.campaign);
         onClose();
       } else {
         throw new Error(res.data.error || "Update failed");
       }
     } catch (err) {
-      setError(
-        err.response?.data?.error || err.message || "Failed to update campaign"
-      );
+      setError(err.response?.data?.error || err.message || "Failed to update campaign");
     } finally {
       setSaving(false);
     }
   };
 
+  const sections = [
+    { id: "basics", label: "Basics", icon: "📋" },
+    { id: "audience", label: "Audience", icon: "👥" },
+    { id: "schedule", label: "Schedule", icon: "📅" },
+    { id: "preview", label: "Preview", icon: "👁️" },
+  ];
+
+  const inputStyle = {
+    width: "100%", padding: "10px 14px", borderRadius: 12,
+    border: "1px solid #dbe3eb", background: "#fff", fontSize: 13,
+    fontWeight: 500, color: "#0f172a", outline: "none",
+    transition: "border 0.2s", boxSizing: "border-box",
+  };
+
+  const checkboxGroupStyle = {
+    maxHeight: 180, overflowY: "auto", border: "1px solid #e5e7eb",
+    borderRadius: 12, padding: "10px 14px", display: "flex",
+    flexDirection: "column", gap: 8, background: "#fafbfc",
+  };
+
   if (loading) {
     return (
-      <div style={pageStyles.modalOverlay}>
-        <div style={{ ...pageStyles.modalContent, textAlign: "center" }}>
-          Loading campaign data...
+      <div style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(15,23,42,0.5)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ background: "#fff", borderRadius: 20, padding: "48px 40px", textAlign: "center", boxShadow: "0 24px 60px rgba(15,23,42,0.18)" }}>
+          <div style={{ fontSize: 32, marginBottom: 12 }}>⏳</div>
+          <div style={{ fontWeight: 700, color: "#0f172a" }}>Loading campaign...</div>
         </div>
       </div>
     );
   }
 
   return (
-    <div style={pageStyles.modalOverlay} onClick={onClose}>
-      <div style={pageStyles.modalContent} onClick={(e) => e.stopPropagation()}>
-        <div style={pageStyles.modalHeader}>
-          <h3 style={pageStyles.modalTitle}>Edit Campaign</h3>
-          <button style={pageStyles.closeBtn} onClick={onClose}>
-            <X size={18} />
-          </button>
-        </div>
+    <div style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(15,23,42,0.55)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={onClose}>
+      <div style={{ background: "#fff", borderRadius: 24, width: 680, maxWidth: "95vw", maxHeight: "92vh", display: "flex", flexDirection: "column", boxShadow: "0 32px 80px rgba(15,23,42,0.22)", overflow: "hidden" }} onClick={(e) => e.stopPropagation()}>
 
-        {!isSuperAdmin && (
-          <div style={pageStyles.warningBox}>
-            ⏳ Your edits will be sent to{" "}
-            <strong>admin for approval</strong> before going live.
-          </div>
-        )}
-
-        {error && (
-          <div
-            className="alert alert-danger"
-            style={{ fontSize: 13, padding: "10px 14px" }}
-          >
-            {error}
-          </div>
-        )}
-
-        <div style={{ display: "grid", gap: 16 }}>
-          <div>
-            <label style={pageStyles.label}>Campaign Name *</label>
-            <input
-              type="text"
-              style={pageStyles.formControl}
-              value={form.campaignName}
-              onChange={(e) => handleChange("campaignName", e.target.value)}
-            />
-          </div>
-
-          <div>
-            <label style={pageStyles.label}>Message Type</label>
-            <select
-              style={pageStyles.formControl}
-              value={form.messageType}
-              onChange={(e) => handleChange("messageType", e.target.value)}
-            >
-              <option value="Pre-approved template message">
-                Pre-approved template message
-              </option>
-              <option value="Custom message">Custom message</option>
-            </select>
-          </div>
-
-          {form.messageType === "Pre-approved template message" && (
+        {/* Header */}
+        <div style={{ padding: "20px 24px 0", borderBottom: "1px solid #f1f5f9", background: "linear-gradient(180deg, #f8fafc 0%, #fff 100%)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
             <div>
-              <label style={pageStyles.label}>Template</label>
-              <select
-                style={pageStyles.formControl}
-                value={form.templateId}
-                onChange={(e) => handleChange("templateId", e.target.value)}
-              >
-                <option value="">-- Select template --</option>
-                {templates.map((t) => (
-                  <option key={t._id} value={t._id}>
-                    {t.name} ({t.category})
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          <div>
-            <label style={pageStyles.label}>Audience Type *</label>
-            <select
-              style={pageStyles.formControl}
-              value={form.audienceType}
-              onChange={(e) => handleChange("audienceType", e.target.value)}
-            >
-              <option value="tags">Tags</option>
-              <option value="contact">Contacts</option>
-              <option value="group">Groups</option>
-              <option value="manual">Manual Numbers</option>
-            </select>
-          </div>
-
-          {form.audienceType === "tags" && (
-            <div>
-              <label style={pageStyles.label}>Select Tags</label>
-              <div style={pageStyles.checkboxGroup}>
-                {tags.map((tag) => (
-                  <div key={tag._id} className="form-check">
-                    <input
-                      type="checkbox"
-                      className="form-check-input"
-                      id={`tag-${tag._id}`}
-                      checked={form.tagIds.includes(tag._id)}
-                      onChange={(e) =>
-                        handleArrayToggle("tagIds", tag._id, e.target.checked)
-                      }
-                    />
-                    <label
-                      className="form-check-label"
-                      htmlFor={`tag-${tag._id}`}
-                    >
-                      {tag.name}
-                    </label>
-                  </div>
-                ))}
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(15,95,100,0.08)", color: "#0f5f64", borderRadius: 999, padding: "4px 12px", fontSize: 11, fontWeight: 700, marginBottom: 6 }}>
+                ✏️ EDIT CAMPAIGN
               </div>
+              <h3 style={{ fontSize: 20, fontWeight: 800, color: "#0f172a", margin: 0 }}>{form.campaignName || "Campaign"}</h3>
             </div>
-          )}
-
-          {form.audienceType === "contact" && (
-            <div>
-              <label style={pageStyles.label}>Select Contacts</label>
-              <div style={pageStyles.checkboxGroup}>
-                {contacts.map((contact) => (
-                  <div key={contact._id} className="form-check">
-                    <input
-                      type="checkbox"
-                      className="form-check-input"
-                      id={`contact-${contact._id}`}
-                      checked={form.contactIds.includes(contact._id)}
-                      onChange={(e) =>
-                        handleArrayToggle(
-                          "contactIds",
-                          contact._id,
-                          e.target.checked
-                        )
-                      }
-                    />
-                    <label
-                      className="form-check-label"
-                      htmlFor={`contact-${contact._id}`}
-                    >
-                      {contact.name} ({contact.mobile})
-                    </label>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {form.audienceType === "group" && (
-            <div>
-              <label style={pageStyles.label}>Select Groups</label>
-              <div style={pageStyles.checkboxGroup}>
-                {groups.map((group) => (
-                  <div key={group._id} className="form-check">
-                    <input
-                      type="checkbox"
-                      className="form-check-input"
-                      id={`group-${group._id}`}
-                      checked={form.groupIds.includes(group._id)}
-                      onChange={(e) =>
-                        handleArrayToggle(
-                          "groupIds",
-                          group._id,
-                          e.target.checked
-                        )
-                      }
-                    />
-                    <label
-                      className="form-check-label"
-                      htmlFor={`group-${group._id}`}
-                    >
-                      {group.name}
-                    </label>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {form.audienceType === "manual" && (
-            <div>
-              <label style={pageStyles.label}>
-                Manual Numbers (one per line)
-              </label>
-              <textarea
-                style={pageStyles.textarea}
-                rows={4}
-                value={form.manualNumbers}
-                onChange={(e) => handleChange("manualNumbers", e.target.value)}
-                placeholder="+911234567890&#10;+919876543210"
-              />
-            </div>
-          )}
-
-          <div>
-            <label style={pageStyles.label}>Scheduled Date & Time</label>
-            <input
-              type="datetime-local"
-              style={pageStyles.formControl}
-              value={form.scheduledDateTime}
-              onChange={(e) =>
-                handleChange("scheduledDateTime", e.target.value)
-              }
-            />
+            <button onClick={onClose} style={{ border: "1px solid #e2e8f0", borderRadius: 10, width: 36, height: 36, background: "#f8fafc", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <X size={16} color="#64748b" />
+            </button>
           </div>
+          {!isSuperAdmin && (
+            <div style={{ background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 10, padding: "8px 14px", marginBottom: 16, fontSize: 12, color: "#92400e", display: "flex", alignItems: "center", gap: 8 }}>
+              <span>⏳</span>
+              <span>Your edits will be sent to <strong>admin for approval</strong> before going live.</span>
+            </div>
+          )}
 
-          <div>
-            <label style={pageStyles.label}>Recurrence</label>
-            <select
-              style={pageStyles.formControl}
-              value={form.recurrence.type}
-              onChange={(e) =>
-                handleChange("recurrence", {
-                  ...form.recurrence,
-                  type: e.target.value,
-                })
-              }
-            >
-              <option value="one-time">One-time</option>
-              <option value="daily">Daily</option>
-              <option value="weekly">Weekly</option>
-              <option value="monthly">Monthly</option>
-            </select>
-          </div>
-
-          <div>
-            <label style={pageStyles.label}>Message Preview</label>
-            <textarea
-              style={pageStyles.textarea}
-              rows={3}
-              value={form.messagePreview}
-              onChange={(e) => handleChange("messagePreview", e.target.value)}
-            />
+          {/* Section tabs — scrollable on mobile */}
+          <div style={{ display: "flex", gap: 4, overflowX: "auto", scrollbarWidth: "none" }}>
+            {sections.map((s) => (
+              <button key={s.id} onClick={() => setActiveSection(s.id)} style={{ padding: "8px 12px", borderRadius: "10px 10px 0 0", border: "1px solid transparent", borderBottom: "none", background: activeSection === s.id ? "#fff" : "transparent", borderColor: activeSection === s.id ? "#e5e7eb" : "transparent", borderBottomColor: activeSection === s.id ? "#fff" : "transparent", marginBottom: activeSection === s.id ? -1 : 0, fontSize: 12, fontWeight: 700, color: activeSection === s.id ? "#0f5f64" : "#94a3b8", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", flexShrink: 0 }}>
+                <span style={{ fontSize: 14 }}>{s.icon}</span>
+                <span className="d-none d-sm-inline">{s.label}</span>
+              </button>
+            ))}
           </div>
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: 12,
-            marginTop: 24,
-          }}
-        >
-          <button
-            onClick={onClose}
-            style={{
-              border: "1px solid #dbe5ee",
-              borderRadius: 12,
-              padding: "8px 20px",
-              background: "#fff",
-              fontWeight: 700,
-            }}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={saving}
-            style={{
-              background: "linear-gradient(135deg,#1f7a85 0%,#0d5b63 100%)",
-              border: "none",
-              borderRadius: 12,
-              padding: "8px 24px",
-              color: "#fff",
-              fontWeight: 700,
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              cursor: "pointer",
-            }}
-          >
-            <Save size={16} /> {saving ? "Saving..." : "Save Changes"}
-          </button>
+        {/* Body */}
+        <div style={{ flex: 1, overflowY: "auto", padding: "24px", scrollbarWidth: "thin" }}>
+          {error && (
+            <div style={{ background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#991b1b", marginBottom: 16 }}>
+              ❌ {error}
+            </div>
+          )}
+
+          {/* BASICS */}
+          {activeSection === "basics" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: "#334155", display: "block", marginBottom: 6 }}>Campaign Name *</label>
+                <input type="text" style={inputStyle} value={form.campaignName} onChange={(e) => handleChange("campaignName", e.target.value)} placeholder="e.g. Diwali Offer 2025" />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: "#334155", display: "block", marginBottom: 6 }}>Message Type</label>
+                <select style={inputStyle} value={form.messageType} onChange={(e) => handleChange("messageType", e.target.value)}>
+                  <option value="Pre-approved template message">Pre-approved template message</option>
+                  <option value="Custom message">Custom message</option>
+                </select>
+              </div>
+              {form.messageType === "Pre-approved template message" && (
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#334155", display: "block", marginBottom: 8 }}>Select Template</label>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {templates.filter((t) => t.approvalStatus === "approved").map((t) => (
+                      <div key={t._id} onClick={() => handleChange("templateId", t._id.toString())} style={{ padding: "12px 16px", borderRadius: 12, cursor: "pointer", border: `1px solid ${form.templateId === t._id.toString() ? "#14808a" : "#e5e7eb"}`, background: form.templateId === t._id.toString() ? "#f0fdfa" : "#fff", transition: "all 0.2s" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
+                          <div style={{ fontWeight: 700, fontSize: 13, color: "#0f172a" }}>{t.name}</div>
+                          <span style={{ background: "#dcfce7", color: "#166534", borderRadius: 6, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>✅ Approved</span>
+                        </div>
+                        <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>{t.category} • {t.mediaType}</div>
+                      </div>
+                    ))}
+                    {templates.filter((t) => t.approvalStatus === "approved").length === 0 && (
+                      <div style={{ textAlign: "center", padding: 20, color: "#94a3b8", fontSize: 13 }}>No approved templates available.</div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* AUDIENCE */}
+          {activeSection === "audience" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: "#334155", display: "block", marginBottom: 6 }}>Audience Type</label>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {["tags", "contact", "group", "manual"].map((type) => (
+                    <button key={type} onClick={() => handleChange("audienceType", type)} style={{ padding: "8px 16px", borderRadius: 999, fontSize: 12, fontWeight: 700, border: "1px solid", cursor: "pointer", transition: "all 0.2s", borderColor: form.audienceType === type ? "#14808a" : "#dbe3eb", background: form.audienceType === type ? "linear-gradient(135deg,#0f5f64,#14808a)" : "#fff", color: form.audienceType === type ? "#fff" : "#334155" }}>
+                      {type.charAt(0).toUpperCase() + type.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {form.audienceType === "tags" && (
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#334155", display: "block", marginBottom: 6 }}>
+                    Select Tags <span style={{ color: "#0f5f64" }}>({form.tagIds.length} selected)</span>
+                  </label>
+                  <div style={checkboxGroupStyle}>
+                    {tags.length === 0 && <div style={{ color: "#94a3b8", fontSize: 13 }}>No tags found.</div>}
+                    {tags.map((tag) => (
+                      <label key={tag._id} style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", fontSize: 13, padding: "4px 0" }}>
+                        <input
+                          type="checkbox"
+                          checked={isChecked("tagIds", tag._id)}
+                          onChange={(e) => handleArrayToggle("tagIds", tag._id, e.target.checked)}
+                          style={{ width: 15, height: 15, accentColor: "#0f5f64" }}
+                        />
+                        <span style={{ color: "#334155", fontWeight: 600 }}>{tag.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {form.audienceType === "contact" && (
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#334155", display: "block", marginBottom: 6 }}>
+                    Select Contacts <span style={{ color: "#0f5f64" }}>({form.contactIds.length} selected)</span>
+                  </label>
+                  <div style={checkboxGroupStyle}>
+                    {contacts.length === 0 && <div style={{ color: "#94a3b8", fontSize: 13 }}>No contacts found.</div>}
+                    {contacts.map((c) => (
+                      <label key={c._id} style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", fontSize: 13, padding: "4px 0" }}>
+                        <input
+                          type="checkbox"
+                          checked={isChecked("contactIds", c._id)}
+                          onChange={(e) => handleArrayToggle("contactIds", c._id, e.target.checked)}
+                          style={{ width: 15, height: 15, accentColor: "#0f5f64" }}
+                        />
+                        <div>
+                          <span style={{ color: "#334155", fontWeight: 600 }}>{c.name || "Unknown"}</span>
+                          <span style={{ color: "#94a3b8", fontSize: 11, marginLeft: 6 }}>{c.mobile}</span>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {form.audienceType === "group" && (
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#334155", display: "block", marginBottom: 6 }}>
+                    Select Groups <span style={{ color: "#0f5f64" }}>({form.groupIds.length} selected)</span>
+                  </label>
+                  <div style={checkboxGroupStyle}>
+                    {groups.length === 0 && <div style={{ color: "#94a3b8", fontSize: 13 }}>No groups found.</div>}
+                    {groups.map((g) => (
+                      <label key={g._id} style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", fontSize: 13, padding: "4px 0" }}>
+                        <input
+                          type="checkbox"
+                          checked={isChecked("groupIds", g._id)}
+                          onChange={(e) => handleArrayToggle("groupIds", g._id, e.target.checked)}
+                          style={{ width: 15, height: 15, accentColor: "#0f5f64" }}
+                        />
+                        <span style={{ color: "#334155", fontWeight: 600 }}>{g.groupName || g.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {form.audienceType === "manual" && (
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#334155", display: "block", marginBottom: 6 }}>Manual Numbers (one per line)</label>
+                  <textarea style={{ ...inputStyle, height: 120, resize: "vertical" }} value={form.manualNumbers} onChange={(e) => handleChange("manualNumbers", e.target.value)} placeholder={"+911234567890\n+919876543210"} />
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* SCHEDULE */}
+          {activeSection === "schedule" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: "#334155", display: "block", marginBottom: 6 }}>
+                  Scheduled Date & Time <span style={{ color: "#94a3b8", fontWeight: 500 }}>(IST)</span>
+                </label>
+                <input type="datetime-local" style={inputStyle} value={form.scheduledDateTime} onChange={(e) => handleChange("scheduledDateTime", e.target.value)} />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: "#334155", display: "block", marginBottom: 8 }}>Recurrence</label>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {["one-time", "hourly", "daily", "weekly", "monthly"].map((type) => (
+                    <button key={type} onClick={() => handleChange("recurrence", { ...form.recurrence, type })} style={{ padding: "7px 14px", borderRadius: 999, fontSize: 12, fontWeight: 700, border: "1px solid", cursor: "pointer", transition: "all 0.2s", borderColor: form.recurrence.type === type ? "#14808a" : "#dbe3eb", background: form.recurrence.type === type ? "linear-gradient(135deg,#0f5f64,#14808a)" : "#fff", color: form.recurrence.type === type ? "#fff" : "#334155" }}>
+                      {type.charAt(0).toUpperCase() + type.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {form.recurrence.type !== "one-time" && (
+                <div style={{ background: "#f8fafc", borderRadius: 12, padding: 16, border: "1px solid #e5e7eb", fontSize: 13, color: "#64748b" }}>
+                  <div style={{ fontWeight: 700, color: "#334155", marginBottom: 8 }}>Repeat every</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                    <input type="number" min="1" style={{ ...inputStyle, width: 80 }} value={form.recurrence.interval || 1} onChange={(e) => handleChange("recurrence", { ...form.recurrence, interval: parseInt(e.target.value) || 1 })} />
+                    <span style={{ fontWeight: 600, color: "#334155" }}>
+                      {form.recurrence.type === "hourly" ? "hour(s)" : form.recurrence.type === "daily" ? "day(s)" : form.recurrence.type === "weekly" ? "week(s)" : "month(s)"}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* PREVIEW */}
+          {activeSection === "preview" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: "#334155", display: "block", marginBottom: 6 }}>Message Preview</label>
+                <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 16, padding: 16, minHeight: 120, fontSize: 13, color: "#334155", lineHeight: 1.8, whiteSpace: "pre-wrap" }}>
+                  {form.messagePreview || <span style={{ color: "#94a3b8" }}>No preview available.</span>}
+                </div>
+              </div>
+              <div style={{ background: "#f8fafc", borderRadius: 12, padding: 16, border: "1px solid #e5e7eb" }}>
+                <div style={{ fontWeight: 700, color: "#334155", fontSize: 13, marginBottom: 12 }}>Campaign Summary</div>
+                {[
+                  ["Name", form.campaignName || "—"],
+                  ["Audience", form.audienceType],
+                  ["Recurrence", form.recurrence.type],
+                  ["Scheduled (IST)", form.scheduledDateTime ? form.scheduledDateTime.replace("T", " ") : "—"],
+                ].map(([k, v]) => (
+                  <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px dashed #e2e8f0", fontSize: 13 }}>
+                    <span style={{ fontWeight: 700, color: "#334155" }}>{k}</span>
+                    <span style={{ color: "#64748b", fontWeight: 600, textTransform: "capitalize" }}>{v}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div style={{ padding: "16px 24px", borderTop: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#fafbfc", flexWrap: "wrap", gap: 10 }}>
+          <div style={{ display: "flex", gap: 8 }}>
+            {sections.map((s) => (
+              <div key={s.id} onClick={() => setActiveSection(s.id)} style={{ width: 8, height: 8, borderRadius: "50%", cursor: "pointer", background: activeSection === s.id ? "linear-gradient(135deg,#0f5f64,#22c55e)" : "#dbe3eb", transition: "all 0.2s" }} />
+            ))}
+          </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={onClose} style={{ border: "1px solid #dbe3eb", borderRadius: 12, padding: "9px 20px", background: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", color: "#334155" }}>Cancel</button>
+            <button onClick={handleSubmit} disabled={saving} style={{ background: saving ? "#94a3b8" : "linear-gradient(135deg,#0f5f64 0%,#14808a 60%,#22c55e 100%)", border: "none", borderRadius: 12, padding: "9px 24px", color: "#fff", fontWeight: 700, fontSize: 13, display: "flex", alignItems: "center", gap: 8, cursor: saving ? "not-allowed" : "pointer", boxShadow: saving ? "none" : "0 8px 20px rgba(15,95,100,0.22)" }}>
+              <Save size={15} />
+              {saving ? "Saving..." : isSuperAdmin ? "Save Changes" : "Submit for Approval"}
+            </button>
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-/* ---------- Main Page Component ---------- */
+/* ================================================================
+   Main Page Component
+================================================================ */
 export default function CampaignsPage() {
   const router = useRouter();
   const pageRef = useRef(null);
@@ -1115,25 +819,14 @@ export default function CampaignsPage() {
   const rowsRef = useRef([]);
 
   const [search, setSearch] = useState("");
-  const [activeFilter, setActiveFilter] = useState("All");
-  const [activeTab, setActiveTab] = useState("All");
+  const [activeFilter, setActiveFilter] = useState("all");
+  const [activeTab, setActiveTab] = useState("campaigns");
   const [isLoading, setIsLoading] = useState(true);
   const [campaigns, setCampaigns] = useState([]);
   const [updatingId, setUpdatingId] = useState(null);
   const [editingCampaignId, setEditingCampaignId] = useState(null);
-
   const [userRole, setUserRole] = useState("");
   const [userId, setUserId] = useState("");
-
-  // Mobile detection
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth <= 820);
-    check();
-    window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
-  }, []);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -1162,24 +855,25 @@ export default function CampaignsPage() {
     return ownerId?.toString() === userId;
   };
 
-  const topTabs = ["All", "Broadcast", "API", "Scheduled"];
+  // ✅ Updated filters — status-based, no more Broadcast/API
+  const STATUS_FILTERS = [
+    { label: "All",       value: "all" },
+    { label: "Scheduled", value: "scheduled" },
+    { label: "Sent",      value: "sent" },
+    { label: "Paused",    value: "paused" },
+    { label: "Draft",     value: "draft" },
+    { label: "Cancelled", value: "cancelled" },
+    { label: "Recurring", value: "recurring" },
+  ];
 
   const fetchCampaigns = () => {
     setIsLoading(true);
     API.get("/campaigns")
       .then((res) => {
         const data = res.data;
-        if (data.success && Array.isArray(data.campaigns)) {
-          setCampaigns(data.campaigns);
-        } else {
-          console.error("Invalid campaigns response", data);
-          setCampaigns([]);
-        }
+        setCampaigns(data.success && Array.isArray(data.campaigns) ? data.campaigns : []);
       })
-      .catch((err) => {
-        console.error("Failed to fetch campaigns", err);
-        setCampaigns([]);
-      })
+      .catch(() => setCampaigns([]))
       .finally(() => setIsLoading(false));
   };
 
@@ -1193,7 +887,6 @@ export default function CampaignsPage() {
       await API.delete(`/campaigns/${campaignId}`);
       setCampaigns((prev) => prev.filter((c) => c._id !== campaignId));
     } catch (err) {
-      console.error(err);
       alert(err.response?.data?.error || "Failed to delete campaign");
     }
   };
@@ -1202,152 +895,57 @@ export default function CampaignsPage() {
     const newStatus = campaign.status === "paused" ? "scheduled" : "paused";
     setUpdatingId(campaign._id);
     try {
-      const res = await API.patch(`/campaigns/${campaign._id}/status`, {
-        status: newStatus,
-      });
-      const data = res.data;
-      if (data.success && data.campaign) {
-        setCampaigns((prev) =>
-          prev.map((c) => (c._id === campaign._id ? data.campaign : c))
-        );
-      } else {
-        alert(data.error || "Failed to update status");
+      const res = await API.patch(`/campaigns/${campaign._id}/status`, { status: newStatus });
+      if (res.data.success && res.data.campaign) {
+        setCampaigns((prev) => prev.map((c) => c._id === campaign._id ? res.data.campaign : c));
       }
     } catch (err) {
-      console.error(err);
       alert(err.response?.data?.error || "Error updating campaign status");
     } finally {
       setUpdatingId(null);
     }
   };
 
-  const mapCampaign = (camp) => {
-    let audience = "Unknown";
-    if (camp.audienceType === "tags" && camp.tagIds?.length) {
-      audience = `${camp.tagIds.length} tag(s)`;
-    } else if (
-      camp.audienceType === "manual" &&
-      camp.manualNumbers?.length
-    ) {
-      audience = `${camp.manualNumbers.length} number(s)`;
-    }
-
-    let date = "—";
-    if (camp.scheduledDateTime) {
-      date = new Date(camp.scheduledDateTime).toLocaleDateString();
-    } else if (camp.nextRun) {
-      date = new Date(camp.nextRun).toLocaleDateString();
-    }
-
-    const status = camp.status
-      ? camp.status.charAt(0).toUpperCase() + camp.status.slice(1)
-      : "Draft";
-    const type =
-      camp.messageType === "Pre-approved template message"
-        ? "Broadcast"
-        : camp.messageType || "Unknown";
-
-    return {
-      id: camp._id,
-      name: camp.campaignName,
-      type,
-      status,
-      audience,
-      sent: camp.sentCount || 0,
-      delivered: 0,
-      opened: 0,
-      replied: 0,
-      date,
-      raw: camp,
-    };
-  };
-
   const filteredData = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return campaigns
-      .map(mapCampaign)
-      .filter((item) => {
-        const matchSearch =
-          item.name.toLowerCase().includes(q) ||
-          item.type.toLowerCase().includes(q) ||
-          item.audience.toLowerCase().includes(q) ||
-          item.status.toLowerCase().includes(q);
-        const matchFilter =
-          activeFilter === "All"
-            ? true
-            : item.type.toLowerCase() === activeFilter.toLowerCase();
-        return matchSearch && matchFilter;
-      });
+    return campaigns.filter((c) => {
+      const matchSearch =
+        (c.campaignName || "").toLowerCase().includes(q) ||
+        (c.status || "").toLowerCase().includes(q) ||
+        (c.audienceType || "").toLowerCase().includes(q);
+
+      let matchFilter = true;
+      if (activeFilter !== "all") {
+        if (activeFilter === "recurring") {
+          matchFilter = c.recurrence?.type && c.recurrence.type !== "one-time";
+        } else {
+          matchFilter = (c.status || "").toLowerCase() === activeFilter;
+        }
+      }
+
+      return matchSearch && matchFilter;
+    });
   }, [campaigns, search, activeFilter]);
 
   const stats = useMemo(() => {
     const total = campaigns.length;
-    const running = campaigns.filter(
-      (c) => c.status === "active" || c.status === "running"
-    ).length;
     const scheduled = campaigns.filter((c) => c.status === "scheduled").length;
-    const totalSent = campaigns.reduce(
-      (sum, c) => sum + (c.sentCount || 0),
-      0
-    );
-    return { total, running, scheduled, totalSent };
+    const sent = campaigns.filter((c) => c.status === "sent").length;
+    const recurring = campaigns.filter((c) => c.recurrence?.type && c.recurrence.type !== "one-time").length;
+    return { total, scheduled, sent, recurring };
   }, [campaigns]);
 
-  const handleRefresh = () => {
-    fetchCampaigns();
-  };
-
   const handleUpdate = (updatedCampaign) => {
-    setCampaigns((prev) =>
-      prev.map((c) => (c._id === updatedCampaign._id ? updatedCampaign : c))
-    );
+    setCampaigns((prev) => prev.map((c) => c._id === updatedCampaign._id ? updatedCampaign : c));
   };
 
-  const getApprovalBadge = (campaign) => {
-    if (!campaign.approvalStatus || campaign.approvalStatus === "approved")
-      return null;
-    if (campaign.approvalStatus === "pending_approval") {
-      return (
-        <span style={pageStyles.approvalBadge}>⏳ Awaiting Approval</span>
-      );
-    }
-    if (campaign.approvalStatus === "rejected") {
-      return <span style={pageStyles.rejectedBadge}>❌ Rejected</span>;
-    }
-    return null;
-  };
-
-  // GSAP animations
   useEffect(() => {
     if (isLoading || !contentRef.current) return;
     const ctx = gsap.context(() => {
-      gsap.fromTo(
-        contentRef.current,
-        { opacity: 0, y: 18, filter: "blur(8px)" },
-        {
-          opacity: 1,
-          y: 0,
-          filter: "blur(0px)",
-          duration: 0.55,
-          ease: "power3.out",
-        }
-      );
-
+      gsap.fromTo(contentRef.current, { opacity: 0, y: 18, filter: "blur(8px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.55, ease: "power3.out" });
       const validRows = rowsRef.current.filter(Boolean);
       if (validRows.length) {
-        gsap.fromTo(
-          validRows,
-          { y: 16, opacity: 0 },
-          {
-            y: 0,
-            opacity: 1,
-            stagger: 0.08,
-            duration: 0.42,
-            delay: 0.12,
-            ease: "power2.out",
-            clearProps: "all",
-          }
-        );
+        gsap.fromTo(validRows, { y: 16, opacity: 0 }, { y: 0, opacity: 1, stagger: 0.06, duration: 0.4, delay: 0.1, ease: "power2.out", clearProps: "all" });
       }
     }, pageRef);
     return () => ctx.revert();
@@ -1355,31 +953,17 @@ export default function CampaignsPage() {
 
   rowsRef.current = [];
 
-  // Prevent access for non‑manager roles
   if (userRole && !isManagerOrAbove) {
     return (
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          height: "60vh",
-          gap: 12,
-        }}
-      >
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "60vh", gap: 12 }}>
         <div style={{ fontSize: 48 }}>🚫</div>
-        <div style={{ fontSize: 20, fontWeight: 800, color: "#0f172a" }}>
-          Access Restricted
-        </div>
-        <div style={{ fontSize: 14, color: "#64748b" }}>
-          Campaigns are only accessible to managers and admins.
-        </div>
+        <div style={{ fontSize: 20, fontWeight: 800, color: "#0f172a" }}>Access Restricted</div>
+        <div style={{ fontSize: 14, color: "#64748b" }}>Campaigns are only accessible to managers and admins.</div>
       </div>
     );
   }
 
-  const isPendingTab = activeTab === "PendingApprovals";
+  const isPendingTab = activeTab === "pending";
 
   return (
     <>
@@ -1392,12 +976,25 @@ export default function CampaignsPage() {
         />
       )}
 
-      <div
-        ref={pageRef}
-        className="container-fluid py-2 py-md-4"
-        style={pageStyles.shell}
-      >
-        <div className="d-flex flex-column gap-2 gap-md-4 h-100">
+      <style jsx global>{`
+        @keyframes pulse {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+        .filter-scroll::-webkit-scrollbar { display: none; }
+        .table-scroll::-webkit-scrollbar { width: 4px; }
+        .table-scroll::-webkit-scrollbar-thumb { background: #dbe3eb; border-radius: 4px; }
+        .action-btn { transition: transform 0.15s, box-shadow 0.15s; }
+        .action-btn:hover { transform: translateY(-1px); }
+        @media (max-width: 575px) {
+          .stat-grid { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
+          .hero-title { font-size: 20px !important; }
+          .hero-subtitle { font-size: 12px !important; }
+        }
+      `}</style>
+
+      <div ref={pageRef} className="container-fluid py-2 py-md-4" style={pageStyles.shell}>
+        <div className="d-flex flex-column gap-2 gap-md-3 h-100">
           {isLoading ? (
             <>
               <HeaderSkeleton />
@@ -1405,518 +1002,332 @@ export default function CampaignsPage() {
               <SearchFilterSkeleton />
             </>
           ) : (
-            <div
-              ref={contentRef}
-              className="d-flex flex-column gap-2 gap-md-4 h-100"
-            >
+            <div ref={contentRef} className="d-flex flex-column gap-2 gap-md-3">
+
               {/* ── Header ── */}
               <div style={pageStyles.premiumCard} className="p-3 p-md-4">
                 <div className="d-flex flex-column flex-lg-row justify-content-between gap-3 align-items-start align-items-lg-center">
                   <div>
-                    <div style={pageStyles.heroChip}>
-                      <Megaphone size={14} />
-                      CAMPAIGNS
-                    </div>
-                    <div style={pageStyles.heroTitle}>
-                      Broadcast & Automation
-                    </div>
-                    <div style={pageStyles.heroSubtitle}>
-                      Manage all your WhatsApp campaigns from one dashboard.
-                    </div>
+                    <div style={pageStyles.heroChip}><Megaphone size={14} />CAMPAIGNS</div>
+                    <div style={pageStyles.heroTitle} className="hero-title">Broadcast & Automation</div>
+                    <div style={pageStyles.heroSubtitle} className="hero-subtitle">Manage all your WhatsApp campaigns from one dashboard.</div>
                   </div>
-                  {/* Launch button in header — visible on desktop only */}
                   <button
                     style={pageStyles.launchBtn}
-                    className="btn d-none d-lg-inline-flex align-items-center justify-content-center gap-2"
+                    className="btn d-inline-flex align-items-center justify-content-center gap-2"
                     onClick={() => router.push("/Campaigns/launch")}
                     type="button"
                   >
-                    <Plus size={16} />
-                    Launch Campaign
-                    <ChevronRight size={16} />
+                    <Plus size={16} />Launch Campaign<ChevronRight size={16} />
                   </button>
                 </div>
               </div>
 
-              {/* ── Stats — 2-per-row on mobile, 4-per-row on xl ── */}
-              <div className="row g-2 g-md-3">
-                <div className="col-6 col-xl-3">
-                  <StatCard
-                    icon={Megaphone}
-                    label="Total Campaigns"
-                    value={stats.total}
-                    subtext="All campaigns"
-                  />
-                </div>
-                <div className="col-6 col-xl-3">
-                  <StatCard
-                    icon={PlayCircle}
-                    label="Running"
-                    value={stats.running}
-                    subtext="Active now"
-                  />
-                </div>
-                <div className="col-6 col-xl-3">
-                  <StatCard
-                    icon={CalendarDays}
-                    label="Scheduled"
-                    value={stats.scheduled}
-                    subtext="Upcoming"
-                  />
-                </div>
-                <div className="col-6 col-xl-3">
-                  <StatCard
-                    icon={Send}
-                    label="Total Sent"
-                    value={stats.totalSent}
-                    subtext="Messages delivered"
-                  />
-                </div>
+              {/* ── Stats ── */}
+              <div className="stat-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
+                <StatCard icon={Megaphone}    label="Total"     value={stats.total}     subtext="All campaigns" />
+                <StatCard icon={CalendarDays} label="Scheduled" value={stats.scheduled} subtext="Upcoming" />
+                <StatCard icon={Send}         label="Sent"      value={stats.sent}       subtext="Completed" />
+                <StatCard icon={Repeat}       label="Recurring" value={stats.recurring}  subtext="Auto-repeating" />
               </div>
 
-              {/* ── Tabs / Filter pills ── */}
-              <div className="d-flex flex-wrap gap-2 align-items-center">
-                {topTabs.map((tab) => (
-                  <button
-                    key={tab}
-                    className="btn"
-                    type="button"
-                    style={{
-                      ...pageStyles.filterPill,
-                      ...(activeFilter === tab
-                        ? pageStyles.filterPillActive
-                        : {}),
-                    }}
-                    onClick={() => {
-                      setActiveFilter(tab);
-                      setActiveTab("All");
-                    }}
-                  >
-                    {tab}
-                  </button>
-                ))}
+              {/* ── Tab row ── */}
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                <button
+                  onClick={() => setActiveTab("campaigns")}
+                  className="btn"
+                  style={{ ...pageStyles.filterPill, ...(activeTab === "campaigns" ? pageStyles.filterPillActive : {}) }}
+                >
+                  📋 Campaigns
+                </button>
                 {isSuperAdmin && (
                   <button
-                    onClick={() => setActiveTab("PendingApprovals")}
+                    onClick={() => setActiveTab("pending")}
                     className="btn d-flex align-items-center gap-2"
-                    style={{
-                      ...pageStyles.filterPill,
-                      ...(isPendingTab ? pageStyles.filterPillActive : {}),
-                    }}
+                    style={{ ...pageStyles.filterPill, ...(isPendingTab ? pageStyles.filterPillActive : {}) }}
                   >
-                    <Bell size={15} />
-                    <span>Pending Approvals</span>
+                    <Bell size={13} /> Pending Approvals
                   </button>
                 )}
               </div>
 
+              {/* ── Pending Approvals ── */}
               {isPendingTab && isSuperAdmin ? (
                 <PendingApprovalsPanel
-                  onApprove={(id) => {
-                    setCampaigns((prev) =>
-                      prev.map((c) =>
-                        c._id === id
-                          ? {
-                              ...c,
-                              approvalStatus: "approved",
-                              status: "scheduled",
-                            }
-                          : c
-                      )
-                    );
-                  }}
-                  onReject={(id) => {
-                    setCampaigns((prev) =>
-                      prev.map((c) =>
-                        c._id === id
-                          ? {
-                              ...c,
-                              approvalStatus: "rejected",
-                              status: "cancelled",
-                            }
-                          : c
-                      )
-                    );
-                  }}
+                  onApprove={(id) => setCampaigns((prev) => prev.map((c) => c._id === id ? { ...c, approvalStatus: "approved", status: "scheduled" } : c))}
+                  onReject={(id) => setCampaigns((prev) => prev.map((c) => c._id === id ? { ...c, approvalStatus: "rejected", status: "cancelled" } : c))}
                 />
               ) : (
                 <>
                   {/* ── Toolbar ── */}
                   <div style={pageStyles.toolbarCard}>
-                    <div className="d-flex flex-column flex-xl-row gap-2 gap-xl-3 justify-content-between align-items-stretch align-items-xl-center">
+                    <div className="d-flex flex-column flex-xl-row gap-2 justify-content-between align-items-stretch align-items-xl-center">
                       <div style={pageStyles.searchWrap}>
-                        <Search
-                          size={18}
-                          style={{
-                            position: "absolute",
-                            top: "50%",
-                            left: 14,
-                            transform: "translateY(-50%)",
-                            color: "#64748b",
-                            zIndex: 2,
-                          }}
-                        />
+                        <Search size={18} style={{ position: "absolute", top: "50%", left: 14, transform: "translateY(-50%)", color: "#64748b", zIndex: 2 }} />
                         <input
                           className="form-control"
                           style={pageStyles.searchInput}
-                          placeholder="Search campaign, type, audience or status"
+                          placeholder="Search by name, status, audience type…"
                           value={search}
                           onChange={(e) => setSearch(e.target.value)}
                         />
                       </div>
-
                       <div className="d-flex gap-2">
-                        <button
-                          className="btn d-inline-flex align-items-center justify-content-center gap-2 flex-grow-1 flex-xl-grow-0"
-                          style={pageStyles.refreshBtn}
-                          onClick={handleRefresh}
-                          type="button"
-                        >
-                          <RefreshCcw size={16} />
-                          Refresh
-                        </button>
-
-                        {/* Launch button in toolbar — desktop only */}
-                        <button
-                          style={{
-                            ...pageStyles.launchBtn,
-                            minWidth: "unset",
-                          }}
-                          className="btn d-none d-xl-inline-flex align-items-center justify-content-center gap-2"
-                          onClick={() => router.push("/Campaigns/launch")}
-                          type="button"
-                        >
-                          <Plus size={16} />
-                          Launch Campaign
-                          <ChevronRight size={16} />
+                        <button className="btn d-inline-flex align-items-center justify-content-center gap-2 flex-grow-1 flex-xl-grow-0" style={pageStyles.refreshBtn} onClick={fetchCampaigns} type="button">
+                          <RefreshCcw size={15} />Refresh
                         </button>
                       </div>
                     </div>
 
-                    {/* Mobile-only Launch button — full width below search */}
-                    {isMobile && (
-                      <div className="mt-2">
+                    {/* ── Status filters ── */}
+                    <div className="filter-scroll" style={{ display: "flex", gap: 8, marginTop: 12, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 2 }}>
+                      {STATUS_FILTERS.map((f) => (
                         <button
-                          style={{ ...pageStyles.launchBtn, width: "100%" }}
-                          className="btn d-inline-flex align-items-center justify-content-center gap-2"
-                          onClick={() => router.push("/Campaigns/launch")}
-                          type="button"
+                          key={f.value}
+                          className="btn"
+                          style={{ ...pageStyles.filterPill, ...(activeFilter === f.value ? pageStyles.filterPillActive : {}) }}
+                          onClick={() => setActiveFilter(f.value)}
                         >
-                          <Plus size={16} />
-                          Launch Campaign
-                          <ChevronRight size={16} />
+                          {f.label}
+                          {/* Show count badge */}
+                          <span style={{
+                            marginLeft: 6,
+                            background: activeFilter === f.value ? "rgba(255,255,255,0.25)" : "#f1f5f9",
+                            color: activeFilter === f.value ? "#fff" : "#64748b",
+                            borderRadius: 999,
+                            padding: "0 6px",
+                            fontSize: 11,
+                            fontWeight: 700,
+                          }}>
+                            {f.value === "all"
+                              ? campaigns.length
+                              : f.value === "recurring"
+                              ? campaigns.filter((c) => c.recurrence?.type && c.recurrence.type !== "one-time").length
+                              : campaigns.filter((c) => (c.status || "").toLowerCase() === f.value).length}
+                          </span>
                         </button>
-                      </div>
-                    )}
+                      ))}
+                    </div>
                   </div>
 
                   {/* ── Table ── */}
-                  <div style={pageStyles.tableWrap}>
-                    {/* Desktop header row */}
-                    <div
-                      className="d-none d-md-block px-3"
-                      style={pageStyles.tableHeader}
-                    >
-                      <div className="row m-0 align-items-center">
-                        <div className="col-md-3 py-3">Campaign</div>
-                        <div className="col-md-2 py-3">Type</div>
-                        <div className="col-md-1 py-3">Date</div>
-                        <div className="col-md-1 py-3">Status</div>
-                        <div className="col-md-1 py-3">Approval</div>
-                        <div className="col-md-2 py-3">Audience</div>
-                        <div className="col-md-2 py-3">Actions</div>
-                      </div>
+                  <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 20, overflow: "hidden" }}>
+
+                    {/* Desktop header */}
+                    <div className="d-none d-lg-flex" style={{ padding: "12px 20px", background: "#f8fafc", borderBottom: "1px solid #e5e7eb", fontSize: 11, fontWeight: 800, color: "#64748b", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                      <div style={{ flex: "2" }}>Campaign</div>
+                      <div style={{ flex: "1.2" }}>Audience</div>
+                      <div style={{ flex: "1.4" }}>Next Run (IST)</div>
+                      <div style={{ flex: "1" }}>Recurrence</div>
+                      <div style={{ flex: "0.9" }}>Status</div>
+                      <div style={{ flex: "0.9" }}>Approval</div>
+                      <div style={{ flex: "1" }}>Actions</div>
                     </div>
 
-                    <div
-                      style={{
-                        maxHeight: "60vh",
-                        overflowY: "auto",
-                        overflowX: "hidden",
-                      }}
-                    >
-                      {filteredData.length > 0 ? (
-                        filteredData.map((item, index) => {
-                          const isUpdating = updatingId === item.id;
-                          const isPaused = item.raw.status === "paused";
-                          const canEdit =
-                            isSuperAdmin || (isManager && isOwner(item.raw));
-                          const canDelete =
-                            isSuperAdmin || (isManager && isOwner(item.raw));
+                    {/* Rows */}
+                    <div className="table-scroll" style={{ maxHeight: "58vh", overflowY: "auto" }}>
+                      {filteredData.length === 0 ? (
+                        <div style={{ padding: "56px 20px", textAlign: "center" }}>
+                          <div style={{ fontSize: 40, marginBottom: 12 }}>📭</div>
+                          <div style={{ fontWeight: 700, color: "#0f172a", fontSize: 15, marginBottom: 4 }}>No campaigns found</div>
+                          <div style={{ color: "#94a3b8", fontSize: 13 }}>Try adjusting your search or filters</div>
+                        </div>
+                      ) : (
+                        filteredData.map((campaign, index) => {
+                          const isUpdating = updatingId === campaign._id;
+                          const isPaused = campaign.status === "paused";
+                          const canEdit = isSuperAdmin || (isManager && isOwner(campaign));
+                          const canDelete = isSuperAdmin || (isManager && isOwner(campaign));
+
+                          const audience = getAudienceLabel(campaign);
+                          const isRecurring = campaign.recurrence?.type && campaign.recurrence.type !== "one-time";
+
+                          // ✅ Show nextRun for recurring (scheduled after 1st run), else scheduledDateTime
+                          const displayDT = formatDateTime(
+                            isRecurring && campaign.status === "scheduled"
+                              ? campaign.nextRun
+                              : campaign.scheduledDateTime
+                          );
+                          const recLabel = getRecurrenceLabel(campaign.recurrence);
+                          const ss = statusStyle(campaign.status);
 
                           return (
                             <div
-                              key={item.id}
-                              ref={(el) => {
-                                rowsRef.current[index] = el;
-                              }}
-                              className="px-3 py-2 py-md-3"
-                              style={pageStyles.row}
+                              key={campaign._id}
+                              ref={(el) => { rowsRef.current[index] = el; }}
+                              style={{ borderBottom: "1px solid #f1f5f9", transition: "background 0.15s" }}
+                              onMouseEnter={(e) => (e.currentTarget.style.background = "#fafbff")}
+                              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                             >
-                              {/* ── Mobile card ── */}
-                              <div className="d-block d-md-none">
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    justifyContent: "space-between",
-                                    alignItems: "flex-start",
-                                    marginBottom: 6,
-                                  }}
-                                >
-                                  <div
-                                    style={{
-                                      fontSize: "13px",
-                                      fontWeight: 700,
-                                      color: "#0f172a",
-                                      flex: 1,
-                                      marginRight: 8,
-                                    }}
-                                  >
-                                    {item.name}
-                                  </div>
-                                  {/* Action buttons inline top-right */}
-                                  <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
-                                    {canEdit && (
-                                      <>
-                                        <button
-                                          onClick={() =>
-                                            handleToggleStatus(item.raw)
-                                          }
-                                          disabled={isUpdating}
-                                          style={{
-                                            ...pageStyles.actionBtn,
-                                            color: isPaused
-                                              ? "#16a34a"
-                                              : "#f59e0b",
-                                            opacity: isUpdating ? 0.5 : 1,
-                                          }}
-                                          title={isPaused ? "Resume" : "Pause"}
-                                        >
-                                          {isPaused ? (
-                                            <Play size={15} />
-                                          ) : (
-                                            <PauseCircle size={15} />
-                                          )}
-                                        </button>
-                                        <button
-                                          onClick={() =>
-                                            setEditingCampaignId(item.id)
-                                          }
-                                          style={pageStyles.actionBtn}
-                                          title="Edit"
-                                        >
-                                          <Edit size={15} />
-                                        </button>
-                                      </>
-                                    )}
-                                    {canDelete && (
-                                      <button
-                                        onClick={() =>
-                                          handleDelete(item.id, item.name)
-                                        }
-                                        style={{
-                                          ...pageStyles.actionBtn,
-                                          color: "#dc2626",
-                                        }}
-                                        title="Delete"
-                                      >
-                                        <Trash2 size={15} />
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
-
-                                {/* Badges row */}
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    flexWrap: "wrap",
-                                    gap: 6,
-                                    marginBottom: 6,
-                                  }}
-                                >
-                                  <span
-                                    style={{
-                                      ...pageStyles.badgeBase,
-                                      ...getTypeStyle(item.type),
-                                      fontSize: 10,
-                                      padding: "4px 10px",
-                                    }}
-                                  >
-                                    {item.type}
-                                  </span>
-                                  <span
-                                    style={{
-                                      ...pageStyles.badgeBase,
-                                      ...getStatusStyle(item.status),
-                                      fontSize: 10,
-                                      padding: "4px 10px",
-                                    }}
-                                  >
-                                    {item.status}
-                                  </span>
-                                  {getApprovalBadge(item.raw)}
-                                </div>
-
-                                {/* Meta row */}
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    gap: 12,
-                                    fontSize: 11,
-                                    color: "#94a3b8",
-                                    flexWrap: "wrap",
-                                  }}
-                                >
-                                  <span>📅 {item.date}</span>
-                                  <span>👥 {item.audience}</span>
-                                  <span>📤 Sent {item.sent}</span>
-                                </div>
-                              </div>
-
                               {/* ── Desktop row ── */}
-                              <div className="row align-items-center d-none d-md-flex">
-                                <div className="col-md-3">
-                                  <div
-                                    style={{
-                                      fontSize: "14px",
-                                      fontWeight: 700,
-                                      color: "#0f172a",
-                                      marginBottom: "4px",
-                                    }}
-                                  >
-                                    {item.name}
-                                  </div>
-                                  <div
-                                    style={{
-                                      fontSize: "12px",
-                                      color: "#94a3b8",
-                                    }}
-                                  >
-                                    Sent {item.sent}
+                              <div className="d-none d-lg-flex align-items-center" style={{ padding: "14px 20px", gap: 8 }}>
+
+                                {/* Campaign name + sent count */}
+                                <div style={{ flex: "2" }}>
+                                  <div style={{ fontWeight: 700, fontSize: 13, color: "#0f172a", marginBottom: 3 }}>{campaign.campaignName}</div>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                                    <span style={{ background: "#f1f5f9", borderRadius: 4, padding: "1px 7px", fontWeight: 700, fontSize: 11, color: "#475569" }}>
+                                      📤 {campaign.sentCount || 0} sent
+                                    </span>
+                                    {/* ✅ Show run count for recurring */}
+                                    {isRecurring && campaign.runCount > 0 && (
+                                      <span style={{ background: "#f0fdf4", borderRadius: 4, padding: "1px 7px", fontWeight: 700, fontSize: 11, color: "#166534" }}>
+                                        🔁 ran {campaign.runCount}×
+                                      </span>
+                                    )}
                                   </div>
                                 </div>
-                                <div className="col-md-2">
-                                  <span
-                                    style={{
-                                      ...pageStyles.badgeBase,
-                                      ...getTypeStyle(item.type),
-                                    }}
-                                  >
-                                    {item.type}
+
+                                {/* Audience */}
+                                <div style={{ flex: "1.2" }}>
+                                  <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: audience.bg, color: audience.color, borderRadius: 8, padding: "5px 10px", fontSize: 12, fontWeight: 700 }}>
+                                    <span>{audience.icon}</span>{audience.label}
                                   </span>
                                 </div>
-                                <div className="col-md-1">
-                                  <div
-                                    style={{
-                                      fontSize: "13px",
-                                      fontWeight: 700,
-                                      color: "#334155",
-                                    }}
-                                  >
-                                    {item.date}
+
+                                {/* Date/time */}
+                                <div style={{ flex: "1.4" }}>
+                                  <div style={{ fontSize: 10, color: "#94a3b8", fontWeight: 700, marginBottom: 2, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                                    {isRecurring && campaign.status === "scheduled" ? "Next run" : "Scheduled"}
                                   </div>
+                                  <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>{displayDT.date}</div>
+                                  {displayDT.time && <div style={{ fontSize: 12, color: "#0f5f64", fontWeight: 700 }}>{displayDT.time}</div>}
                                 </div>
-                                <div className="col-md-1">
-                                  <span
-                                    style={{
-                                      ...pageStyles.badgeBase,
-                                      ...getStatusStyle(item.status),
-                                    }}
-                                  >
-                                    {item.status}
-                                  </span>
-                                </div>
-                                <div className="col-md-1">
-                                  {getApprovalBadge(item.raw) || (
-                                    <span
-                                      style={{
-                                        color: "#9ca3af",
-                                        fontSize: 12,
-                                      }}
-                                    >
-                                      —
+
+                                {/* Recurrence */}
+                                <div style={{ flex: "1" }}>
+                                  {recLabel ? (
+                                    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "#f0fdf4", color: "#166534", borderRadius: 8, padding: "5px 10px", fontSize: 12, fontWeight: 700 }}>
+                                      🔁 {recLabel}
+                                    </span>
+                                  ) : (
+                                    <span style={{ background: "#f8fafc", color: "#64748b", borderRadius: 8, padding: "5px 10px", fontSize: 12, fontWeight: 700 }}>
+                                      1× Once
                                     </span>
                                   )}
                                 </div>
-                                <div className="col-md-2">
-                                  <div
-                                    style={{
-                                      fontSize: "13px",
-                                      fontWeight: 700,
-                                      color: "#334155",
-                                    }}
-                                  >
-                                    {item.audience}
-                                  </div>
+
+                                {/* Status */}
+                                <div style={{ flex: "0.9" }}>
+                                  <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: ss.bg, color: ss.color, borderRadius: 8, padding: "5px 10px", fontSize: 12, fontWeight: 700 }}>
+                                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: ss.dot, flexShrink: 0 }} />
+                                    {(campaign.status || "draft").charAt(0).toUpperCase() + (campaign.status || "draft").slice(1)}
+                                  </span>
                                 </div>
-                                <div className="col-md-2">
-                                  <div className="d-flex gap-1">
+
+                                {/* Approval */}
+                                <div style={{ flex: "0.9" }}>
+                                  <ApprovalBadge status={campaign.approvalStatus} />
+                                </div>
+
+                                {/* Actions */}
+                                <div style={{ flex: "1", display: "flex", gap: 6 }}>
+                                  {canEdit && (
+                                    <>
+                                      <button
+                                        className="action-btn"
+                                        onClick={() => handleToggleStatus(campaign)}
+                                        disabled={isUpdating}
+                                        title={isPaused ? "Resume" : "Pause"}
+                                        style={{ width: 32, height: 32, borderRadius: 8, border: "1px solid #e5e7eb", background: "#fff", cursor: isUpdating ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: isUpdating ? 0.5 : 1, color: isPaused ? "#16a34a" : "#f59e0b" }}
+                                      >
+                                        {isPaused ? <Play size={13} /> : <PauseCircle size={13} />}
+                                      </button>
+                                      <button
+                                        className="action-btn"
+                                        onClick={() => setEditingCampaignId(campaign._id)}
+                                        title="Edit"
+                                        style={{ width: 32, height: 32, borderRadius: 8, border: "1px solid #e5e7eb", background: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#3b82f6" }}
+                                      >
+                                        <Edit size={13} />
+                                      </button>
+                                    </>
+                                  )}
+                                  {canDelete && (
+                                    <button
+                                      className="action-btn"
+                                      onClick={() => handleDelete(campaign._id, campaign.campaignName)}
+                                      title="Delete"
+                                      style={{ width: 32, height: 32, borderRadius: 8, border: "1px solid #fee2e2", background: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#dc2626" }}
+                                    >
+                                      <Trash2 size={13} />
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* ── Mobile card ── */}
+                              <div className="d-block d-lg-none" style={{ padding: "14px 16px" }}>
+                                {/* Top row: name + actions */}
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10, gap: 8 }}>
+                                  <div style={{ flex: 1 }}>
+                                    <div style={{ fontWeight: 700, fontSize: 14, color: "#0f172a", marginBottom: 4 }}>{campaign.campaignName}</div>
+                                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: ss.bg, color: ss.color, borderRadius: 6, padding: "3px 8px", fontSize: 11, fontWeight: 700 }}>
+                                        <span style={{ width: 5, height: 5, borderRadius: "50%", background: ss.dot }} />
+                                        {(campaign.status || "draft").charAt(0).toUpperCase() + (campaign.status || "draft").slice(1)}
+                                      </span>
+                                      <ApprovalBadge status={campaign.approvalStatus} />
+                                    </div>
+                                  </div>
+                                  <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
                                     {canEdit && (
                                       <>
-                                        <button
-                                          onClick={() =>
-                                            handleToggleStatus(item.raw)
-                                          }
-                                          disabled={isUpdating}
-                                          style={{
-                                            ...pageStyles.actionBtn,
-                                            color: isPaused
-                                              ? "#16a34a"
-                                              : "#f59e0b",
-                                            opacity: isUpdating ? 0.5 : 1,
-                                          }}
-                                          title={isPaused ? "Resume" : "Pause"}
-                                        >
-                                          {isPaused ? (
-                                            <Play size={16} />
-                                          ) : (
-                                            <PauseCircle size={16} />
-                                          )}
+                                        <button onClick={() => handleToggleStatus(campaign)} disabled={isUpdating} style={{ width: 30, height: 30, borderRadius: 8, border: "1px solid #e5e7eb", background: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: isPaused ? "#16a34a" : "#f59e0b" }}>
+                                          {isPaused ? <Play size={13} /> : <PauseCircle size={13} />}
                                         </button>
-                                        <button
-                                          onClick={() =>
-                                            setEditingCampaignId(item.id)
-                                          }
-                                          style={pageStyles.actionBtn}
-                                          title="Edit"
-                                        >
-                                          <Edit size={16} />
+                                        <button onClick={() => setEditingCampaignId(campaign._id)} style={{ width: 30, height: 30, borderRadius: 8, border: "1px solid #e5e7eb", background: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#3b82f6" }}>
+                                          <Edit size={13} />
                                         </button>
                                       </>
                                     )}
                                     {canDelete && (
-                                      <button
-                                        onClick={() =>
-                                          handleDelete(item.id, item.name)
-                                        }
-                                        style={{
-                                          ...pageStyles.actionBtn,
-                                          color: "#dc2626",
-                                        }}
-                                        title="Delete"
-                                      >
-                                        <Trash2 size={16} />
+                                      <button onClick={() => handleDelete(campaign._id, campaign.campaignName)} style={{ width: 30, height: 30, borderRadius: 8, border: "1px solid #fee2e2", background: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "#dc2626" }}>
+                                        <Trash2 size={13} />
                                       </button>
                                     )}
                                   </div>
                                 </div>
+
+                                {/* Meta chips */}
+                                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: audience.bg, color: audience.color, borderRadius: 8, padding: "4px 10px", fontSize: 11, fontWeight: 700 }}>
+                                    {audience.icon} {audience.label}
+                                  </span>
+                                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#f0f9ff", color: "#0369a1", borderRadius: 8, padding: "4px 10px", fontSize: 11, fontWeight: 700 }}>
+                                    📅 {displayDT.date} {displayDT.time}
+                                  </span>
+                                  {recLabel && (
+                                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#f0fdf4", color: "#166534", borderRadius: 8, padding: "4px 10px", fontSize: 11, fontWeight: 700 }}>
+                                      🔁 {recLabel}
+                                    </span>
+                                  )}
+                                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#f8fafc", color: "#475569", borderRadius: 8, padding: "4px 10px", fontSize: 11, fontWeight: 700 }}>
+                                    📤 {campaign.sentCount || 0} sent
+                                  </span>
+                                  {isRecurring && campaign.runCount > 0 && (
+                                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#f0fdf4", color: "#166534", borderRadius: 8, padding: "4px 10px", fontSize: 11, fontWeight: 700 }}>
+                                      🔁 ran {campaign.runCount}×
+                                    </span>
+                                  )}
+                                </div>
                               </div>
+
                             </div>
                           );
                         })
-                      ) : (
-                        <div
-                          style={{
-                            padding: "48px 20px",
-                            textAlign: "center",
-                            color: "#64748b",
-                            fontSize: "14px",
-                            fontWeight: 600,
-                          }}
-                        >
-                          No campaigns found.
-                        </div>
+                      )}
+                    </div>
+
+                    {/* Footer count */}
+                    <div style={{ padding: "10px 20px", borderTop: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ fontSize: 12, color: "#94a3b8", fontWeight: 600 }}>
+                        Showing {filteredData.length} of {campaigns.length} campaigns
+                      </span>
+                      {filteredData.length !== campaigns.length && (
+                        <button onClick={() => { setSearch(""); setActiveFilter("all"); }} style={{ background: "none", border: "none", color: "#0f5f64", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                          Clear filters
+                        </button>
                       )}
                     </div>
                   </div>
@@ -1925,42 +1336,6 @@ export default function CampaignsPage() {
             </div>
           )}
         </div>
-
-        <style jsx global>{`
-          @keyframes pulse {
-            0% {
-              background-position: 200% 0;
-            }
-            100% {
-              background-position: -200% 0;
-            }
-          }
-
-          /* ── Mobile stat card compaction ── */
-          @media (max-width: 575px) {
-            .stat-card-mobile {
-              padding: 14px !important;
-              border-radius: 16px !important;
-            }
-            .stat-icon-mobile {
-              width: 34px !important;
-              height: 34px !important;
-              border-radius: 10px !important;
-              margin-bottom: 8px !important;
-            }
-            .stat-label-mobile {
-              font-size: 10px !important;
-            }
-            .stat-value-mobile {
-              font-size: 20px !important;
-              margin-top: 4px !important;
-            }
-            .stat-subtext-mobile {
-              font-size: 10px !important;
-              margin-top: 2px !important;
-            }
-          }
-        `}</style>
       </div>
     </>
   );

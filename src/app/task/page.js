@@ -978,7 +978,7 @@ export default function TaskPage() {
 
         /* mobile */
         @media (max-width: 820px) {
-          .task-shell2 { top: 60px; left: 0; }
+          .task-shell2 { top: 60px; left: 0; padding-bottom: 45px; }
           .task-header { height: auto; min-height: 48px; flex-wrap: wrap; padding: 8px 12px; gap: 8px; }
           .task-header-left { flex-wrap: wrap; }
           .task-header-right { width: 100%; justify-content: start; }
