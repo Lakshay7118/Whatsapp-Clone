@@ -828,6 +828,8 @@ export default function CampaignsPage() {
   const [userRole, setUserRole] = useState("");
   const [userId, setUserId] = useState("");
 
+  const [lastRefreshed, setLastRefreshed] = useState(null);
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       const role = localStorage.getItem("role");
@@ -866,16 +868,37 @@ export default function CampaignsPage() {
     { label: "Recurring", value: "recurring" },
   ];
 
-  const fetchCampaigns = () => {
-    setIsLoading(true);
-    API.get("/campaigns")
-      .then((res) => {
-        const data = res.data;
-        setCampaigns(data.success && Array.isArray(data.campaigns) ? data.campaigns : []);
-      })
-      .catch(() => setCampaigns([]))
-      .finally(() => setIsLoading(false));
-  };
+  // Replace your existing fetchCampaigns function
+
+
+const fetchCampaigns = async (silent = false) => {
+  if (!silent) setIsLoading(true);
+  try {
+    const res = await API.get("/campaigns");
+    const data = res.data;
+    setCampaigns(data.success && Array.isArray(data.campaigns) ? data.campaigns : []);
+    setLastRefreshed(new Date()); // ✅ track refresh time
+  } catch {
+    if (!silent) setCampaigns([]);
+  } finally {
+    if (!silent) setIsLoading(false);
+  }
+};
+
+useEffect(() => {
+  if (userRole) fetchCampaigns();
+}, [userRole]);
+
+// ✅ ADD THIS NEW useEffect right after:
+useEffect(() => {
+  if (!userRole) return;
+  const hasActiveRecurring = campaigns.some(
+    (c) => c.recurrence?.type && c.recurrence.type !== "one-time" && c.status === "scheduled"
+  );
+  if (!hasActiveRecurring) return;
+  const interval = setInterval(() => fetchCampaigns(true), 30_000);
+  return () => clearInterval(interval);
+}, [campaigns, userRole]);
 
   useEffect(() => {
     if (userRole) fetchCampaigns();
@@ -986,6 +1009,10 @@ export default function CampaignsPage() {
         .table-scroll::-webkit-scrollbar-thumb { background: #dbe3eb; border-radius: 4px; }
         .action-btn { transition: transform 0.15s, box-shadow 0.15s; }
         .action-btn:hover { transform: translateY(-1px); }
+        @keyframes livePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.35; transform: scale(0.65); }
+}
         @media (max-width: 575px) {
           .stat-grid { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
           .hero-title { font-size: 20px !important; }
@@ -1072,11 +1099,24 @@ export default function CampaignsPage() {
                           onChange={(e) => setSearch(e.target.value)}
                         />
                       </div>
-                      <div className="d-flex gap-2">
-                        <button className="btn d-inline-flex align-items-center justify-content-center gap-2 flex-grow-1 flex-xl-grow-0" style={pageStyles.refreshBtn} onClick={fetchCampaigns} type="button">
-                          <RefreshCcw size={15} />Refresh
-                        </button>
-                      </div>
+                      <div className="d-flex gap-2 align-items-center">
+  {lastRefreshed && (
+    <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600, whiteSpace: "nowrap" }}>
+      ↻ {lastRefreshed.toLocaleTimeString("en-IN", {
+        hour: "2-digit", minute: "2-digit", second: "2-digit",
+        hour12: true, timeZone: "Asia/Kolkata"
+      })}
+    </span>
+  )}
+  <button
+    className="btn d-inline-flex align-items-center justify-content-center gap-2 flex-grow-1 flex-xl-grow-0"
+    style={pageStyles.refreshBtn}
+    onClick={() => fetchCampaigns(false)}
+    type="button"
+  >
+    <RefreshCcw size={15} />Refresh
+  </button>
+</div>
                     </div>
 
                     {/* ── Status filters ── */}
@@ -1164,19 +1204,24 @@ export default function CampaignsPage() {
 
                                 {/* Campaign name + sent count */}
                                 <div style={{ flex: "2" }}>
-                                  <div style={{ fontWeight: 700, fontSize: 13, color: "#0f172a", marginBottom: 3 }}>{campaign.campaignName}</div>
-                                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                                    <span style={{ background: "#f1f5f9", borderRadius: 4, padding: "1px 7px", fontWeight: 700, fontSize: 11, color: "#475569" }}>
-                                      📤 {campaign.sentCount || 0} sent
-                                    </span>
-                                    {/* ✅ Show run count for recurring */}
-                                    {isRecurring && campaign.runCount > 0 && (
-                                      <span style={{ background: "#f0fdf4", borderRadius: 4, padding: "1px 7px", fontWeight: 700, fontSize: 11, color: "#166534" }}>
-                                        🔁 ran {campaign.runCount}×
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
+  <div style={{ fontWeight: 700, fontSize: 13, color: "#0f172a", marginBottom: 3 }}>{campaign.campaignName}</div>
+  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+    <span style={{ background: "#f1f5f9", borderRadius: 4, padding: "1px 7px", fontWeight: 700, fontSize: 11, color: "#475569" }}>
+      📤 {isRecurring ? (campaign.lastSentCount ?? campaign.sentCount ?? 0) : (campaign.sentCount || 0)} sent
+    </span>
+    {isRecurring && (campaign.runCount || 0) > 0 && (
+      <span style={{ background: "#f0fdf4", borderRadius: 4, padding: "1px 7px", fontWeight: 700, fontSize: 11, color: "#166534" }}>
+        🔁 ran {campaign.runCount}×
+      </span>
+    )}
+    {isRecurring && campaign.status === "scheduled" && (
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#f0fdf4", borderRadius: 4, padding: "1px 7px", fontWeight: 700, fontSize: 11, color: "#166534" }}>
+        <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#22c55e", display: "inline-block", animation: "livePulse 1.4s ease-in-out infinite" }} />
+        Live
+      </span>
+    )}
+  </div>
+</div>
 
                                 {/* Audience */}
                                 <div style={{ flex: "1.2" }}>
@@ -1192,6 +1237,13 @@ export default function CampaignsPage() {
                                   </div>
                                   <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>{displayDT.date}</div>
                                   {displayDT.time && <div style={{ fontSize: 12, color: "#0f5f64", fontWeight: 700 }}>{displayDT.time}</div>}
+
+                                  {/* ADD THIS LINE RIGHT AFTER: */}
+{isRecurring && campaign.lastRunAt && (
+  <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>
+    Last: {formatDateTime(campaign.lastRunAt).time}
+  </div>
+)}
                                 </div>
 
                                 {/* Recurrence */}
@@ -1302,9 +1354,16 @@ export default function CampaignsPage() {
                                       🔁 {recLabel}
                                     </span>
                                   )}
-                                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#f8fafc", color: "#475569", borderRadius: 8, padding: "4px 10px", fontSize: 11, fontWeight: 700 }}>
-                                    📤 {campaign.sentCount || 0} sent
-                                  </span>
+                                  {/* REPLACE WITH THIS: */}
+<span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#f8fafc", color: "#475569", borderRadius: 8, padding: "4px 10px", fontSize: 11, fontWeight: 700 }}>
+  📤 {isRecurring ? (campaign.lastSentCount ?? campaign.sentCount ?? 0) : (campaign.sentCount || 0)} sent
+</span>
+{isRecurring && campaign.status === "scheduled" && (
+  <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#f0fdf4", color: "#166534", borderRadius: 8, padding: "4px 10px", fontSize: 11, fontWeight: 700 }}>
+    <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#22c55e", animation: "livePulse 1.4s ease-in-out infinite" }} />
+    Live
+  </span>
+)}
                                   {isRecurring && campaign.runCount > 0 && (
                                     <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#f0fdf4", color: "#166534", borderRadius: 8, padding: "4px 10px", fontSize: 11, fontWeight: 700 }}>
                                       🔁 ran {campaign.runCount}×

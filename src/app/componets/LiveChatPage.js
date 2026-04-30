@@ -298,8 +298,14 @@ export default function LiveChatPage() {
   const [templates, setTemplates] = useState([]);
   const [showContactInfo, setShowContactInfo] = useState(false);
   const [showMobileContactInfo, setShowMobileContactInfo] = useState(false);
+
+  const [hoveredChatId, setHoveredChatId] = useState(null);
+const [chatDropdown, setChatDropdown] = useState({ open: false, chatId: null, x: 0, y: 0 });
+const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
+const [deleteTarget, setDeleteTarget] = useState(null); // { chatId, isGroup, mode }
   
-  
+  const [showClearConfirmModal, setShowClearConfirmModal] = useState(false);
+const [clearTargetId, setClearTargetId] = useState(null);
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
@@ -380,40 +386,74 @@ useEffect(() => {
 
   // 🔥 Global handler — updates left panel preview for ALL chats
 const handleGlobalNewMessage = (msg) => {
-  if (String(msg.chatId) === String(selectedChatRef.current?._id)) return;
 
-  setMessages(prev => {
-    const chatId = msg.chatId;
-    const currentMsgs = prev[chatId] || [];
-    if (currentMsgs.some(m => m.id === msg._id || (m.text === msg.text && Math.abs(new Date(m.createdAt) - new Date(msg.createdAt)) < 3000))) return prev;
-    const isSentByMe = String(msg.sender) === String(currentUserRef.current?.phone);
-    return {
-      ...prev,
-      [chatId]: [...currentMsgs, {
-        id: msg._id, sender: msg.sender,
-        type: isSentByMe ? "sent" : "received",
-        messageType: msg.messageType || "text",
-        text: msg.text || "", templateMeta: msg.templateMeta || null,
-        createdAt: msg.createdAt,
-        time: new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        delivered: !isSentByMe, seen: false,
-        fileName: msg.fileName, url: msg.fileUrl, isDeleted: false,
-      }],
-    };
-  });
+  // ✅ REMOVED early return — both handlers run, dedup prevents duplicates
 
-  // ✅ CHANGED: move to top + update unread
-  setChatList(prev => {
-    const chat = prev.find(c => String(c._id) === String(msg.chatId));
-    if (!chat) return prev;
-    const isByMe = String(msg.sender) === String(currentUserRef.current?.phone);
-    const updated = {
-      ...chat,
-      unread: isByMe ? chat.unread : (chat.unread || 0) + 1,
-      updatedAt: new Date().toISOString(),
-    };
-    return [updated, ...prev.filter(c => String(c._id) !== String(msg.chatId))];
-  });
+  // ✅ Add message to state for non-selected chats
+  // For selected chat, the per-chat handleNewMessage handles it
+  if (String(msg.chatId) !== String(selectedChatRef.current?._id)) {
+    setMessages(prev => {
+      const chatId = msg.chatId;
+      const currentMsgs = prev[chatId] || [];
+      if (currentMsgs.some(m =>
+        m.id === msg._id ||
+        (m.text === msg.text && Math.abs(new Date(m.createdAt) - new Date(msg.createdAt)) < 3000)
+      )) return prev;
+
+      const isSentByMe = String(msg.sender) === String(currentUserRef.current?.phone);
+      return {
+        ...prev,
+        [chatId]: [...currentMsgs, {
+          id: msg._id,
+          sender: msg.sender,
+          type: isSentByMe ? "sent" : "received",
+          messageType: msg.messageType || "text",
+          text: msg.text || "",
+          templateMeta: msg.templateMeta || null,
+          createdAt: msg.createdAt,
+          time: new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          delivered: !isSentByMe,
+          seen: false,
+          fileName: msg.fileName,
+          url: msg.fileUrl,
+          isDeleted: false,
+        }],
+      };
+    });
+  }
+
+  // ✅ Always update chat list (move to top + unread) for ALL messages
+ // Replace this entire setChatList block inside handleGlobalNewMessage:
+setChatList(prev => {
+  const chat = prev.find(c => String(c._id) === String(msg.chatId));
+  const isByMe = String(msg.sender) === String(currentUserRef.current?.phone);
+  const isCurrentlyOpen = String(msg.chatId) === String(selectedChatRef.current?._id);
+
+  if (!chat) {
+    API.get("/chats").then(res => {
+      if (Array.isArray(res.data)) {
+        const restored = res.data.find(c => String(c._id) === String(msg.chatId));
+        if (restored) {
+          setChatList(prev2 => {
+            const exists = prev2.find(c => String(c._id) === String(msg.chatId));
+            if (exists) return prev2;
+            return [{ ...restored, unread: isByMe || isCurrentlyOpen ? 0 : 1 }, ...prev2];
+          });
+          getSocket().emit("joinChat", msg.chatId);
+        }
+      }
+    }).catch(console.error);
+    return prev;
+  }
+
+  const updated = {
+    ...chat,
+    // ✅ FIX: don't increment unread if message is by me OR chat is currently open
+    unread: (isByMe || isCurrentlyOpen) ? chat.unread : (chat.unread || 0) + 1,
+    updatedAt: new Date().toISOString(),
+  };
+  return [updated, ...prev.filter(c => String(c._id) !== String(msg.chatId))];
+});
 };
 
   s.on("newMessage", handleGlobalNewMessage);
@@ -453,45 +493,119 @@ const handleGlobalNewMessage = (msg) => {
 // ✅ ADD THIS — listens for campaign-created chats
 const handleChatUpdated = ({ chatId, isNewChat, lastMessage, participants }) => {
   const s = getSocket();
+
+  // ✅ Step 1: Join the room immediately
   s.emit("joinChat", chatId);
 
-  if (isNewChat) {
-    setChatList(prev => {
-      const exists = prev.find(c => String(c._id) === String(chatId));
-      if (exists) return prev;
-      const otherPhone = participants?.find(p => p !== currentUserRef.current?.phone) || "Unknown";
-      // ✅ FIX: try to resolve name from contacts
-      const matchedContact = contacts.find(c => c.mobile === otherPhone);
-      return [
-        {
-          _id: chatId,
-          participants,
-          lastMessage,
-          status: "active", // ✅ always set status
-          unread: 1,
-          name: matchedContact?.name || otherPhone,
-          phone: otherPhone,
-        },
+  // ✅ Step 2: Update chat list
+  setChatList(prev => {
+    const exists = prev.find(c => String(c._id) === String(chatId));
+     console.log("📋 Chat exists in list?", !!exists, "| chatId:", chatId);
+    if (exists) {
+      // Chat already in list — just update lastMessage + unread + move to top
+      const updated = {
+        ...exists,
+        lastMessage,
+        unread: (exists.unread || 0) + 1,
+        updatedAt: new Date().toISOString(),
+      };
+      return [updated, ...prev.filter(c => String(c._id) !== String(chatId))];
+    }
+
+    // ✅ New chat — add it to the top of the list
+    const otherPhone = participants?.find(
+      p => p !== currentUserRef.current?.phone
+    ) || "Unknown";
+
+    // Try to resolve contact name
+    const matchedContact = contacts.find(c => c.mobile === otherPhone);
+
+    return [
+      {
+        _id: chatId,
+        participants,
+        lastMessage,
+        status: "active",
+        unread: 1,
+        name: matchedContact?.name || otherPhone,
+        phone: otherPhone,
+      },
+      ...prev,
+    ];
+  });
+
+  // ✅ Step 3: KEY FIX — Always re-fetch messages from DB for this chat
+  // This bypasses the race condition where emit fires before socket joins room
+  // DB always has the message regardless of socket timing
+  API.get(`/messages?chatId=${chatId}`)
+    .then(res => {
+      setMessages(prev => ({
         ...prev,
-      ];
-    });
-  } else {
-    setChatList(prev =>
-      prev.map(chat =>
-        String(chat._id) === String(chatId)
-          ? { ...chat, lastMessage, unread: (chat.unread || 0) + 1 }
-          : chat
-      )
-    );
-  }
+        [chatId]: res.data.map(m => {
+          const isSentByMe =
+            String(m.sender) === String(currentUserRef.current?.phone);
+          return {
+            id: m._id,
+            sender: m.sender,
+            type: isSentByMe ? "sent" : "received",
+            messageType: m.messageType || "text",
+            text: m.text || "",
+            templateMeta: m.templateMeta || null,
+            createdAt: m.createdAt,
+            time: new Date(m.createdAt).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+            delivered: m.status === "delivered" || m.status === "seen",
+            seen: m.status === "seen",
+            fileName: m.fileName,
+            url: m.fileUrl,
+            isDeleted: m.isDeleted || false,
+          };
+        }),
+      }));
+    })
+    .catch(err => console.error("❌ Message fetch failed:", err));
 };
 s.on("chatUpdated", handleChatUpdated);
+
+// ── NEW LISTENERS ──
+const handleChatCleared = ({ chatId }) => {
+  setMessages(prev => ({ ...prev, [chatId]: [] }));
+};
+
+const handleChatPinned = ({ chatId, pinned }) => {
+  setChatList(prev => {
+    const updated = prev.map(c => c._id === chatId ? { ...c, pinned } : c);
+    return [...updated.filter(c => c.pinned), ...updated.filter(c => !c.pinned)];
+  });
+};
+
+const handleChatDeletedPermanently = ({ chatId }) => {
+  setChatList(prev => prev.filter(c => String(c._id) !== String(chatId)));
+  if (String(selectedChatRef.current?._id) === String(chatId)) {
+    setSelectedChat(null);
+    setMobileChatOpen(false);
+  }
+  setMessages(prev => {
+    const updated = { ...prev };
+    delete updated[chatId];
+    return updated;
+  });
+};
+
+s.on("chatCleared", handleChatCleared);
+s.on("chatPinned", handleChatPinned);
+s.on("chatDeletedPermanently", handleChatDeletedPermanently);
 
 return () => {
   s.off("newMessage", handleGlobalNewMessage);
   s.off("messageDelivered", handleMessageDelivered);
   s.off("messagesSeen", handleGlobalMessagesSeen);
-  s.off("chatUpdated", handleChatUpdated);  // ✅ cleanup
+  s.off("chatUpdated", handleChatUpdated);
+  s.off("chatCleared", handleChatCleared);
+  s.off("chatPinned", handleChatPinned);
+  s.off("chatDeletedPermanently", handleChatDeletedPermanently);
 };
 }, []);
 
@@ -614,6 +728,12 @@ useEffect(() => {
   const isSentByMe =
     String(msg.sender) === String(currentUserRef.current?.phone);
 
+  // ✅ FIX: mark read instantly when message arrives in open chat
+  if (!isSentByMe) {
+    API.post("/messages/mark-read", { chatId }).catch(console.error);
+    getSocket().emit("markRead", { chatId });
+  }
+
   setMessages(prev => {
     const currentMsgs = prev[chatId] || [];
 
@@ -670,7 +790,7 @@ useEffect(() => {
     return { ...prev, [chatId]: [...currentMsgs, newMsg] };
   });
 
-  // ✅ ADDED: move this chat to top
+  // ✅ move this chat to top
   setChatList(prev => {
     const chat = prev.find(c => String(c._id) === String(msg.chatId));
     if (!chat) return prev;
@@ -790,26 +910,62 @@ const handleSelectChat = (chat) => {
   }
 };
 
+const handleChatDropdownOpen = (e, chat) => {
+  e.stopPropagation();
+  const rect = e.currentTarget.getBoundingClientRect();
+  setChatDropdown({ open: true, chat, x: rect.left - 160, y: rect.bottom + 4 });
+};
+
+const closeChatDropdown = () => setChatDropdown({ open: false, chat: null, x: 0, y: 0 });
+
 const handleDeleteChat = async (chatId) => {
-  if (!confirm("Delete this chat for yourself? The other person will still see it.")) return;
-
   try {
-    // ✅ JWT will be automatically sent via API interceptor
     await API.delete(`/chats/${chatId}`);
-
-    // ✅ Update UI
-    setChatList((prev) => prev.filter((chat) => chat._id !== chatId));
-
-    if (selectedChat?._id === chatId) {
-      setSelectedChat(null);
-    }
-
+    setChatList(prev => prev.filter(c => c._id !== chatId));
+    if (selectedChat?._id === chatId) setSelectedChat(null);
   } catch (err) {
     console.error("Delete chat error:", err);
     alert(err.response?.data?.error || "Error deleting chat");
   }
 };
 
+const handleDeleteGroup = async (chatId) => {
+  try {
+    await API.delete(`/groups/${chatId}`);
+    setChatList(prev => prev.filter(c => c._id !== chatId));
+    if (selectedChat?._id === chatId) setSelectedChat(null);
+  } catch (err) {
+    console.error("Delete group error:", err);
+    alert(err.response?.data?.error || "Error deleting group");
+  }
+};
+
+const handleClearChat = async (chatId) => {
+  try {
+    await API.delete(`/chats/clear/${chatId}`); // ✅ match your backend mount path
+    setMessages(prev => ({ ...prev, [chatId]: [] }));
+  } catch (err) {
+    console.error("Clear chat error:", err);
+    alert("Error clearing chat");
+  }
+};
+
+const handlePinChat = (chatId) => {
+  setChatList(prev => {
+    const chat = prev.find(c => c._id === chatId);
+    if (!chat) return prev;
+    const pinned = !chat.pinned;
+    const updated = prev.map(c => c._id === chatId ? { ...c, pinned } : c);
+    return [...updated.filter(c => c.pinned), ...updated.filter(c => !c.pinned)];
+  });
+  closeChatDropdown();
+};
+
+const openDeleteConfirm = (chat, isGroup) => {
+  setDeleteTarget({ chatId: chat._id, isGroup });
+  setShowDeleteConfirmModal(true);
+  closeChatDropdown();
+};
 
   const handleForwardMessage = (msg) => {
     setForwardMessage(msg);
@@ -1581,58 +1737,70 @@ const deleteForEveryone = async () => {
                         <div className="text-center p-4" style={{ color: "#667781" }}>No chats found</div>
                       ) : (
                         filteredChats.map((item) => (
-                          <div
-                            key={item._id}
-                            className="chat-item w-100 border-0 d-flex align-items-center gap-3 px-3 py-3"
-                            style={{
-                              background: selectedChat?._id === item._id ? "#f0f2f5" : "#ffffff",
-                              borderBottom: "1px solid #f0f2f5",
-                              cursor: "pointer",
-                            }}
-                            onClick={() => handleSelectChat(item)}
-                          >
-                            <div
-                              className="rounded-circle d-flex align-items-center justify-content-center fw-bold flex-shrink-0"
-                              style={{ width: 49, height: 49, background: "#dfe5e7", color: "#54656f" }}
-                            >
-                              {item.name?.charAt(0) || "U"}
-                            </div>
-                            <div className="flex-grow-1 overflow-hidden">
-                              <div className="d-flex align-items-center justify-content-between gap-2">
-                                <div className="text-truncate" style={{ fontSize: "0.98rem", fontWeight: 500, color: "#111b21" }}>
-                                  {item.name || item.phone}
-                                </div>
-                                <div className="flex-shrink-0" style={{ fontSize: "0.72rem", color: item.unread > 0 ? "#25d366" : "#667781" }}>
-                                  {lastMessageTime(item._id)}
-                                </div>
-                              </div>
-                              <div className="d-flex align-items-center justify-content-between gap-2 mt-1">
-                                <div className="text-truncate" style={{ fontSize: "0.84rem", color: "#667781" }}>
-                                  {lastMessageText(item._id)}
-                                </div>
-                                {item.unread > 0 && (
-                                  <div
-                                    className="rounded-pill d-flex align-items-center justify-content-center text-white fw-bold flex-shrink-0"
-                                    style={{ minWidth: 20, height: 20, background: "#25d366", fontSize: "0.7rem", padding: "0 6px" }}
-                                  >
-                                    {item.unread}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteChat(item._id);
-                              }}
-                              className="btn btn-sm p-1"
-                              style={{ color: "#dc3545", background: "transparent", border: "none" }}
-                              title="Delete chat"
-                            >
-                              <FiTrash2 size={16} />
-                            </button>
-                          </div>
-                        ))
+  <div
+    key={item._id}
+    className="chat-item w-100 border-0 d-flex align-items-center gap-3 px-3 py-3"
+    style={{
+      background: selectedChat?._id === item._id ? "#f0f2f5" : "#ffffff",
+      borderBottom: "1px solid #f0f2f5",
+      cursor: "pointer",
+      position: "relative",
+    }}
+    onClick={() => handleSelectChat(item)}
+    onMouseEnter={() => setHoveredChatId(item._id)}
+    onMouseLeave={() => setHoveredChatId(null)}
+  >
+    <div
+      className="rounded-circle d-flex align-items-center justify-content-center fw-bold flex-shrink-0"
+      style={{ width: 49, height: 49, background: "#dfe5e7", color: "#54656f" }}
+    >
+      {item.name?.charAt(0) || "U"}
+    </div>
+    <div className="flex-grow-1 overflow-hidden">
+      <div className="d-flex align-items-center justify-content-between gap-2">
+        <div className="text-truncate" style={{ fontSize: "0.98rem", fontWeight: 500, color: "#111b21" }}>
+          {item.name || item.phone}
+          {item.pinned && (
+            <span style={{ marginLeft: 6, fontSize: "0.7rem", color: "#00a884" }}>📌</span>
+          )}
+        </div>
+        <div className="flex-shrink-0" style={{ fontSize: "0.72rem", color: item.unread > 0 ? "#25d366" : "#667781" }}>
+          {lastMessageTime(item._id)}
+        </div>
+      </div>
+      <div className="d-flex align-items-center justify-content-between gap-2 mt-1">
+        <div className="text-truncate" style={{ fontSize: "0.84rem", color: "#667781" }}>
+          {lastMessageText(item._id)}
+        </div>
+        {item.unread > 0 && (
+          <div
+            className="rounded-pill d-flex align-items-center justify-content-center text-white fw-bold flex-shrink-0"
+            style={{ minWidth: 20, height: 20, background: "#25d366", fontSize: "0.7rem", padding: "0 6px" }}
+          >
+            {item.unread}
+          </div>
+        )}
+      </div>
+    </div>
+
+    {/* ── WhatsApp-style hover chevron ── */}
+    {hoveredChatId === item._id && (
+      <button
+        onClick={(e) => handleChatDropdownOpen(e, item)}
+        style={{
+          position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)",
+          width: 28, height: 28, borderRadius: "50%",
+          background: "rgba(255,255,255,0.92)", border: "1px solid #e9edef",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          cursor: "pointer", color: "#54656f", zIndex: 2,
+          boxShadow: "0 1px 4px rgba(0,0,0,0.1)",
+        }}
+      >
+        <FiChevronDown size={14} />
+      </button>
+    )}
+  </div>
+))
                       )
                     )}
                   </div>
@@ -2044,136 +2212,17 @@ onClick={() => {
         </div>
       </div>
 
-      {showGroupModal && (
-  <div 
-    className="modal-overlay" 
-    onClick={() => setShowGroupModal(false)} 
-    style={{ 
-      position: "fixed", 
-      top: 0, left: 0, right: 0, bottom: 0, 
-      background: "rgba(0, 0, 0, 0.4)", 
-      backdropFilter: "blur(4px)", /* Adds a modern blurred background effect */
-      display: "flex", 
-      alignItems: "center", 
-      justifyContent: "center", 
-      zIndex: 1000,
-      padding: "20px"
-    }}
-  >
-    <div 
-      className="modal-content shadow-lg" 
-      onClick={(e) => e.stopPropagation()} 
-      style={{ 
-        background: "#ffffff", 
-        padding: "28px", 
-        borderRadius: "16px", 
-        width: "100%", 
-        maxWidth: "420px", 
-        maxHeight: "85vh", 
-        display: "flex",
-        flexDirection: "column",
-        boxShadow: "0 10px 30px rgba(0,0,0,0.15)"
-      }}
-    >
-      {/* Header */}
-      <div style={{ marginBottom: "20px" }}>
-        <h4 style={{ margin: 0, fontWeight: "600", color: "#1a1a1a" }}>Create New Group</h4>
-        <p style={{ margin: "4px 0 0 0", fontSize: "14px", color: "#666" }}>Add a name and select members</p>
-      </div>
-
-      {/* Group Name Input */}
-      <input 
-        type="text" 
-        placeholder="e.g. Weekend Plan 🌴" 
-        value={groupName} 
-        onChange={(e) => setGroupName(e.target.value)} 
-        className="form-control" 
-        style={{ 
-          width: "100%", 
-          padding: "12px 16px", 
-          borderRadius: "8px",
-          border: "1px solid #e0e0e0",
-          fontSize: "15px",
-          marginBottom: "20px",
-          outline: "none",
-          transition: "border-color 0.2s"
-        }} 
-      />
-
-      {/* Contact List */}
-      <div style={{ flex: 1, overflowY: "auto", paddingRight: "4px", marginBottom: "20px" }}>
-        <p style={{ fontSize: "13px", fontWeight: "600", color: "#888", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "12px" }}>
-          Suggested Contacts
-        </p>
-        
-        {contacts.map(contact => {
-          const isSelected = selectedContactsForGroup.some(c => c.mobile === contact.mobile);
-          
-          return (
-            <label 
-              key={contact.mobile} 
-              style={{
-                display: "flex",
-                alignItems: "center",
-                padding: "10px 12px",
-                borderRadius: "8px",
-                cursor: "pointer",
-                background: isSelected ? "#f0f7ff" : "transparent",
-                border: "1px solid",
-                borderColor: isSelected ? "#cce3ff" : "transparent",
-                transition: "all 0.2s ease",
-                marginBottom: "4px"
-              }}
-            >
-              <input 
-                type="checkbox" 
-                style={{ width: "18px", height: "18px", marginRight: "12px", accentColor: "#0d6efd", cursor: "pointer" }}
-                checked={isSelected} 
-                onChange={(e) => {
-                  if (e.target.checked) setSelectedContactsForGroup([...selectedContactsForGroup, contact]);
-                  else setSelectedContactsForGroup(selectedContactsForGroup.filter(c => c.mobile !== contact.mobile));
-                }} 
-              />
-              
-              {/* Fake Avatar */}
-              <div style={{
-                width: "36px", height: "36px", borderRadius: "50%", background: "#e9ecef", 
-                display: "flex", alignItems: "center", justifyContent: "center", 
-                marginRight: "12px", color: "#495057", fontWeight: "600", fontSize: "14px"
-              }}>
-                {contact.name.charAt(0).toUpperCase()}
-              </div>
-              
-              {/* Contact Info */}
-              <div style={{ display: "flex", flexDirection: "column" }}>
-                <span style={{ fontWeight: "500", color: "#1a1a1a", fontSize: "15px" }}>{contact.name}</span>
-                <span style={{ color: "#6c757d", fontSize: "13px" }}>{contact.mobile}</span>
-              </div>
-            </label>
-          );
-        })}
-      </div>
-
-      {/* Actions */}
-      <div className="d-flex justify-content-end gap-3" style={{ paddingTop: "16px", borderTop: "1px solid #f0f0f0" }}>
-        <button 
-          className="btn btn-light" 
-          onClick={() => setShowGroupModal(false)}
-          style={{ padding: "8px 20px", fontWeight: "500", borderRadius: "8px", background: "#f8f9fa", border: "none" }}
-        >
-          Cancel
-        </button>
-        <button 
-          className="btn btn-primary" 
-          onClick={createGroup}
-          disabled={!groupName.trim() || selectedContactsForGroup.length === 0}
-          style={{ padding: "8px 24px", fontWeight: "500", borderRadius: "8px" }}
-        >
-          Create Group
-        </button>
-      </div>
-    </div>
-  </div>
+     {showGroupModal && (
+  <GroupModal
+    contacts={contacts}
+    tags={tags}
+    onClose={() => { setShowGroupModal(false); setGroupName(""); setSelectedContactsForGroup([]); }}
+    onCreate={createGroup}
+    groupName={groupName}
+    setGroupName={setGroupName}
+    selectedContacts={selectedContactsForGroup}
+    setSelectedContacts={setSelectedContactsForGroup}
+  />
 )}
 
 
@@ -2364,6 +2413,177 @@ onClick={() => {
         </div>
       )}
 
+{/* ── Chat item dropdown portal ── */}
+{chatDropdown.open && createPortal(
+  <>
+    <div onClick={closeChatDropdown} style={{ position: "fixed", inset: 0, zIndex: 9998 }} />
+    <div style={{
+      position: "fixed", top: chatDropdown.y, left: chatDropdown.x,
+      zIndex: 9999, background: "#fff", borderRadius: 10,
+      boxShadow: "0 6px 24px rgba(0,0,0,0.14)", border: "1px solid #e9edef",
+      minWidth: 192, overflow: "hidden",
+    }}>
+      {[
+        {
+  label: "Clear chat",
+  icon: "🗑",
+  onClick: () => {
+    setClearTargetId(chatDropdown.chat._id);
+    setShowClearConfirmModal(true);
+    closeChatDropdown();
+  },
+},
+        {
+          label: chatDropdown.chat?.pinned ? "Unpin chat" : "Pin chat",
+          icon: "📌",
+          onClick: () => handlePinChat(chatDropdown.chat._id),
+        },
+        {
+          label: chatDropdown.chat?.isGroup ? "Delete group" : "Delete chat",
+          icon: "✕",
+          danger: true,
+          onClick: () => openDeleteConfirm(chatDropdown.chat, !!chatDropdown.chat?.isGroup),
+        },
+      ].map((item, i) => (
+        <button
+          key={i}
+          onClick={item.onClick}
+          style={{
+            width: "100%", padding: "11px 16px", border: "none",
+            background: "transparent", display: "flex", alignItems: "center", gap: 12,
+            fontSize: "0.88rem", color: item.danger ? "#dc3545" : "#111b21",
+            cursor: "pointer", textAlign: "left",
+            borderBottom: i < 2 ? "1px solid #f0f2f5" : "none",
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = "#f5f6f6"}
+          onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+        >
+          <span style={{ fontSize: 14 }}>{item.icon}</span>
+          {item.label}
+        </button>
+      ))}
+    </div>
+  </>,
+  document.body
+)}
+
+{/* ── Delete confirm modal ── */}
+{showDeleteConfirmModal && deleteTarget && (
+  <div
+    onClick={() => setShowDeleteConfirmModal(false)}
+    style={{
+      position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)",
+      display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10000,
+    }}
+  >
+    <div
+      onClick={e => e.stopPropagation()}
+      style={{
+        background: "#fff", borderRadius: 14, width: 320, padding: "24px 20px",
+        boxShadow: "0 12px 40px rgba(0,0,0,0.18)",
+      }}
+    >
+      <div style={{ fontWeight: 600, fontSize: "1rem", color: "#111b21", marginBottom: 6 }}>
+        {deleteTarget.isGroup ? "Delete group?" : "Delete chat?"}
+      </div>
+      <div style={{ fontSize: "0.85rem", color: "#667781", marginBottom: 20 }}>
+        This will remove the {deleteTarget.isGroup ? "group" : "chat"} from your list.
+        If someone messages you again, it will reappear.
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <button
+          onClick={async () => {
+            deleteTarget.isGroup
+              ? await handleDeleteGroup(deleteTarget.chatId)
+              : await handleDeleteChat(deleteTarget.chatId);
+            setShowDeleteConfirmModal(false);
+          }}
+          style={{
+            padding: "10px 16px", borderRadius: 8, fontSize: "0.88rem",
+            border: "1px solid #e9edef", background: "#f8f9fa",
+            color: "#dc3545", cursor: "pointer", textAlign: "left", fontWeight: 500,
+          }}
+        >
+          🙈 Delete for me
+          <div style={{ fontSize: "0.75rem", color: "#667781", marginTop: 2 }}>
+            Removes from your view only
+          </div>
+        </button>
+
+        <button
+          onClick={() => setShowDeleteConfirmModal(false)}
+          style={{
+            padding: "9px 16px", borderRadius: 8, fontSize: "0.88rem",
+            border: "1px solid #e9edef", background: "transparent",
+            color: "#667781", cursor: "pointer",
+          }}
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+{showClearConfirmModal && clearTargetId && (
+  <div
+    onClick={() => setShowClearConfirmModal(false)}
+    style={{
+      position: "fixed", inset: 0,
+      background: "rgba(0,0,0,0.5)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      zIndex: 10000,
+    }}
+  >
+    <div
+      onClick={e => e.stopPropagation()}
+      style={{
+        background: "#fff", borderRadius: 14, width: 320,
+        padding: "24px 20px",
+        boxShadow: "0 12px 40px rgba(0,0,0,0.18)",
+      }}
+    >
+      <div style={{ fontWeight: 600, fontSize: "1rem", color: "#111b21", marginBottom: 6 }}>
+        Clear chat?
+      </div>
+      <div style={{ fontSize: "0.85rem", color: "#667781", marginBottom: 20 }}>
+        All messages will be removed from your view. This cannot be undone.
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <button
+          onClick={async () => {
+            await handleClearChat(clearTargetId);
+            setShowClearConfirmModal(false);
+            setClearTargetId(null);
+          }}
+          style={{
+            padding: "10px 16px", borderRadius: 8,
+            border: "none", background: "#dc3545",
+            color: "#fff", cursor: "pointer",
+            fontSize: "0.88rem", fontWeight: 500,
+          }}
+        >
+          🗑 Yes, clear chat
+        </button>
+        <button
+          onClick={() => {
+            setShowClearConfirmModal(false);
+            setClearTargetId(null);
+          }}
+          style={{
+            padding: "9px 16px", borderRadius: 8,
+            border: "1px solid #e9edef", background: "transparent",
+            color: "#667781", cursor: "pointer", fontSize: "0.88rem",
+          }}
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+)}
     </>
   );
 }
@@ -3239,6 +3459,8 @@ function MessageMeta({ msg, inline = false }) {
               <FiCheck size={12} />
             </span>
           )}
+
+          
         </>
       )}
     </div>
@@ -3269,6 +3491,337 @@ function DetailCard({ icon, title, items = [], customContent }) {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function GroupModal({ contacts, tags, onClose, onCreate, groupName, setGroupName, selectedContacts, setSelectedContacts }) {
+  const [filter, setFilter] = useState("all");
+  const [tagFilter, setTagFilter] = useState("");
+  const [search, setSearch] = useState("");
+
+  const AVATAR_RAMPS = [
+    ["#E6F1FB", "#185FA5"], ["#E1F5EE", "#0F6E56"],
+    ["#FAEEDA", "#854F0B"], ["#EEEDFE", "#534AB7"], ["#FAECE7", "#993C1D"],
+  ];
+  const avatarColors = (name) => AVATAR_RAMPS[name.charCodeAt(0) % AVATAR_RAMPS.length];
+
+  const filteredContacts = useMemo(() => {
+  const q = search.toLowerCase();
+  return contacts.filter((c) => {
+    if (filter === "users" && c.role !== "user") return false;
+    if (filter === "managers" && c.role !== "manager") return false;
+    if (filter === "tag" && tagFilter) {
+  const hasTag = c.tags?.some(t => String(t._id) === String(tagFilter));
+  if (!hasTag) return false;
+}
+    if (q && !c.name?.toLowerCase().includes(q) && !c.mobile?.includes(q)) return false;
+
+    console.log("contact sample:", JSON.stringify(contacts[0], null, 2));
+console.log("tag sample:", JSON.stringify(tags[0], null, 2));
+    return true;
+  });
+  
+}, [contacts, filter, tagFilter, search, tags]);
+
+  const toggle = (contact) => {
+    const exists = selectedContacts.some((c) => c.mobile === contact.mobile);
+    setSelectedContacts(exists
+      ? selectedContacts.filter((c) => c.mobile !== contact.mobile)
+      : [...selectedContacts, contact]
+    );
+  };
+
+  const isSelected = (contact) => selectedContacts.some((c) => c.mobile === contact.mobile);
+  const canCreate = groupName.trim().length > 0 && selectedContacts.length > 0;
+  const step = canCreate ? 2 : 1;
+
+  const FILTER_TABS = [
+    { id: "all", label: "All" },
+    { id: "users", label: "Users" },
+    { id: "managers", label: "Managers" },
+    { id: "tag", label: "By Tag" },
+  ];
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed", inset: 0,
+        background: "rgba(0,0,0,0.45)",
+        backdropFilter: "blur(4px)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        zIndex: 1000, padding: 20,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: "#ffffff", borderRadius: 16,
+          width: "100%", maxWidth: 460,
+          maxHeight: "90vh", display: "flex", flexDirection: "column",
+          overflow: "hidden", boxShadow: "0 12px 40px rgba(0,0,0,0.18)",
+        }}
+      >
+        {/* ── HEADER ── */}
+        <div style={{ padding: "18px 20px 0", flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: "1rem", color: "#111b21" }}>Create new group</div>
+              <div style={{ fontSize: "0.75rem", color: "#667781", marginTop: 2 }}>
+                Step {step} of 2 — {step === 1 ? "Name your group" : "Add members"}
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              <div style={{ width: 24, height: 4, borderRadius: 2, background: "#00a884" }} />
+              <div style={{ width: 24, height: 4, borderRadius: 2, background: step === 2 ? "#00a884" : "#e9edef" }} />
+              <button
+                onClick={onClose}
+                style={{ marginLeft: 8, background: "none", border: "none", cursor: "pointer", color: "#667781", display: "flex", alignItems: "center" }}
+              >
+                <FiX size={18} />
+              </button>
+            </div>
+          </div>
+
+          {/* Group name */}
+          <input
+            type="text"
+            placeholder="Group name (e.g. Weekend Plan 🌴)"
+            value={groupName}
+            onChange={(e) => setGroupName(e.target.value)}
+            style={{
+              width: "100%", boxSizing: "border-box",
+              padding: "10px 14px", borderRadius: 10,
+              border: "1px solid #e9edef",
+              background: "#f0f2f5", fontSize: "0.93rem",
+              color: "#111b21", outline: "none", marginBottom: 12,
+            }}
+          />
+
+          {/* Selected chips */}
+          {selectedContacts.length > 0 && (
+            <div
+              style={{
+                display: "flex", flexWrap: "wrap", gap: 6,
+                marginBottom: 12, maxHeight: 80, overflowY: "auto",
+              }}
+            >
+              {selectedContacts.map((c) => {
+                const [bg, fg] = avatarColors(c.name || "?");
+                return (
+                  <span
+                    key={c.mobile}
+                    onClick={() => toggle(c)}
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: 5,
+                      padding: "4px 8px 4px 6px", borderRadius: 99,
+                      background: bg, color: fg,
+                      fontSize: "0.78rem", cursor: "pointer", fontWeight: 500,
+                    }}
+                  >
+                    <span style={{
+                      width: 20, height: 20, borderRadius: "50%",
+                      background: fg, color: bg,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: "0.68rem", fontWeight: 700, flexShrink: 0,
+                    }}>
+                      {c.name?.charAt(0) || "?"}
+                    </span>
+                    {c.name?.split(" ")[0]}
+                    <FiX size={11} style={{ opacity: 0.7 }} />
+                  </span>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Filter tabs */}
+          <div style={{ display: "flex", borderBottom: "1px solid #e9edef", margin: "0 -20px", padding: "0 20px" }}>
+            {FILTER_TABS.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => { setFilter(tab.id); setTagFilter(""); }}
+                style={{
+                  border: "none", background: "transparent",
+                  padding: "8px 14px", fontSize: "0.8rem", cursor: "pointer",
+                  color: filter === tab.id ? "#00a884" : "#667781",
+                  fontWeight: filter === tab.id ? 600 : 400,
+                  borderBottom: filter === tab.id ? "2px solid #00a884" : "2px solid transparent",
+                  marginBottom: -1, whiteSpace: "nowrap",
+                }}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Tag dropdown */}
+          {filter === "tag" && (
+            <div style={{ padding: "10px 0 4px" }}>
+              <select
+                value={tagFilter}
+                onChange={(e) => setTagFilter(e.target.value)}
+                style={{
+                  width: "100%", padding: "8px 12px", borderRadius: 8,
+                  border: "1px solid #e9edef", fontSize: "0.85rem",
+                  background: "#f0f2f5", color: "#111b21", outline: "none",
+                }}
+              >
+                <option value="">All tags</option>
+                {tags.map((t) => (
+                  <option key={t._id} value={t._id}>{t.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Search */}
+          <div style={{ position: "relative", margin: "10px 0 6px" }}>
+            <FiSearch
+              size={14}
+              color="#667781"
+              style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}
+            />
+            <input
+              type="text"
+              placeholder="Search contacts…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{
+                width: "100%", boxSizing: "border-box",
+                padding: "8px 12px 8px 32px", borderRadius: 8,
+                border: "1px solid #e9edef", background: "#f0f2f5",
+                fontSize: "0.85rem", color: "#111b21", outline: "none",
+              }}
+            />
+          </div>
+        </div>
+
+        {/* ── CONTACT LIST ── */}
+        <div style={{ flex: 1, overflowY: "auto", padding: "4px 20px 0" }}>
+          {filteredContacts.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "28px 0", color: "#667781", fontSize: "0.88rem" }}>
+              No contacts found
+            </div>
+          ) : (
+            filteredContacts.map((contact) => {
+              const selected = isSelected(contact);
+              const [bg, fg] = avatarColors(contact.name || "?");
+              return (
+                <div
+                  key={contact._id || contact.mobile}
+                  onClick={() => toggle(contact)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 12,
+                    padding: "10px 0",
+                    borderBottom: "0.5px solid #f0f2f5",
+                    cursor: "pointer",
+                    background: selected ? "#f0faf7" : "transparent",
+                    borderRadius: selected ? 8 : 0,
+                    padding: selected ? "10px 8px" : "10px 0",
+                    margin: selected ? "0 -8px" : 0,
+                    transition: "background 0.15s",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 40, height: 40, borderRadius: "50%",
+                      background: bg, color: fg,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: "0.9rem", fontWeight: 600, flexShrink: 0,
+                    }}
+                  >
+                    {contact.name?.charAt(0) || "?"}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: "0.93rem", fontWeight: 500, color: "#111b21", marginBottom: 2 }}>
+                      {contact.name}
+                    </div>
+                    <div style={{ fontSize: "0.78rem", color: "#667781" }}>
+                      {contact.mobile}
+                      {contact.role && (
+                        <span style={{
+                          marginLeft: 6, padding: "1px 7px", borderRadius: 99,
+                          background: contact.role === "manager" ? "#fff3cd" : "#e9edef",
+                          color: contact.role === "manager" ? "#856404" : "#54656f",
+                          fontSize: "0.7rem", fontWeight: 500,
+                        }}>
+                          {contact.role}
+                        </span>
+                      )}
+                      {contact.tag && tags.find(t => t._id === contact.tag) && (
+                        <span style={{
+                          marginLeft: 4, padding: "1px 7px", borderRadius: 99,
+                          background: "#d9fdd3", color: "#005c4b",
+                          fontSize: "0.7rem", fontWeight: 500,
+                        }}>
+                          {tags.find(t => t._id === contact.tag)?.name}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {/* Custom circular checkbox */}
+                  <div
+                    style={{
+                      width: 22, height: 22, borderRadius: "50%", flexShrink: 0,
+                      border: selected ? "none" : "1.5px solid #ccc",
+                      background: selected ? "#00a884" : "transparent",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    {selected && <FiCheck size={12} color="#fff" strokeWidth={3} />}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* ── FOOTER ── */}
+        <div
+          style={{
+            padding: "14px 20px",
+            borderTop: "0.5px solid #e9edef",
+            flexShrink: 0, display: "flex",
+            alignItems: "center", justifyContent: "space-between",
+            background: "#fafafa",
+          }}
+        >
+          <span style={{ fontSize: "0.82rem", color: "#667781" }}>
+            {selectedContacts.length > 0
+              ? `${selectedContacts.length} member${selectedContacts.length > 1 ? "s" : ""} selected`
+              : "No members selected"}
+          </span>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              onClick={() => setSelectedContacts([])}
+              style={{
+                padding: "8px 16px", borderRadius: 8, fontSize: "0.85rem",
+                border: "1px solid #e9edef", background: "transparent",
+                color: "#667781", cursor: "pointer",
+              }}
+            >
+              Clear
+            </button>
+            <button
+              onClick={onCreate}
+              disabled={!canCreate}
+              style={{
+                padding: "8px 22px", borderRadius: 8, fontSize: "0.85rem",
+                border: "none",
+                background: canCreate ? "#00a884" : "#e9edef",
+                color: canCreate ? "#fff" : "#aaa",
+                cursor: canCreate ? "pointer" : "not-allowed",
+                transition: "background 0.2s",
+              }}
+            >
+              Create group
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

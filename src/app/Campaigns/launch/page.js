@@ -233,9 +233,26 @@ export default function LaunchCampaignPage() {
   const handleChange = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
   const handleRecurrenceChange = (field, value) => setForm((prev) => ({ ...prev, recurrence: { ...prev.recurrence, [field]: value } }));
 
-  const toggleTagSelection = (tagId) => setSelectedTagIds((prev) => prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]);
-  const toggleContactSelection = (id) => setSelectedContactIds((prev) => prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]);
-  const toggleGroupSelection = (id) => setSelectedGroupIds((prev) => prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]);
+  const toggleTagSelection = (tagId) => {
+  const strId = String(tagId);
+  setSelectedTagIds((prev) =>
+    prev.includes(strId) ? prev.filter((id) => id !== strId) : [...prev, strId]
+  );
+};
+ const toggleContactSelection = (id) => {
+  const strId = String(id);
+  setSelectedContactIds((prev) =>
+    prev.includes(strId) ? prev.filter((i) => i !== strId) : [...prev, strId]
+  );
+};
+  const toggleGroupSelection = (id) => {
+  const strId = String(id);
+  setSelectedGroupIds((prev) =>
+    prev.includes(strId)
+      ? prev.filter((i) => i !== strId)
+      : [...prev, strId]
+  );
+};
 
   const handleNext = async () => {
     if (processing) return;
@@ -509,7 +526,8 @@ export default function LaunchCampaignPage() {
                       {form.audienceType === "tags" && (
                         <div className="d-flex flex-wrap gap-2">
                           {tags.filter((t) => t.name?.toLowerCase().includes(audienceSearch.toLowerCase())).map((tag) => (
-                            <div key={tag._id} className={`tag-checkbox ${selectedTagIds.includes(tag._id) ? "selected" : ""}`} onClick={() => toggleTagSelection(tag._id)}>{tag.name}</div>
+                            <div key={tag._id} className={`tag-checkbox ${selectedTagIds.includes(String(tag._id)) ? "selected" : ""}`}
+onClick={() => toggleTagSelection(String(tag._id))}>{tag.name}</div>
                           ))}
                           {tags.length === 0 && <div className="text-secondary small">No tags found.</div>}
                         </div>
@@ -518,7 +536,8 @@ export default function LaunchCampaignPage() {
                       {form.audienceType === "contact" && (
                         <div className="d-flex flex-column gap-2 audience-scroll">
                           {contacts.filter((c) => (c.name || c.mobile || "").toLowerCase().includes(audienceSearch.toLowerCase())).map((contact) => (
-                            <div key={contact._id} className={`contact-row ${selectedContactIds.includes(contact._id) ? "selected" : ""}`} onClick={() => toggleContactSelection(contact._id)}>
+                            <div key={contact._id} className={`contact-row ${selectedContactIds.includes(String(contact._id)) ? "selected" : ""}`}
+onClick={() => toggleContactSelection(String(contact._id))}>
                               <div style={{ width: 32, height: 32, borderRadius: "50%", background: "rgba(15,95,100,0.12)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13, color: "#0f5f64", flexShrink: 0 }}>
                                 {(contact.name || "?").charAt(0).toUpperCase()}
                               </div>
@@ -536,7 +555,8 @@ export default function LaunchCampaignPage() {
                       {form.audienceType === "group" && (
                         <div className="d-flex flex-wrap gap-2">
                           {groups.filter((g) => (g.groupName || g.name || "").toLowerCase().includes(audienceSearch.toLowerCase())).map((group) => (
-                            <div key={group._id} className={`tag-checkbox ${selectedGroupIds.includes(group._id) ? "selected" : ""}`} onClick={() => toggleGroupSelection(group._id)}>
+                            <div key={group._id} className={`tag-checkbox ${selectedGroupIds.includes(String(group._id)) ? "selected" : ""}`}
+onClick={() => toggleGroupSelection(String(group._id))}>
                               {group.groupName || group.name}
                             </div>
                           ))}
