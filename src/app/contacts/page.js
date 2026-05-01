@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { FiTrash2, FiEdit2, FiCheck, FiX, FiUsers, FiArrowLeft } from "react-icons/fi";
+import { FiTrash2, FiEdit2 } from "react-icons/fi";
 import API from "../utils/api";
 
 // ── StatusBadge ──────────────────────────────────────────────────────────
@@ -31,7 +31,7 @@ function TagBadge({ label }) {
 
 // ── AddContactModal ───────────────────────────────────────────────────────
 function AddContactModal({ onClose, onAdd, availableTags, isSuperAdmin }) {
-  const [form, setForm] = useState({ name: "", mobile: "", tagId: "", source: "MANUAL", role: "user" });
+  const [form, setForm] = useState({ name: "", mobile: "", email: "", tagId: "", source: "MANUAL", role: "user" });
   const [error, setError] = useState("");
 
   const handle = (key) => (e) => setForm((prev) => ({ ...prev, [key]: e.target.value }));
@@ -40,8 +40,16 @@ function AddContactModal({ onClose, onAdd, availableTags, isSuperAdmin }) {
     const cleanMobile = form.mobile.replace(/\s/g, "").trim();
     if (!cleanMobile) return setError("Mobile number is required.");
     if (!/^\d{10,15}$/.test(cleanMobile)) return setError("Enter a valid mobile number (10–15 digits).");
+    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) return setError("Enter a valid email address.");
     setError("");
-    onAdd({ name: form.name.trim() || "UNKNOWN", mobile: cleanMobile, tags: form.tagId ? [form.tagId] : [], source: form.source, role: form.role });
+    onAdd({
+      name: form.name.trim() || "UNKNOWN",
+      mobile: cleanMobile,
+      email: form.email.trim() || null,  // ✅
+      tags: form.tagId ? [form.tagId] : [],
+      source: form.source,
+      role: form.role,
+    });
     onClose();
   };
 
@@ -52,6 +60,7 @@ function AddContactModal({ onClose, onAdd, availableTags, isSuperAdmin }) {
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#1a2233" }}>Add Contact</h2>
           <button onClick={onClose} style={closeBtn}>✕</button>
         </div>
+
         {error && <p style={{ color: "#e74c3c", fontSize: 13, marginBottom: 12, background: "#fdf0f0", padding: "8px 12px", borderRadius: 6 }}>{error}</p>}
 
         {!isSuperAdmin && (
@@ -68,6 +77,26 @@ function AddContactModal({ onClose, onAdd, availableTags, isSuperAdmin }) {
           <label style={labelStyle}>Mobile Number *</label>
           <input value={form.mobile} onChange={handle("mobile")} placeholder="e.g. 919876543210" style={inputStyle} />
         </div>
+
+        {/* ✅ Email field — shown to all but marked optional */}
+        <div style={{ marginBottom: 14 }}>
+          <label style={labelStyle}>
+            Email Address
+            {isSuperAdmin && (
+              <span style={{ fontWeight: 400, color: "#6b7280", marginLeft: 6, fontSize: 12 }}>
+                (required for OTP login)
+              </span>
+            )}
+          </label>
+          <input
+            value={form.email}
+            onChange={handle("email")}
+            placeholder="e.g. john@example.com"
+            type="email"
+            style={inputStyle}
+          />
+        </div>
+
         <div style={{ marginBottom: 14 }}>
           <label style={labelStyle}>Tag</label>
           <select value={form.tagId} onChange={handle("tagId")} style={inputStyle}>
@@ -95,6 +124,7 @@ function AddContactModal({ onClose, onAdd, availableTags, isSuperAdmin }) {
             </select>
           </div>
         )}
+
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
           <button onClick={onClose} style={secondaryBtn}>Cancel</button>
           <button onClick={submit} style={primaryBtn}>Add Contact</button>
@@ -109,6 +139,7 @@ function EditContactModal({ contact, onClose, onUpdate, availableTags, isSuperAd
   const [form, setForm] = useState({
     name: contact.name || "",
     mobile: contact.mobile || "",
+    email: contact.email || "",   // ✅
     tagId: contact.tags && contact.tags.length > 0 ? contact.tags[0]._id : "",
     source: contact.source || "MANUAL",
   });
@@ -119,8 +150,15 @@ function EditContactModal({ contact, onClose, onUpdate, availableTags, isSuperAd
     const cleanMobile = form.mobile.replace(/\s/g, "").trim();
     if (!cleanMobile) return setError("Mobile number is required.");
     if (!/^\d{10,15}$/.test(cleanMobile)) return setError("Enter a valid mobile number (10–15 digits).");
+    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) return setError("Enter a valid email address.");
     setError("");
-    onUpdate(contact._id, { name: form.name.trim() || "UNKNOWN", mobile: cleanMobile, tags: form.tagId ? [form.tagId] : [], source: form.source });
+    onUpdate(contact._id, {
+      name: form.name.trim() || "UNKNOWN",
+      mobile: cleanMobile,
+      email: form.email.trim() || null,  // ✅
+      tags: form.tagId ? [form.tagId] : [],
+      source: form.source,
+    });
     onClose();
   };
 
@@ -131,6 +169,7 @@ function EditContactModal({ contact, onClose, onUpdate, availableTags, isSuperAd
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#1a2233" }}>Edit Contact</h2>
           <button onClick={onClose} style={closeBtn}>✕</button>
         </div>
+
         {error && <p style={{ color: "#e74c3c", fontSize: 13, marginBottom: 12, background: "#fdf0f0", padding: "8px 12px", borderRadius: 6 }}>{error}</p>}
 
         {!isSuperAdmin && (
@@ -147,6 +186,26 @@ function EditContactModal({ contact, onClose, onUpdate, availableTags, isSuperAd
           <label style={labelStyle}>Mobile Number *</label>
           <input value={form.mobile} onChange={handle("mobile")} placeholder="e.g. 919876543210" style={inputStyle} />
         </div>
+
+        {/* ✅ Email field */}
+        <div style={{ marginBottom: 14 }}>
+          <label style={labelStyle}>
+            Email Address
+            {isSuperAdmin && (
+              <span style={{ fontWeight: 400, color: "#6b7280", marginLeft: 6, fontSize: 12 }}>
+                (required for OTP login)
+              </span>
+            )}
+          </label>
+          <input
+            value={form.email}
+            onChange={handle("email")}
+            placeholder="e.g. john@example.com"
+            type="email"
+            style={inputStyle}
+          />
+        </div>
+
         <div style={{ marginBottom: 14 }}>
           <label style={labelStyle}>Tag</label>
           <select value={form.tagId} onChange={handle("tagId")} style={inputStyle}>
@@ -164,6 +223,7 @@ function EditContactModal({ contact, onClose, onUpdate, availableTags, isSuperAd
             <option value="MANUAL">MANUAL</option>
           </select>
         </div>
+
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
           <button onClick={onClose} style={secondaryBtn}>Cancel</button>
           <button onClick={submit} style={primaryBtn}>Update Contact</button>
@@ -174,7 +234,7 @@ function EditContactModal({ contact, onClose, onUpdate, availableTags, isSuperAd
 }
 
 // ── ManagerCard ───────────────────────────────────────────────────────────
-function ManagerCard({ manager, onClick, contactCount }) {
+function ManagerCard({ manager, onClick }) {
   return (
     <div onClick={onClick} style={{ background: "#fff", borderRadius: 12, padding: "18px 20px", boxShadow: "0 1px 4px rgba(0,0,0,0.08)", cursor: "pointer", border: "1.5px solid #e5e7eb", transition: "border-color 0.2s" }}
       onMouseEnter={(e) => e.currentTarget.style.borderColor = "#0d9488"}
@@ -187,10 +247,6 @@ function ManagerCard({ manager, onClick, contactCount }) {
         <div>
           <div style={{ fontWeight: 700, color: "#1a2233", fontSize: 15 }}>{manager.name || "Unknown"}</div>
           <div style={{ fontSize: 12, color: "#6b7280" }}>{manager.phone}</div>
-        </div>
-        <div style={{ marginLeft: "auto", textAlign: "right" }}>
-          <div style={{ fontSize: 20, fontWeight: 700, color: "#0d9488" }}>{contactCount ?? "—"}</div>
-          <div style={{ fontSize: 11, color: "#9ca3af" }}>contacts</div>
         </div>
       </div>
     </div>
@@ -213,20 +269,16 @@ export default function ContactsPage() {
   const [filterTagId, setFilterTagId] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // ✅ Admin view states
-  const [adminView, setAdminView] = useState("all"); // "managers" | "all" | "pending"
-  const [selectedManager, setSelectedManager] = useState(null); // manager object
-
+  const [adminView, setAdminView] = useState("all");
+  const [selectedManager, setSelectedManager] = useState(null);
   const [userRole, setUserRole] = useState("");
   const PER_PAGE = 25;
 
-  // 📱 Mobile detection
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     const role = localStorage.getItem("role");
     setUserRole(role || "");
-
     const check = () => setIsMobile(window.innerWidth <= 820);
     check();
     window.addEventListener("resize", check);
@@ -237,34 +289,29 @@ export default function ContactsPage() {
   const isManager = userRole === "manager";
   const isManagerOrAbove = isSuperAdmin || isManager;
 
-  // ── Fetch contacts based on role and view ──
   const fetchContacts = async () => {
-  try {
-    let url = "/contacts";
-    if (isSuperAdmin) {
-      if (adminView === "all") url = "/contacts";
-      else if (adminView === "manager" && selectedManager) url = `/contacts?managerId=${selectedManager._id}`;
-      else if (adminView === "pending") url = "/contacts/pending";
-      else return;
+    try {
+      let url = "/contacts";
+      if (isSuperAdmin) {
+        if (adminView === "all") url = "/contacts";
+        else if (adminView === "manager" && selectedManager) url = `/contacts?managerId=${selectedManager._id}`;
+        else if (adminView === "pending") url = "/contacts/pending";
+        else return;
+      }
+      if (filterTagId) url += (url.includes("?") ? "&" : "?") + `tag=${filterTagId}`;
+      const res = await API.get(url);
+      if (adminView === "pending") {
+        setPendingContacts(res.data);
+      } else {
+        const data = Array.isArray(res.data) ? res.data : res.data.contacts || [];
+        setContacts(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch contacts:", err);
+    } finally {
+      setLoading(false);
     }
-    // ✅ manager and user: /contacts already returns all approved contacts (backend fixed)
-
-    if (filterTagId) url += (url.includes("?") ? "&" : "?") + `tag=${filterTagId}`;
-    const res = await API.get(url);
-
-    if (adminView === "pending") {
-      setPendingContacts(res.data);
-    } else {
-      // ✅ handle both array and {contacts: []} response shapes
-      const data = Array.isArray(res.data) ? res.data : res.data.contacts || [];
-      setContacts(data);
-    }
-  } catch (err) {
-    console.error("Failed to fetch contacts:", err);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const fetchManagers = async () => {
     try {
@@ -288,30 +335,25 @@ export default function ContactsPage() {
   useEffect(() => { if (userRole) { fetchTags(); if (isSuperAdmin) fetchManagers(); } }, [userRole]);
   useEffect(() => { if (userRole) { setLoading(true); fetchContacts(); } }, [filterTagId, adminView, selectedManager, userRole]);
 
- const addContact = async (contact) => {
-  try {
-    const res = await API.post("/contacts", contact);
-    if (res.data.status === "pending") {
-      alert("✅ Contact submitted! Waiting for admin approval.");
-    } else {
-      alert("✅ Contact added successfully!");
+  const addContact = async (contact) => {
+    try {
+      const res = await API.post("/contacts", contact);
+      if (res.data.status === "pending") {
+        alert("✅ Contact submitted! Waiting for admin approval.");
+      } else {
+        alert("✅ Contact added successfully!");
+      }
+      setContacts((prev) => [res.data, ...prev]);
+    } catch (err) {
+      alert(err.response?.data?.error || "Failed to create contact");
     }
-    // ✅ Add to table regardless of status
-    setContacts((prev) => [res.data, ...prev]);
-  } catch (err) {
-    alert(err.response?.data?.error || "Failed to create contact");
-  }
-};
+  };
 
   const updateContact = async (id, updatedData) => {
     try {
       const res = await API.put(`/contacts/${id}`, updatedData);
-      if (res.data.status === "pending") {
-        alert("✅ Edit submitted! Waiting for admin approval.");
-        setContacts((prev) => prev.map((c) => (c._id === id ? res.data : c)));
-      } else {
-        setContacts((prev) => prev.map((c) => (c._id === id ? res.data : c)));
-      }
+      setContacts((prev) => prev.map((c) => (c._id === id ? res.data : c)));
+      if (res.data.status === "pending") alert("✅ Edit submitted! Waiting for admin approval.");
     } catch (err) {
       alert(err.response?.data?.error || "Failed to update contact");
     }
@@ -319,22 +361,17 @@ export default function ContactsPage() {
 
   const approveContact = async (id) => {
     try {
-      const res = await API.put(`/contacts/${id}/approve`);
+      await API.put(`/contacts/${id}/approve`);
       setPendingContacts((prev) => prev.filter((c) => c._id !== id));
       alert("✅ Contact approved!");
-    } catch (err) {
-      alert("Failed to approve");
-    }
+    } catch (err) { alert("Failed to approve"); }
   };
 
   const rejectContact = async (id) => {
     try {
       await API.put(`/contacts/${id}/reject`);
       setPendingContacts((prev) => prev.filter((c) => c._id !== id));
-      alert("❌ Contact rejected.");
-    } catch (err) {
-      alert("Failed to reject");
-    }
+    } catch (err) { alert("Failed to reject"); }
   };
 
   const deleteSingleContact = async (contactId, contactName) => {
@@ -342,25 +379,18 @@ export default function ContactsPage() {
     try {
       await API.delete(`/contacts/${contactId}`);
       setContacts((prev) => prev.filter((c) => c._id !== contactId));
-      const newSelected = new Set(selected);
-      newSelected.delete(contactId);
-      setSelected(newSelected);
-    } catch (err) {
-      alert("Failed to delete contact");
-    }
+      const next = new Set(selected); next.delete(contactId); setSelected(next);
+    } catch (err) { alert("Failed to delete contact"); }
   };
 
   const deleteSelected = async () => {
-    const idsToDelete = Array.from(selected);
-    if (!idsToDelete.length) return;
-    if (!confirm(`Delete ${idsToDelete.length} contact(s)?`)) return;
+    const ids = Array.from(selected);
+    if (!ids.length || !confirm(`Delete ${ids.length} contact(s)?`)) return;
     try {
-      await Promise.all(idsToDelete.map((id) => API.delete(`/contacts/${id}`)));
+      await Promise.all(ids.map((id) => API.delete(`/contacts/${id}`)));
       setContacts((prev) => prev.filter((c) => !selected.has(c._id)));
       setSelected(new Set());
-    } catch (err) {
-      alert("Error deleting selected contacts");
-    }
+    } catch (err) { alert("Error deleting selected contacts"); }
   };
 
   const getTagName = (tag) => {
@@ -369,10 +399,11 @@ export default function ContactsPage() {
   };
 
   const filtered = contacts.filter((c) => {
-    const tagNames = (c.tags || []).map((tag) => getTagName(tag)).join(" ");
+    const tagNames = (c.tags || []).map(getTagName).join(" ");
     return (
       c.name?.toLowerCase().includes(search.toLowerCase()) ||
       c.mobile?.includes(search) ||
+      c.email?.toLowerCase().includes(search.toLowerCase()) ||   // ✅ search by email too
       tagNames.toLowerCase().includes(search.toLowerCase())
     );
   });
@@ -386,38 +417,24 @@ export default function ContactsPage() {
     if (selected.size === paged.length && paged.length > 0) setSelected(new Set());
     else setSelected(new Set(paged.map((c) => c._id)));
   };
-
   const toggleOne = (id) => {
     const next = new Set(selected);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
+    if (next.has(id)) next.delete(id); else next.add(id);
     setSelected(next);
   };
 
-  // ── Responsive style creators ──
   const pageWrapStyle = (mobile) => ({
-    width: "100%", height: "100%", minHeight: 0,
-    background: "#f3f4f6",
+    width: "100%", height: "100%", minHeight: 0, background: "#f3f4f6",
     padding: mobile ? "16px 12px" : "28px 32px 20px",
     fontFamily: "'DM Sans', 'Segoe UI', sans-serif",
-    overflow: "hidden",
-    boxSizing: "border-box",
+    overflow: "hidden", boxSizing: "border-box",
   });
 
   const toolbarWrapStyle = (mobile) => ({
-    display: "flex",
-    flexDirection: mobile ? "column" : "row",
+    display: "flex", flexDirection: mobile ? "column" : "row",
     alignItems: mobile ? "stretch" : "center",
-    gap: 10,
-    marginBottom: 16,
-    flexWrap: mobile ? "nowrap" : "wrap",
-    flexShrink: 0,
-  });
-
-  const searchInputStyle = (mobile) => ({
-    ...inputStyle,
-    width: mobile ? "100%" : 260,
-    paddingLeft: 36,
+    gap: 10, marginBottom: 16,
+    flexWrap: mobile ? "nowrap" : "wrap", flexShrink: 0,
   });
 
   if (loading) return <div style={pageWrapStyle(isMobile)}>Loading...</div>;
@@ -430,9 +447,9 @@ export default function ContactsPage() {
       <div style={pageWrapStyle(isMobile)}>
         <div style={contentShell}>
           <div style={{ display: "flex", gap: 10, marginBottom: 20, flexShrink: 0, flexWrap: "wrap" }}>
-            <button onClick={() => setAdminView("managers")} style={{ ...tabBtn, background: "#0d9488", color: "#fff" }}>👥 Managers</button>
+            <button style={{ ...tabBtn, background: "#0d9488", color: "#fff" }}>👥 Managers</button>
             <button onClick={() => { setAdminView("all"); setLoading(true); }} style={tabBtn}>🌐 All Contacts</button>
-            <button onClick={() => { setAdminView("pending"); setLoading(true); }} style={{ ...tabBtn, position: "relative" }}>
+            <button onClick={() => { setAdminView("pending"); setLoading(true); }} style={tabBtn}>
               ⏳ Pending Approvals
               {pendingContacts.length > 0 && (
                 <span style={{ background: "#e74c3c", color: "#fff", borderRadius: "50%", padding: "1px 6px", fontSize: 11, marginLeft: 6 }}>{pendingContacts.length}</span>
@@ -441,13 +458,9 @@ export default function ContactsPage() {
           </div>
           <h2 style={{ margin: "0 0 16px", fontSize: 18, fontWeight: 700, color: "#1a2233" }}>All Managers</h2>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16, overflowY: "auto" }}>
-            {managers.length === 0 && (
-              <p style={{ color: "#9ca3af", fontSize: 14 }}>No managers found. Create one first.</p>
-            )}
+            {managers.length === 0 && <p style={{ color: "#9ca3af", fontSize: 14 }}>No managers found.</p>}
             {managers.map((mgr) => (
-              <ManagerCard
-                key={mgr._id}
-                manager={mgr}
+              <ManagerCard key={mgr._id} manager={mgr}
                 onClick={() => { setSelectedManager(mgr); setAdminView("manager"); setLoading(true); }}
               />
             ))}
@@ -479,6 +492,7 @@ export default function ContactsPage() {
                   <tr style={{ borderBottom: "1px solid #e5e7eb" }}>
                     <th style={stickyTh}>Name</th>
                     <th style={stickyTh}>Mobile</th>
+                    <th style={stickyTh}>Email</th>
                     <th style={stickyTh}>Created By</th>
                     <th style={stickyTh}>Role</th>
                     <th style={stickyTh}>Actions</th>
@@ -486,12 +500,18 @@ export default function ContactsPage() {
                 </thead>
                 <tbody>
                   {pendingContacts.length === 0 && (
-                    <tr><td colSpan={5} style={{ textAlign: "center", padding: "48px 0", color: "#9ca3af" }}>No pending approvals 🎉</td></tr>
+                    <tr><td colSpan={6} style={{ textAlign: "center", padding: "48px 0", color: "#9ca3af" }}>No pending approvals 🎉</td></tr>
                   )}
                   {pendingContacts.map((c) => (
                     <tr key={c._id} style={{ borderBottom: "1px solid #f3f4f6" }}>
                       <td style={td}>{c.name}</td>
                       <td style={td}>{c.mobile}</td>
+                      <td style={td}>
+                        {c.email
+                          ? <a href={`mailto:${c.email}`} style={{ color: "#0d9488", textDecoration: "none", fontSize: 13 }}>{c.email}</a>
+                          : <span style={{ color: "#e74c3c", fontSize: 12, fontWeight: 600 }}>⚠ No email</span>
+                        }
+                      </td>
                       <td style={td}>
                         <div style={{ fontSize: 13 }}>{c.createdBy?.name || "—"}</div>
                         <div style={{ fontSize: 11, color: "#9ca3af" }}>{c.createdBy?.role}</div>
@@ -524,6 +544,7 @@ export default function ContactsPage() {
   return (
     <div style={pageWrapStyle(isMobile)}>
       <div style={contentShell}>
+
         {/* Admin Tabs */}
         {isSuperAdmin && (
           <div style={{ display: "flex", gap: 10, marginBottom: 20, flexShrink: 0, alignItems: "center", flexWrap: "wrap" }}>
@@ -531,9 +552,7 @@ export default function ContactsPage() {
             <button style={{ ...tabBtn, background: "#0d9488", color: "#fff" }}>
               {adminView === "manager" ? `📋 ${selectedManager?.name}'s Contacts` : "🌐 All Contacts"}
             </button>
-            <button onClick={() => { setAdminView("pending"); setLoading(true); }} style={{ ...tabBtn, position: "relative" }}>
-              ⏳ Pending
-            </button>
+            <button onClick={() => { setAdminView("pending"); setLoading(true); }} style={tabBtn}>⏳ Pending</button>
             {adminView === "manager" && (
               <button onClick={() => { setAdminView("managers"); setSelectedManager(null); }} style={{ ...secondaryBtn, marginLeft: isMobile ? 0 : "auto" }}>
                 ← Back to Managers
@@ -542,14 +561,14 @@ export default function ContactsPage() {
           </div>
         )}
 
-        {/* Toolbar – responsive */}
+        {/* Toolbar */}
         <div style={toolbarWrapStyle(isMobile)}>
           <div style={{ position: "relative", width: isMobile ? "100%" : "auto" }}>
             <input
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              placeholder="Search name, mobile, or tag"
-              style={searchInputStyle(isMobile)}
+              placeholder="Search name, mobile, email or tag"
+              style={{ ...inputStyle, width: isMobile ? "100%" : 280, paddingLeft: 36 }}
             />
             <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#9ca3af", fontSize: 15 }}>🔍</span>
           </div>
@@ -572,14 +591,15 @@ export default function ContactsPage() {
           <button onClick={() => router.push("/Tags")} style={{ ...primaryBtn, background: "#fff", color: "#0d9488", border: "1.5px solid #0d9488", width: isMobile ? "100%" : "auto" }}>
             🏷 Add Tag
           </button>
-
-          <button onClick={() => setShowAddModal(true)} style={{ ...primaryBtn, width: isMobile ? "100%" : "auto" }}>+ Add Contact</button>
+          <button onClick={() => setShowAddModal(true)} style={{ ...primaryBtn, width: isMobile ? "100%" : "auto" }}>
+            + Add Contact
+          </button>
         </div>
 
-        {/* Table – responsive */}
+        {/* Table */}
         <div style={tableCard}>
           <div style={tableScroll}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14, minWidth: isMobile ? 600 : 0 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14, minWidth: isMobile ? 700 : 0 }}>
               <thead>
                 <tr style={{ borderBottom: "1px solid #e5e7eb" }}>
                   {isSuperAdmin && (
@@ -589,6 +609,8 @@ export default function ContactsPage() {
                   )}
                   <th style={{ ...stickyTh, textAlign: "left" }}>Name</th>
                   <th style={{ ...stickyTh, textAlign: "left" }}>Mobile</th>
+                  {/* ✅ Email column — super_admin only */}
+                  {isSuperAdmin && <th style={{ ...stickyTh, textAlign: "left" }}>Email</th>}
                   <th style={{ ...stickyTh, textAlign: "left" }}>Tags</th>
                   <th style={{ ...stickyTh, textAlign: "left", whiteSpace: "nowrap" }}>Source</th>
                   <th style={{ ...stickyTh, textAlign: "left" }}>Status</th>
@@ -599,26 +621,27 @@ export default function ContactsPage() {
               <tbody>
                 {paged.length === 0 && (
                   <tr>
-                    <td colSpan={8} style={{ textAlign: "center", padding: "48px 0", color: "#9ca3af", fontSize: 14 }}>
+                    <td colSpan={9} style={{ textAlign: "center", padding: "48px 0", color: "#9ca3af", fontSize: 14 }}>
                       No contacts found. Click "+ Add Contact" to get started.
                     </td>
                   </tr>
                 )}
                 {paged.map((c, i) => (
-                  <tr
-                    key={c._id}
-                    style={{
-                      borderBottom: "1px solid #f3f4f6",
-                      background: selected.has(c._id) ? "#f0fdf4" : (isMobile ? "transparent" : (i % 2 === 0 ? "#fff" : "#fafafa")),
-                    }}
-                  >
+                  <tr key={c._id} style={{ borderBottom: "1px solid #f3f4f6", background: selected.has(c._id) ? "#f0fdf4" : (i % 2 === 0 ? "#fff" : "#fafafa") }}>
                     {isSuperAdmin && (
-                      <td style={td}>
-                        <input type="checkbox" checked={selected.has(c._id)} onChange={() => toggleOne(c._id)} />
-                      </td>
+                      <td style={td}><input type="checkbox" checked={selected.has(c._id)} onChange={() => toggleOne(c._id)} /></td>
                     )}
                     <td style={td}>{c.name}</td>
                     <td style={td}>{c.mobile}</td>
+                    {/* ✅ Email cell — clickable mailto, red warning if missing */}
+                    {isSuperAdmin && (
+                      <td style={td}>
+                        {c.email
+                          ? <a href={`mailto:${c.email}`} style={{ color: "#0d9488", textDecoration: "none", fontSize: 13 }}>{c.email}</a>
+                          : <span style={{ color: "#e74c3c", fontSize: 12, fontWeight: 600 }}>⚠ No email</span>
+                        }
+                      </td>
+                    )}
                     <td style={td}>
                       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                         {c.tags && c.tags.length > 0
